@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacity - Nhà thuốc trực tuyến</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    },
+                    colors: {
+                        background: "var(--background)",
+                        foreground: "var(--foreground)",
+                        card: {
+                            DEFAULT: "var(--card)",
+                            foreground: "var(--card-foreground)",
+                        },
+                        primary: {
+                            DEFAULT: "var(--primary)",
+                            foreground: "var(--primary-foreground)",
+                        },
+                        secondary: {
+                            DEFAULT: "var(--secondary)",
+                            foreground: "var(--secondary-foreground)",
+                        },
+                        muted: {
+                            DEFAULT: "var(--muted)",
+                            foreground: "var(--muted-foreground)",
+                        },
+                        accent: {
+                            DEFAULT: "var(--accent)",
+                            foreground: "var(--accent-foreground)",
+                        },
+                        border: "var(--border)",
+                        input: "var(--input)",
+                        ring: "var(--ring)",
+                    },
+                }
+            }
+        };
+    </script>
+    <style>
+        :root {
+            --background: hsl(0 0% 100%);
+            --foreground: hsl(222 84% 5%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222 84% 5%);
+            --primary: hsl(221 83% 53%);
+            --primary-foreground: hsl(0 0% 98%);
+            --secondary: hsl(142 76% 36%);
+            --secondary-foreground: hsl(0 0% 98%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215 16% 47%);
+            --accent: hsl(18 100% 60%);
+            --accent-foreground: hsl(0 0% 98%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(221 83% 53%);
+            --radius: 0.75rem;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(142 76% 36%) 100%);
+        }
+        
+        .product-card {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            z-index: 10;
+        }
+        
+        .category-icon {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .category-icon:hover {
+            transform: scale(1.05);
+        }
+    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-background">
+    <!-- @COMPONENT: Header -->
+    <header class="bg-primary text-primary-foreground sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <!-- Top bar -->
+            <div class="flex items-center justify-between py-2 text-sm">
+                <div class="flex items-center space-x-4">
+                    <span>📍 Cửa hàng gần bạn</span>
+                    <span>📞 1800 6928</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span>Tài khoản</span>
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+            
+            <!-- Main header -->
+            <div class="flex items-center py-4">
+                <div class="flex items-center mr-8">
+                    <div class="text-2xl font-bold mr-2">
+                        <span class="text-white">NHÀ THUỐC</span><br>
+                        <span class="text-secondary">Pharmacity</span>
+                    </div>
+                </div>
+                
+                <!-- Search bar -->
+                <div class="flex-1 max-w-2xl mx-8">
+                    <div class="relative">
+                        <input type="text" placeholder="Bạn đang tìm gì hôm nay..." class="w-full px-4 py-3 rounded-lg text-foreground border-0 focus:outline-none focus:ring-2 focus:ring-secondary">
+                        <button class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-secondary text-secondary-foreground px-4 py-1 rounded-md">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- User actions -->
+                <div class="flex items-center space-x-4">
+                    <button class="flex items-center space-x-2 hover:text-secondary">
+                        <i class="fas fa-user"></i>
+                        <span>Đăng nhập/ Đăng ký</span>
+                    </button>
+                    <button class="relative hover:text-secondary">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="absolute -top-2 -right-2 bg-accent text-accent-foreground rounded-full text-xs w-5 h-5 flex items-center justify-center">0</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Navigation -->
+            <nav class="border-t border-primary-foreground/20 py-3">
+                <ul class="flex space-x-8">
+                    <li><a href="#" class="hover:text-secondary transition-colors">📂 Danh mục</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Thuốc</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Tra cứu bệnh</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Thực phẩm bảo vệ sức khỏe</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Mẹ và bé</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Nhãn hàng Pharmacity</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Chăm sóc cá nhân</a></li>
+                    <li><a href="#" class="hover:text-secondary transition-colors">Chăm sóc sắc đẹp</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <!-- @COMPONENT: HeroBanner -->
+    <section class="hero-gradient py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Main promotional banner -->
+                <div class="lg:col-span-2">
+                    <div class="relative bg-gradient-to-r from-orange-400 via-yellow-400 to-green-400 rounded-2xl p-6 overflow-hidden">
+                        <div class="absolute top-4 left-4 bg-white rounded-full px-3 py-1 text-sm font-semibold">
+                            <span class="text-primary">NHÀ THUỐC</span>
+                            <span class="text-secondary">Pharmacity</span>
+                        </div>
+                        <div class="text-center mt-8">
+                            <h1 class="text-4xl font-bold text-white mb-2">Gì cũng có</h1>
+                            <h2 class="text-5xl font-bold text-red-600 mb-4">Siêu deal</h2>
+                            <div class="bg-yellow-400 text-red-600 font-bold text-2xl px-6 py-2 rounded-full inline-block mb-4">
+                                GIẢM ĐẾN 10%
+                            </div>
+                        </div>
+                        <!-- Product showcase images -->
+                        <!-- Various pharmacy products displayed -->
+                        <div class="flex justify-center items-end mt-4 space-x-2">
+                            <!-- Mock product images would be positioned here -->
+                            <div class="w-16 h-20 bg-white/20 rounded backdrop-blur"></div>
+                            <div class="w-16 h-20 bg-white/20 rounded backdrop-blur"></div>
+                            <div class="w-16 h-20 bg-white/20 rounded backdrop-blur"></div>
+                        </div>
+                        <button class="absolute bottom-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg font-semibold">
+                            MUA NGAY
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Side banners -->
+                <div class="space-y-4">
+                    <div class="bg-primary rounded-xl p-6 text-primary-foreground">
+                        <h3 class="text-lg font-bold mb-2">HƯỚNG DẪN TRA CỨU</h3>
+                        <h4 class="text-xl font-bold">THÔNG TIN THUỐC ĐÚNG CÁCH</h4>
+                        <div class="mt-4 flex items-center">
+                            <i class="fas fa-user-md text-3xl mr-4"></i>
+                            <div class="bg-white/20 rounded px-3 py-1 text-sm">TÌM HIỂU</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-50 rounded-xl p-6">
+                        <div class="text-primary text-sm font-semibold mb-2">THỰC PHẨM CHỨC NĂNG CỦA THEMA</div>
+                        <h3 class="text-2xl font-bold text-primary">PROBIOTICS + ZINC</h3>
+                        <div class="mt-4 flex items-center justify-between">
+                            <div class="text-red-500 font-bold text-lg">HOT</div>
+                            <div class="text-primary font-bold text-xl">120.000đ</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: HeroBanner -->
+
+    <!-- @COMPONENT: CategoryNavigation -->
+    <section class="bg-background py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-4 md:grid-cols-8 gap-4">
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-blue-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-capsules text-primary text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Tư vấn mua thuốc</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-green-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-heartbeat text-secondary text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Hệ thống dược sĩ</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-orange-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-percentage text-accent text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Mã giảm giá hàng</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-red-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-shipping-fast text-red-500 text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Chi tiết sức khỏe</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-purple-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-spa text-purple-500 text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Chăm đẹp chuẩn</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-pink-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-fire text-pink-500 text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Deal hot tháng 9</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-yellow-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-history text-yellow-500 text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Lịch sử Đơn vàng</span>
+                </div>
+                <div class="text-center category-icon cursor-pointer">
+                    <div class="bg-gray-100 rounded-xl p-4 mb-2 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-chevron-right text-muted-foreground text-2xl"></i>
+                    </div>
+                    <span class="text-sm font-medium">Xem thêm</span>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: CategoryNavigation -->
+
+    <!-- @COMPONENT: ProductGrid -->
+    <section class="bg-secondary py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <!-- Product Card 1 -->
+                <div class="product-card bg-card rounded-xl p-4 relative shadow-md">
+                    <div class="badge">
+                        <span class="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-bold">MỚI</span>
+                    </div>
+                    <!-- Multi-vitamin supplement bottle -->
+                    <img src="https://images.unsplash.com/photo-1584017911766-d451b3d0e843?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Vitamin supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs text-muted-foreground mb-1">Giảm tại 000 đ</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">BANILA CO Clean it Zero Sáp tẩy trang giúp làm sạch... 298K</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-primary font-bold">298.000 đ/Hộp</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mb-3 line-through">340.000 đ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Product Card 2 -->
+                <div class="product-card bg-card rounded-xl p-4 relative shadow-md">
+                    <div class="badge">
+                        <span class="bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">-30%</span>
+                    </div>
+                    <!-- Digestive health supplement -->
+                    <img src="https://pixabay.com/get/gd1bbcd659e74df0b1e27ac409958155bf946a6aa05ee43f94adcb7108ad6a2fd5ffb1d556be9f81b7406b78cd415c0544bbda9a359b2b44f9be453a9b81e7c99_1280.jpg" alt="Digestive supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs text-muted-foreground mb-1">Giảm 30.000 đ</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Enterosgermina Gut Defense 20ml/5ml (Hộp... 124.000 đ</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-primary font-bold">174.000 đ/Hộp</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mb-3 line-through">204.000 đ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Product Card 3 -->
+                <div class="product-card bg-card rounded-xl p-4 relative shadow-md">
+                    <div class="badge">
+                        <span class="bg-accent text-accent-foreground px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Children's health product -->
+                    <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Children's health product" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs text-muted-foreground mb-1">Giảm 57.000 đ</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Siro NATURE'S WAY Kids Smart DROPS... 338.000 đ/Chai</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-primary font-bold">338.000 đ/Chai</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mb-3 line-through">395.000 đ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Product Card 4 -->
+                <div class="product-card bg-card rounded-xl p-4 relative shadow-md">
+                    <div class="badge">
+                        <span class="bg-green-600 text-white px-2 py-1 rounded-md text-xs font-bold">49.7%</span>
+                    </div>
+                    <!-- Antiseptic mouthwash -->
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Antiseptic mouthwash" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs text-muted-foreground mb-1">Giảm 83.900 đ</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Nước Súc Miệng LISTERINE Cool Mint H... 84.500 đ/Chai</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-primary font-bold">84.500 đ/Chai</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mb-3 line-through">168.400 đ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Product Card 5 -->
+                <div class="product-card bg-card rounded-xl p-4 relative shadow-md">
+                    <div class="badge">
+                        <span class="bg-red-600 text-white px-2 py-1 rounded-md text-xs font-bold">290K</span>
+                    </div>
+                    <!-- Blood sugar monitoring device -->
+                    <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Blood glucose meter" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs text-muted-foreground mb-1">Giảm 100.000 đ</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Kem dưỡng ẩm cấp ẩm căng mọng da L'oreal... 299.000 đ/Hộ</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-primary font-bold">299.000 đ/Hộ</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mb-3 line-through">399.000 đ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Product Card 6 -->
+                <div class="product-card bg-card rounded-xl p-4 relative shadow-md">
+                    <div class="badge">
+                        <span class="bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-xs font-bold">MỚI</span>
+                    </div>
+                    <!-- Energy supplement -->
+                    <img src="https://images.unsplash.com/photo-1559181567-c3190ca9959b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Energy supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs text-muted-foreground mb-1">Giảm 25.000 đ</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Pharmaton Energy (Hộp 30 viên) - Tăng cường... 249.000 đ</h3>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-primary font-bold">224.000 đ/Hộp</span>
+                    </div>
+                    <div class="text-xs text-muted-foreground mb-3 line-through">249.000 đ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: ProductGrid -->
+
+    <!-- @COMPONENT: HotDealsSection -->
+    <section class="bg-background py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-foreground">Siêu deal ngập tràn</h2>
+                <a href="#" class="text-primary hover:text-primary/80 font-medium">Xem thêm</a>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <!-- Hot Deal Card 1 -->
+                <div class="product-card bg-gradient-to-br from-red-500 to-orange-500 rounded-xl p-4 relative text-white">
+                    <div class="badge">
+                        <span class="bg-yellow-400 text-red-600 px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Skincare serum product -->
+                    <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Skincare serum" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs mb-1">Giảm sốc 000đ</div>
+                    <div class="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2">33%</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Torriden DIVE IN Soothing Aqua Serum dưng...</h3>
+                    <div class="text-lg font-bold mb-3">332.000 đ/Hộp</div>
+                    <button class="w-full bg-white text-red-500 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Hot Deal Card 2 -->
+                <div class="product-card bg-gradient-to-br from-red-500 to-pink-500 rounded-xl p-4 relative text-white">
+                    <div class="badge">
+                        <span class="bg-yellow-400 text-red-600 px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Baby formula supplement -->
+                    <img src="https://pixabay.com/get/ga03688fb84a0aeb358b3d1493f016192659d90a46a30bcf1c7e76bc055162af6015c1863851525050f3726bc034eea30dd0af52875454aef18efce75f890456f_1280.jpg" alt="Baby formula" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs mb-1">Giảm 36%</div>
+                    <div class="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2">36%</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Thực Phẩm Bảo Vệ Sức Khỏe Nectar NMN (Hộp...</h3>
+                    <div class="text-lg font-bold mb-3">3.950.000 đ/Hộp</div>
+                    <button class="w-full bg-white text-red-500 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Hot Deal Card 3 -->
+                <div class="product-card bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl p-4 relative text-white">
+                    <div class="badge">
+                        <span class="bg-yellow-400 text-red-600 px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Cholesterol supplement -->
+                    <img src="https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Cholesterol supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs mb-1">Giảm 50%</div>
+                    <div class="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2">40%</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Paula's Choice Tinh Chất Thấu Nha Lê Chăn...</h3>
+                    <div class="text-lg font-bold mb-3">1.248.000 đ/Chai</div>
+                    <button class="w-full bg-white text-purple-500 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Hot Deal Card 4 -->
+                <div class="product-card bg-gradient-to-br from-green-500 to-teal-500 rounded-xl p-4 relative text-white">
+                    <div class="badge">
+                        <span class="bg-yellow-400 text-red-600 px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Joint health supplement -->
+                    <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Joint health supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs mb-1">Giảm 60%</div>
+                    <div class="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2">40%</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Paula's Choice Tinh Chất Thấu Nha Lê Chăn...</h3>
+                    <div class="text-lg font-bold mb-3">1.807.000 đ/Chai</div>
+                    <button class="w-full bg-white text-green-500 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Hot Deal Card 5 -->
+                <div class="product-card bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-4 relative text-white">
+                    <div class="badge">
+                        <span class="bg-yellow-400 text-red-600 px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Facial cleanser product -->
+                    <img src="https://images.unsplash.com/photo-1556228720-195a672e8a03?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Facial cleanser" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs mb-1">Giảm 2%</div>
+                    <div class="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2">133%</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">DrCeutics Tinh Chất Cấp Ẩm & Làm Dịu Da Basic...</h3>
+                    <div class="text-lg font-bold mb-3">133.000 đ/Chai</div>
+                    <button class="w-full bg-white text-orange-500 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <!-- Hot Deal Card 6 -->
+                <div class="product-card bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl p-4 relative text-white">
+                    <div class="badge">
+                        <span class="bg-yellow-400 text-red-600 px-2 py-1 rounded-md text-xs font-bold">HOT</span>
+                    </div>
+                    <!-- Anti-aging skincare -->
+                    <img src="https://pixabay.com/get/g587408d923843f2a90708cdfdc0749d3ae75fdee3709794cc9526d65f5059ab09e2eebb487d0c0ac4d25f1ff167a3653fbb0a912064374035e90f311432970d3_1280.jpg" alt="Anti-aging cream" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <div class="text-xs mb-1">Giảm 3%</div>
+                    <div class="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2">161%</div>
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">DrCeutics Nước Tẩy Trang Làm Sạch Da Và...</h3>
+                    <div class="text-lg font-bold mb-3">161.500 đ/Chai</div>
+                    <button class="w-full bg-white text-blue-500 py-2 rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: HotDealsSection -->
+
+    <!-- @COMPONENT: TopSellingSection -->
+    <section class="bg-muted py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-foreground">Top bán chạy toàn quốc</h2>
+                <a href="#" class="text-primary hover:text-primary/80 font-medium">Xem thêm</a>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <!-- Top selling items -->
+                <div class="product-card bg-card rounded-xl p-4 shadow-md">
+                    <!-- Pain relief medication box -->
+                    <img src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Pain relief medication" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Thực phẩm bảo vệ sức khỏe Tim Tâm An</h3>
+                    <div class="text-primary font-bold mb-3">125.000 đ/Hộp</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <div class="product-card bg-card rounded-xl p-4 shadow-md">
+                    <!-- Iron supplement bottle -->
+                    <img src="https://pixabay.com/get/g6abce042cd47862b5551d609cd9a43844e422078a968bb02cebd240ab4dde4389e18e4a4abf26787691f7b99b5c6575548b75a2805f079b2455245d30a675fb0_1280.jpg" alt="Iron supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Bổ sung FERROLIP bổ sung sắt (40 viên)</h3>
+                    <div class="text-primary font-bold mb-3">360.000 đ/Hộp</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <div class="product-card bg-card rounded-xl p-4 shadow-md">
+                    <!-- Vitamin C supplement -->
+                    <img src="https://images.unsplash.com/photo-1584017911766-d451b3d0e843?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Vitamin C supplement" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Thực phẩm bảo vệ sức khỏe Ích Thận Philatop</h3>
+                    <div class="text-primary font-bold mb-3">24.500 đ/Hộp</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <div class="product-card bg-card rounded-xl p-4 shadow-md">
+                    <!-- Cough syrup bottle -->
+                    <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Cough syrup" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Thực phẩm bảo vệ sức khỏe Sức cường COGMIN</h3>
+                    <div class="text-primary font-bold mb-3">205.000 đ/Hộp</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <div class="product-card bg-card rounded-xl p-4 shadow-md">
+                    <!-- Throat spray medication -->
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Throat spray" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Strepsils Throat Irritation & Cough - Viêm nghẹp...</h3>
+                    <div class="text-primary font-bold mb-3">27.500 đ/Vỉ</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+
+                <div class="product-card bg-card rounded-xl p-4 shadow-md">
+                    <!-- Eye drops medication -->
+                    <img src="https://images.unsplash.com/photo-1559757148-5c350d0d3c56?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=400&h=400" alt="Eye drops" class="w-full h-32 object-cover rounded-lg mb-3" />
+                    <h3 class="font-semibold text-sm mb-2 line-clamp-2">Viên uống OPTIBAC Intimate Flora For...</h3>
+                    <div class="text-primary font-bold mb-3">500.000 đ/Hộp</div>
+                    <button class="w-full bg-primary text-primary-foreground py-2 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+                        Chọn sản phẩm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: TopSellingSection -->
+
+    <!-- @COMPONENT: PromotionalBanners -->
+    <section class="bg-background py-8">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gradient-to-br from-green-400 to-blue-500 rounded-xl p-6 text-white">
+                    <div class="text-2xl font-bold mb-2">LiveSpa</div>
+                    <div class="text-lg mb-4">Giảm đến 10%</div>
+                    <div class="text-sm">Cho đơn từ 399k</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-blue-400 to-purple-500 rounded-xl p-6 text-white">
+                    <div class="text-2xl font-bold mb-2">Giảm đến 20%</div>
+                    <div class="text-lg mb-4">Nhãn hàng Pharmacity</div>
+                    <div class="text-sm">Áp dụng toàn bộ sản phẩm</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-pink-400 to-red-500 rounded-xl p-6 text-white">
+                    <div class="text-2xl font-bold mb-2">NEUBRIA</div>
+                    <div class="text-lg mb-4">Giảm đến 15%</div>
+                    <div class="text-sm">Sản phẩm chăm sóc não bộ</div>
+                </div>
+                
+                <div class="bg-gradient-to-br from-yellow-400 to-green-500 rounded-xl p-6 text-white">
+                    <div class="text-2xl font-bold mb-2">Tặng voucher 50K</div>
+                    <div class="text-lg mb-4">Đơn hàng đầu tiên</div>
+                    <div class="text-sm">Cho khách hàng mới</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- @END_COMPONENT: PromotionalBanners -->
+
+    <!-- @COMPONENT: Footer -->
+    <footer class="bg-primary text-primary-foreground py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <!-- Company Info -->
+                <div>
+                    <div class="text-2xl font-bold mb-4">
+                        <span class="text-white">NHÀ THUỐC</span><br>
+                        <span class="text-secondary">Pharmacity</span>
+                    </div>
+                    <p class="text-sm mb-4">Hệ thống nhà thuốc uy tín với hơn 1000 cửa hàng trên toàn quốc</p>
+                    <div class="flex space-x-4">
+                        <i class="fab fa-facebook-f text-xl hover:text-secondary cursor-pointer"></i>
+                        <i class="fab fa-instagram text-xl hover:text-secondary cursor-pointer"></i>
+                        <i class="fab fa-youtube text-xl hover:text-secondary cursor-pointer"></i>
+                    </div>
+                </div>
+                
+                <!-- Customer Service -->
+                <div>
+                    <h3 class="font-bold mb-4">Chăm sóc khách hàng</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-secondary">📞 Tư vấn</a></li>
+                        <li><a href="#" class="hover:text-secondary">💊 Hỏi dược sĩ</a></li>
+                        <li><a href="#" class="hover:text-secondary">📋 Chính sách đổi trả</a></li>
+                        <li><a href="#" class="hover:text-secondary">🚚 Giao hàng</a></li>
+                        <li><a href="#" class="hover:text-secondary">💳 Thanh toán</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Information -->
+                <div>
+                    <h3 class="font-bold mb-4">Thông tin</h3>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="hover:text-secondary">🏥 Về chúng tôi</a></li>
+                        <li><a href="#" class="hover:text-secondary">📝 Điều khoản sử dụng</a></li>
+                        <li><a href="#" class="hover:text-secondary">🔒 Bảo mật thông tin</a></li>
+                        <li><a href="#" class="hover:text-secondary">📍 Tìm cửa hàng</a></li>
+                        <li><a href="#" class="hover:text-secondary">💼 Tuyển dụng</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Contact -->
+                <div>
+                    <h3 class="font-bold mb-4">Liên hệ</h3>
+                    <div class="space-y-2 text-sm">
+                        <div>📞 Hotline: 1800 6928</div>
+                        <div>✉️ Email: info@pharmacity.vn</div>
+                        <div>📍 Địa chỉ: 379 Hudson St, New York, NY 10014</div>
+                        <div>⏰ Giờ làm việc: 8:00 - 22:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom footer -->
+            <div class="border-t border-primary-foreground/20 pt-8">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-sm mb-4 md:mb-0">
+                        © 2024 Pharmacity. Tất cả quyền được bảo lưu.
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm">Phương thức thanh toán:</span>
+                        <div class="flex space-x-2">
+                            <div class="bg-white rounded px-2 py-1 text-primary text-xs font-bold">VISA</div>
+                            <div class="bg-white rounded px-2 py-1 text-primary text-xs font-bold">MOMO</div>
+                            <div class="bg-white rounded px-2 py-1 text-primary text-xs font-bold">VNPAY</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <!-- Floating Action Button -->
+    <div class="fixed bottom-6 right-6 z-50">
+        <button class="bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-full p-4 shadow-lg transition-all hover:scale-105">
+            <i class="fas fa-comment text-xl"></i>
+        </button>
+    </div>
+
+    <script>
+        // TODO: Implement search functionality
+        function handleSearch(query) {
+            console.log('Searching for:', query);
+            // Implement search logic here
+        }
+
+        // TODO: Implement shopping cart functionality
+        function addToCart(productId) {
+            console.log('Adding product to cart:', productId);
+            // Implement cart logic here
+        }
+
+        // TODO: Implement category filtering
+        function filterByCategory(category) {
+            console.log('Filtering by category:', category);
+            // Implement filtering logic here
+        }
+
+        // Simple image lazy loading
+        (function() {
+            const images = document.querySelectorAll('img');
+            const imageObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        img.style.opacity = '0';
+                        img.addEventListener('load', () => {
+                            img.style.transition = 'opacity 0.3s';
+                            img.style.opacity = '1';
+                        });
+                        observer.unobserve(img);
+                    }
+                });
+            });
+
+            images.forEach(img => {
+                imageObserver.observe(img);
+            });
+        })();
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

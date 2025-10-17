@@ -1,0 +1,386 @@
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { PrescriptionProvider } from "@/contexts/PrescriptionContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import NotFound from "@/pages/not-found";
+import Home from "@/pages/home";
+import CartPage from "@/pages/cart";
+import CheckoutPage from "@/pages/checkout";
+import OrderConfirmationPage from "@/pages/order-confirmation";
+import OrderTrackingPage from "@/pages/order-tracking";
+import SearchResultsPage from "@/pages/search-results";
+import MedicinePage from "@/pages/medicine";
+import LookupPage from "@/pages/lookup";
+import HeadDiseasesPage from "@/pages/head-diseases";
+import EarNoseThroatDiseasesPage from "@/pages/ear-nose-throat-diseases";
+import ChestDiseasesPage from "@/pages/chest-diseases";
+import NeckShoulderNapeDiseasesPage from "@/pages/neck-shoulder-nape-diseases";
+import SkinDiseasesPage from "@/pages/skin-diseases";
+import ReproductiveDiseasesPage from "@/pages/reproductive-diseases";
+import LimbsDiseasesPage from "@/pages/limbs-diseases";
+import COPDDiseasePage from "@/pages/copd-disease";
+import GERDDiseasePage from "@/pages/gerd-disease";
+import MeaslesDiseasePage from "@/pages/measles-disease";
+import DiphtheriaDiseasePage from "@/pages/diphtheria-disease";
+import FluDiseasePage from "@/pages/flu-disease";
+import HandFootMouthDiseasePage from "@/pages/hand-foot-mouth-disease";
+import PinkEyeDiseasePage from "@/pages/pink-eye-disease";
+import GestationalDiabetesPage from "@/pages/gestational-diabetes";
+import Type1DiabetesPage from "@/pages/type1-diabetes";
+import Type2DiabetesPage from "@/pages/type2-diabetes";
+import AsthmaPage from "@/pages/asthma";
+import DiarrheaPage from "@/pages/diarrhea";
+import ViralFeverPage from "@/pages/viral-fever";
+import ShinglesPage from "@/pages/shingles";
+import AcuteKidneyFailurePage from "@/pages/acute-kidney-failure";
+import ChickenpoxPage from "@/pages/chickenpox";
+import HypertensionPage from "@/pages/hypertension";
+import BronchitisPage from "@/pages/bronchitis";
+import ConstipationPage from "@/pages/constipation";
+import HemorrhoidsPage from "@/pages/hemorrhoids";
+import AlzheimerPage from "@/pages/alzheimer";
+import DelayedPeriodPage from "@/pages/delayed-period";
+import AmenorrheaPage from "@/pages/amenorrhea";
+import AutismPage from "@/pages/autism";
+import TetanusPage from "@/pages/tetanus";
+import DengueFeverPage from "@/pages/dengue-fever";
+import RoseolaPage from "@/pages/roseola";
+import AllergyPage from "@/pages/allergy";
+import MusculoskeletalPainPage from "@/pages/musculoskeletal-pain";
+import AcutePharyngitisPage from "@/pages/acute-pharyngitis";
+import SinusitisPage from "@/pages/sinusitis";
+import AllergicRhinitisPage from "@/pages/allergic-rhinitis";
+import CoughPage from "@/pages/cough";
+import ElderlyDiseasesPage from "@/pages/elderly-diseases";
+import MenDiseasesPage from "@/pages/men-diseases";
+import WomenDiseasesPage from "@/pages/women-diseases";
+import ChildrenDiseasesPage from "@/pages/children-diseases";
+import AdolescentDiseasesPage from "@/pages/adolescent-diseases";
+import PregnantWomenDiseasesPage from "@/pages/pregnant-women-diseases";
+import CardiovascularDiseasesPage from "@/pages/cardiovascular-diseases";
+import MusculoskeletalDiseasesPage from "@/pages/musculoskeletal-diseases";
+import RespiratoryDiseasesPage from "@/pages/respiratory-diseases";
+import InfectiousDiseasesPage from "@/pages/infectious-diseases";
+import NeurologicalDiseasesPage from "@/pages/neurological-diseases";
+import SupplementsPage from "@/pages/supplements";
+import MomBabyPage from "@/pages/mom-baby";
+import BabyCarePage from "@/pages/baby-care";
+import BabyAccessoriesPage from "@/pages/baby-accessories";
+import BabyMosquitoRepellentPage from "@/pages/baby-mosquito-repellent";
+import BabyDiapersPage from "@/pages/baby-diapers";
+import BabyCottonSwabsPage from "@/pages/baby-cotton-swabs";
+import BabyWetWipesPage from "@/pages/baby-wet-wipes";
+import BabyMilkPage from "@/pages/baby-milk";
+import BabyPersonalCarePage from "@/pages/baby-personal-care";
+import BabyHealthCarePage from "@/pages/baby-health-care";
+import MomProductsPage from "@/pages/mom-products";
+import MomAccessoriesPage from "@/pages/mom-accessories";
+import MomCareToolsPage from "@/pages/mom-care-tools";
+import PersonalCarePage from "@/pages/personal-care";
+import DeodorantProductsPage from "@/pages/deodorant-products";
+import RollOnDeodorantPage from "@/pages/roll-on-deodorant";
+import StickDeodorantPage from "@/pages/stick-deodorant";
+import SprayDeodorantPage from "@/pages/spray-deodorant";
+import BathProductsPage from "@/pages/bath-products";
+import BodyWashPage from "@/pages/body-wash";
+import SoapPage from "@/pages/soap";
+import HandWashPage from "@/pages/hand-wash";
+import HairCareProductsPage from "@/pages/hair-care-products";
+import ShampooPage from "@/pages/shampoo";
+import ConditionerPage from "@/pages/conditioner";
+import HairCarePage from "@/pages/hair-care";
+import HairDyePage from "@/pages/hair-dye";
+import OralCareProductsPage from "@/pages/oral-care-products";
+import OtherOralCarePage from "@/pages/other-oral-care";
+import DentalFlossPage from "@/pages/dental-floss";
+import ToothpastePage from "@/pages/toothpaste";
+import ToothbrushPage from "@/pages/toothbrush";
+import ToothPowderPage from "@/pages/tooth-powder";
+import MouthwashPage from "@/pages/mouthwash";
+import FeminineHygieneProductsPage from "@/pages/feminine-hygiene-products";
+import OtherFeminineHygienePage from "@/pages/other-feminine-hygiene";
+import AdultDiapersPage from "@/pages/adult-diapers";
+import FeminineWashPage from "@/pages/feminine-wash";
+import SanitaryPadsPage from "@/pages/sanitary-pads";
+import MensCareProductsPage from "@/pages/mens-care-products";
+import MensBathBodyPage from "@/pages/mens-bath-body";
+import MensHairCarePage from "@/pages/mens-hair-care";
+import MensDeodorantPage from "@/pages/mens-deodorant";
+import MensShavingPage from "@/pages/mens-shaving";
+import MensFaceCarePage from "@/pages/mens-face-care";
+import BodyCareProductsPage from "@/pages/body-care-products";
+import BodyCareMassagePage from "@/pages/body-care-massage";
+import BodyExfoliationPage from "@/pages/body-exfoliation";
+import BeautyCarePage from "@/pages/beauty-care";
+import FaceCarePage from "@/pages/face-care";
+import MakeupRemoverPage from "@/pages/makeup-remover";
+import FaceMaskPage from "@/pages/face-mask";
+import FaceWashPage from "@/pages/face-wash";
+import FaceExfoliationPage from "@/pages/face-exfoliation";
+import LipCarePage from "@/pages/lip-care";
+import MoisturizerPage from "@/pages/moisturizer";
+import TonerMistPage from "@/pages/toner-mist";
+import AcneSupportPage from "@/pages/acne-support";
+import SunscreenProductsPage from "@/pages/sunscreen-products";
+import FaceSunscreenPage from "@/pages/face-sunscreen";
+import FaceBodySunscreenPage from "@/pages/face-body-sunscreen";
+import BeautyToolsPage from "@/pages/beauty-tools";
+import MakeupAccessoriesPage from "@/pages/makeup-accessories";
+import CottonSwabsPage from "@/pages/cotton-swabs";
+import PharmaceuticalCosmeticsPage from "@/pages/pharmaceutical-cosmetics";
+import MoisturizerProductsPage from "@/pages/moisturizer-products";
+import ScarReductionProductsPage from "@/pages/scar-reduction-products";
+import MakeupRemoverFaceWashPage from "@/pages/makeup-remover-face-wash";
+import TonerMistProductsPage from "@/pages/toner-mist-products";
+import LipCareProductsPage from "@/pages/lip-care-products";
+import AntiAgingProductsPage from "@/pages/anti-aging-products";
+import AcneReductionProductsPage from "@/pages/acne-reduction-products";
+import DeepExfoliationProductsPage from "@/pages/deep-exfoliation-products";
+import SpecializedBodyWashPage from "@/pages/specialized-body-wash";
+import EssenceSerumProductsPage from "@/pages/essence-serum-products";
+import SunscreenAfterSunProductsPage from "@/pages/sunscreen-after-sun-products";
+import FaceWashProductsPage from "@/pages/face-wash-products";
+import AntiAgingSupportProductsPage from "@/pages/anti-aging-support-products";
+import MedicalDevicesPage from "@/pages/medical-devices";
+import TestingToolsPage from "@/pages/testing-tools";
+import BloodGlucoseMetersPage from "@/pages/blood-glucose-meters";
+import ThermometersPage from "@/pages/thermometers";
+import NebulizerMachinesPage from "@/pages/nebulizer-machines";
+import OtherMedicalDevicesPage from "@/pages/other-medical-devices";
+import BloodPressureMonitorsPage from "@/pages/blood-pressure-monitors";
+import DrugConsultationPage from "@/pages/drug-consultation";
+import PrescriptionOrderPage from "@/pages/prescription-order";
+import PrescriptionSuccessPage from "@/pages/prescription-success";
+import PrescriptionAnalysisResultPage from "@/pages/prescription-analysis-result";
+import MyPrescriptionsPage from "@/pages/my-prescriptions";
+import AllCouponsPage from "@/pages/all-coupons";
+import AccountPage from "@/pages/account";
+import OrderHistoryPage from "@/pages/order-history";
+import OrderDetailPage from "@/pages/order-detail";
+import SavedPrescriptionsPage from "@/pages/saved-prescriptions";
+import UpdateEmailPage from "@/pages/update-email";
+import UpdatePasswordPage from "@/pages/update-password";
+import PrescriptionDetailsPage from "@/pages/prescription-details";
+import SavePrescriptionPage from "@/pages/save-prescription";
+import HealthCheckPage from "@/pages/health-check";
+import AsthmaAssessmentPage from "@/pages/asthma-assessment";
+import AsthmaAbuseAssessmentPage from "@/pages/asthma-abuse-assessment";
+import AsthmaAbuseResultPage from "@/pages/asthma-abuse-result";
+import AllergicRhinitisAssessmentPage from "@/pages/allergic-rhinitis-assessment";
+import AllergicRhinitisResultPage from "@/pages/allergic-rhinitis-result";
+import IIEF5AssessmentPage from "@/pages/iief5-assessment";
+import IIEF5ResultPage from "@/pages/iief5-result";
+import GerdAssessmentPage from "@/pages/gerd-assessment";
+import TNmindtestPage from "@/pages/tnmindtest";
+import TNmindtestGuidePage from "@/pages/tnmindtest-guide";
+import COPDAssessmentPage from "@/pages/copd-assessment";
+import CardiovascularAssessmentPage from "@/pages/cardiovascular-assessment";
+import FungalSkinAssessmentPage from "@/pages/fungal-skin-assessment";
+import { CartProvider } from "@/hooks/use-cart";
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/cart" component={CartPage} />
+      <Route path="/checkout" component={CheckoutPage} />
+      <Route path="/order-confirmation/:id" component={OrderConfirmationPage} />
+      <Route path="/track-order" component={OrderTrackingPage} />
+      <Route path="/search" component={SearchResultsPage} />
+      <Route path="/thuoc" component={MedicinePage} />
+      <Route path="/benh" component={LookupPage} />
+      <Route path="/benh/dau" component={HeadDiseasesPage} />
+      <Route path="/benh/tai-mui-hong" component={EarNoseThroatDiseasesPage} />
+      <Route path="/benh/nguc" component={ChestDiseasesPage} />
+      <Route path="/benh/co-vai-gay" component={NeckShoulderNapeDiseasesPage} />
+      <Route path="/benh/da" component={SkinDiseasesPage} />
+      <Route path="/benh/sinh-duc" component={ReproductiveDiseasesPage} />
+      <Route path="/benh/tu-chi" component={LimbsDiseasesPage} />
+      <Route path="/benh/copd" component={COPDDiseasePage} />
+      <Route path="/benh/trao-nguoc-da-day" component={GERDDiseasePage} />
+      <Route path="/benh/benh-soi" component={MeaslesDiseasePage} />
+      <Route path="/benh/bach-hau" component={DiphtheriaDiseasePage} />
+      <Route path="/benh/benh-cum" component={FluDiseasePage} />
+      <Route path="/benh/tay-chan-mieng" component={HandFootMouthDiseasePage} />
+      <Route path="/benh/dau-mat-do" component={PinkEyeDiseasePage} />
+      <Route path="/benh/tieu-duong-thai-ky" component={GestationalDiabetesPage} />
+      <Route path="/benh/tieu-duong-tuyp-1" component={Type1DiabetesPage} />
+      <Route path="/benh/tieu-duong-tuyp-2" component={Type2DiabetesPage} />
+      <Route path="/benh/hen-suyen" component={AsthmaPage} />
+      <Route path="/benh/tieu-chay" component={DiarrheaPage} />
+      <Route path="/benh/sot-sieu-vi" component={ViralFeverPage} />
+      <Route path="/benh/gioi-leo" component={ShinglesPage} />
+      <Route path="/benh/suy-than-cap" component={AcuteKidneyFailurePage} />
+      <Route path="/benh/thuy-dau" component={ChickenpoxPage} />
+      <Route path="/benh/tang-huyet-ap" component={HypertensionPage} />
+      <Route path="/benh/viem-phe-quan" component={BronchitisPage} />
+      <Route path="/benh/tao-bon" component={ConstipationPage} />
+      <Route path="/benh/benh-tri" component={HemorrhoidsPage} />
+      <Route path="/benh/alzheimer" component={AlzheimerPage} />
+      <Route path="/benh/cham-kinh" component={DelayedPeriodPage} />
+      <Route path="/benh/mat-kinh" component={AmenorrheaPage} />
+      <Route path="/benh/tu-ky" component={AutismPage} />
+      <Route path="/benh/uon-van" component={TetanusPage} />
+      <Route path="/benh/sot-xuat-huyet" component={DengueFeverPage} />
+      <Route path="/benh/sot-phat-ban" component={RoseolaPage} />
+      <Route path="/benh/di-ung" component={AllergyPage} />
+      <Route path="/benh/dau-co-xuong-khop" component={MusculoskeletalPainPage} />
+      <Route path="/benh/viem-hong-cap" component={AcutePharyngitisPage} />
+      <Route path="/benh/viem-xoang" component={SinusitisPage} />
+      <Route path="/benh/viem-mui-di-ung" component={AllergicRhinitisPage} />
+      <Route path="/benh/ho" component={CoughPage} />
+      <Route path="/benh/nguoi-cao-tuoi" component={ElderlyDiseasesPage} />
+      <Route path="/benh/nam-gioi" component={MenDiseasesPage} />
+      <Route path="/benh/nu-gioi" component={WomenDiseasesPage} />
+      <Route path="/benh/tre-em" component={ChildrenDiseasesPage} />
+      <Route path="/benh/tuoi-day-thi" component={AdolescentDiseasesPage} />
+      <Route path="/benh/phu-nu-mang-thai" component={PregnantWomenDiseasesPage} />
+      <Route path="/benh/tim-mach" component={CardiovascularDiseasesPage} />
+      <Route path="/benh/co-xuong-khop" component={MusculoskeletalDiseasesPage} />
+      <Route path="/benh/ho-hap" component={RespiratoryDiseasesPage} />
+      <Route path="/benh/truyen-nhiem" component={InfectiousDiseasesPage} />
+      <Route path="/benh/than-kinh" component={NeurologicalDiseasesPage} />
+      <Route path="/benh/ve-da" component={SkinDiseasesPage} />
+      <Route path="/thuc-pham" component={SupplementsPage} />
+      <Route path="/me-va-be" component={MomBabyPage} />
+      <Route path="/cham-soc-em-be" component={BabyCarePage} />
+      <Route path="/phu-kien-cho-be" component={BabyAccessoriesPage} />
+      <Route path="/san-pham-chong-muoi-cho-be" component={BabyMosquitoRepellentPage} />
+      <Route path="/ta-cho-be" component={BabyDiapersPage} />
+      <Route path="/tam-bong-cho-be" component={BabyCottonSwabsPage} />
+      <Route path="/khan-uot-cho-be" component={BabyWetWipesPage} />
+      <Route path="/sua-danh-cho-be" component={BabyMilkPage} />
+      <Route path="/cham-soc-ca-nhan-cho-be" component={BabyPersonalCarePage} />
+      <Route path="/san-pham-cham-soc-suc-khoe-cho-be" component={BabyHealthCarePage} />
+      <Route path="/san-pham-danh-cho-me" component={MomProductsPage} />
+      <Route path="/phu-kien-cho-me" component={MomAccessoriesPage} />
+      <Route path="/dung-cu-cham-soc-cho-me" component={MomCareToolsPage} />
+      <Route path="/cham-soc-ca-nhan" component={PersonalCarePage} />
+      <Route path="/san-pham-khu-mui" component={DeodorantProductsPage} />
+      <Route path="/lan-khu-mui" component={RollOnDeodorantPage} />
+      <Route path="/sap-khu-mui" component={StickDeodorantPage} />
+      <Route path="/xit-khu-mui" component={SprayDeodorantPage} />
+      <Route path="/san-pham-phong-tam" component={BathProductsPage} />
+      <Route path="/sua-tam" component={BodyWashPage} />
+      <Route path="/xa-phong-tam" component={SoapPage} />
+      <Route path="/nuoc-rua-tay" component={HandWashPage} />
+      <Route path="/cham-soc-toc" component={HairCareProductsPage} />
+      <Route path="/dau-goi-dau" component={ShampooPage} />
+      <Route path="/dau-xa" component={ConditionerPage} />
+      <Route path="/duong-toc" component={HairCarePage} />
+      <Route path="/nhuom-toc" component={HairDyePage} />
+      <Route path="/cham-soc-rang-mieng" component={OralCareProductsPage} />
+      <Route path="/san-pham-cham-soc-rang-mieng-khac" component={OtherOralCarePage} />
+      <Route path="/tam-chi-nha-khoa" component={DentalFlossPage} />
+      <Route path="/kem-danh-rang" component={ToothpastePage} />
+      <Route path="/ban-chai-danh-rang" component={ToothbrushPage} />
+      <Route path="/bot-danh-rang" component={ToothPowderPage} />
+      <Route path="/nuoc-suc-mieng" component={MouthwashPage} />
+      <Route path="/ve-sinh-phu-nu" component={FeminineHygieneProductsPage} />
+      <Route path="/san-pham-ve-sinh-khac" component={OtherFeminineHygienePage} />
+      <Route path="/ta-dan" component={AdultDiapersPage} />
+      <Route path="/dung-dich-ve-sinh-phu-nu" component={FeminineWashPage} />
+      <Route path="/bang-ve-sinh" component={SanitaryPadsPage} />
+      <Route path="/cham-soc-nam-gioi" component={MensCareProductsPage} />
+      <Route path="/san-pham-tam-duong-the-cho-nam" component={MensBathBodyPage} />
+      <Route path="/cham-soc-toc-cho-nam" component={MensHairCarePage} />
+      <Route path="/khu-mui-cho-nam" component={MensDeodorantPage} />
+      <Route path="/dao-cao-rau-bot-cao-rau" component={MensShavingPage} />
+      <Route path="/cham-soc-da-mat-cho-nam" component={MensFaceCarePage} />
+      <Route path="/cham-soc-co-the" component={BodyCareProductsPage} />
+      <Route path="/duong-the-massage" component={BodyCareMassagePage} />
+      <Route path="/tay-te-bao-chet-toan-than" component={BodyExfoliationPage} />
+      <Route path="/cham-soc-sac-dep" component={BeautyCarePage} />
+      <Route path="/cham-soc-mat" component={FaceCarePage} />
+      <Route path="/nuoc-tay-trang" component={MakeupRemoverPage} />
+      <Route path="/mat-nag-duong-da" component={FaceMaskPage} />
+      <Route path="/sua-rua-mat" component={FaceWashPage} />
+      <Route path="/tay-te-bao-chet-cho-mat" component={FaceExfoliationPage} />
+      <Route path="/duong-moi" component={LipCarePage} />
+      <Route path="/kem-duong-am-va-duong-da" component={MoisturizerPage} />
+      <Route path="/nuoc-hoa-hong-xit-khoang" component={TonerMistPage} />
+      <Route path="/ho-tro-giam-mun" component={AcneSupportPage} />
+      <Route path="/san-pham-chong-nang" component={SunscreenProductsPage} />
+      <Route path="/kem-chong-nang-danh-cho-mat" component={FaceSunscreenPage} />
+      <Route path="/kem-chong-nang-cho-mat-va-co-the" component={FaceBodySunscreenPage} />
+      <Route path="/dung-cu-lam-dep" component={BeautyToolsPage} />
+      <Route path="/phu-kien-trang-diem" component={MakeupAccessoriesPage} />
+      <Route path="/bong-tay-trang-tam-bong" component={CottonSwabsPage} />
+      <Route path="/duoc-my-pham" component={PharmaceuticalCosmeticsPage} />
+      <Route path="/kem-duong-am" component={MoisturizerProductsPage} />
+      <Route path="/san-pham-ho-tro-giam-seo" component={ScarReductionProductsPage} />
+      <Route path="/nuoc-tay-trang-sua-rua-mat" component={MakeupRemoverFaceWashPage} />
+      <Route path="/nuoc-can-bang-xit-khoang" component={TonerMistProductsPage} />
+      <Route path="/son-duong-moi" component={LipCareProductsPage} />
+      <Route path="/san-pham-ho-tro-chong-lao-hoa" component={AntiAgingProductsPage} />
+      <Route path="/san-pham-ho-tro-giam-mun" component={AcneReductionProductsPage} />
+      <Route path="/tay-te-bao-chet-chuyen-sau" component={DeepExfoliationProductsPage} />
+      <Route path="/sua-tam-chuyen-sau" component={SpecializedBodyWashPage} />
+      <Route path="/tinh-chat-serum" component={EssenceSerumProductsPage} />
+      <Route path="/san-pham-chong-nang-sau-khi-di-nang" component={SunscreenAfterSunProductsPage} />
+      <Route path="/sua-rua-mat" component={FaceWashProductsPage} />
+      <Route path="/ho-tro-giam-lao-hoa" component={AntiAgingSupportProductsPage} />
+      <Route path="/thiet-bi-y-te" component={MedicalDevicesPage} />
+      <Route path="/dung-cu-kiem-tra" component={TestingToolsPage} />
+      <Route path="/may-do-duong-huyet" component={BloodGlucoseMetersPage} />
+      <Route path="/nhiet-ke" component={ThermometersPage} />
+      <Route path="/may-xong-khi-dung" component={NebulizerMachinesPage} />
+      <Route path="/thiet-bi-y-te-khac" component={OtherMedicalDevicesPage} />
+      <Route path="/may-do-huyet-ap" component={BloodPressureMonitorsPage} />
+      <Route path="/tu-van-thuoc" component={DrugConsultationPage} />
+      <Route path="/tu-van-mua-thuoc" component={DrugConsultationPage} />
+      <Route path="/dat-thuoc-theo-don" component={PrescriptionOrderPage} />
+      <Route path="/dat-thuoc-theo-don/thanh-cong" component={PrescriptionSuccessPage} />
+      <Route path="/dat-thuoc-theo-don/phan-tich" component={PrescriptionAnalysisResultPage} />
+      <Route path="/don-thuoc-cua-toi" component={MyPrescriptionsPage} />
+      <Route path="/ma-giam-gia" component={AllCouponsPage} />
+      <Route path="/account" component={AccountPage} />
+      <Route path="/account/thong-tin-ca-nhan" component={AccountPage} />
+      <Route path="/account/lich-su-don-hang" component={OrderHistoryPage} />
+      <Route path="/account/chi-tiet-don-hang/:id" component={OrderDetailPage} />
+      <Route path="/account/don-thuoc-da-luu" component={SavedPrescriptionsPage} />
+      <Route path="/account/don-thuoc-cua-toi" component={MyPrescriptionsPage} />
+      <Route path="/account/cap-nhat-email" component={UpdateEmailPage} />
+      <Route path="/account/cap-nhat-mat-khau" component={UpdatePasswordPage} />
+      <Route path="/account/don-thuoc-chi-tiet/:id" component={PrescriptionDetailsPage} />
+      <Route path="/luu-don-thuoc" component={SavePrescriptionPage} />
+      <Route path="/kiem-tra-suc-khoe" component={HealthCheckPage} />
+        <Route path="/danh-gia-nguy-co-mac-benh-hen" component={AsthmaAssessmentPage} />
+        <Route path="/danh-gia-nguy-co-lam-dung-thuoc-cat-con-hen" component={AsthmaAbuseAssessmentPage} />
+        <Route path="/danh-gia-nguy-co-lam-dung-thuoc-cat-con-hen/ket-qua" component={AsthmaAbuseResultPage} />
+        <Route path="/danh-gia-nguy-co-mac-benh-viem-mui-di-ung" component={AllergicRhinitisAssessmentPage} />
+        <Route path="/danh-gia-nguy-co-mac-benh-viem-mui-di-ung/ket-qua" component={AllergicRhinitisResultPage} />
+        <Route path="/danh-gia-muc-do-cuong-cung-duong-vat-iief5" component={IIEF5AssessmentPage} />
+        <Route path="/danh-gia-muc-do-cuong-cung-duong-vat-iief5/ket-qua" component={IIEF5ResultPage} />
+        <Route path="/danh-gia-nguy-co-mac-benh-trao-nguoc-da-day" component={GerdAssessmentPage} />
+        <Route path="/huong-dan-tnmindtest" component={TNmindtestGuidePage} />
+        <Route path="/tri-nho-va-muc-do-tap-trung-chu-y-tnmindtest" component={TNmindtestPage} />
+      <Route path="/danh-gia-nguy-co-mac-benh-phoi-tac-nghen-man-tinh" component={COPDAssessmentPage} />
+      <Route path="/danh-gia-yeu-to-nguy-co-tim-mach-than-chuyen-hoa" component={CardiovascularAssessmentPage} />
+      <Route path="/danh-gia-nguy-co-mac-benh-nam-da" component={FungalSkinAssessmentPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <PrescriptionProvider>
+            <Toaster />
+            <CartProvider>
+              <Router />
+            </CartProvider>
+          </PrescriptionProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
