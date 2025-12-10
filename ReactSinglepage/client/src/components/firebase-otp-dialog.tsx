@@ -119,18 +119,25 @@ export default function FirebaseOTPDialog({
       setRecaptchaVerifier(verifier);
       console.log('✅ reCAPTCHA verifier created');
 
-      // Format phone number for Firebase - Fix Vietnamese phone number format
-      let formattedPhone = phoneNumber;
-      if (phoneNumber.startsWith('0')) {
-        // Convert Vietnamese phone number from 0xxx to +84xxx
-        formattedPhone = `+84${phoneNumber.substring(1)}`;
-      } else if (!phoneNumber.startsWith('+')) {
-        // Add +84 if no country code
-        formattedPhone = `+84${phoneNumber}`;
-      }
+    // Format phone number for Firebase - ensure E.164
+    let formattedPhone = phoneNumber.trim();
+
+    // Remove all spaces
+    formattedPhone = formattedPhone.replace(/\s+/g, '');
+
+    // If already starts with +, keep as is
+    if (formattedPhone.startsWith('+')) {
+      // nothing
+    } else if (formattedPhone.startsWith('0')) {
+      // VN local: 0xxxxxxxxx -> +84xxxxxxxxx
+      formattedPhone = `+84${formattedPhone.slice(1)}`;
+    } else if (/^[0-9]{9,11}$/.test(formattedPhone)) {
+      // digits only without leading 0/+ , assume VN
+      formattedPhone = `+84${formattedPhone}`;
+    }
       
-      console.log('📱 Original phone:', phoneNumber);
-      console.log('📱 Formatted phone:', formattedPhone);
+    console.log('📱 Original phone:', phoneNumber);
+    console.log('📱 Formatted phone (E.164):', formattedPhone);
       console.log('🔐 Using Firebase Phone Authentication with reCAPTCHA');
       
       // Wait for reCAPTCHA to be ready (increased wait time)

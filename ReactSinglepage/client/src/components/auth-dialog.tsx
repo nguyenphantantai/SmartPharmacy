@@ -39,9 +39,9 @@ export default function AuthDialog({ children }: AuthDialogProps) {
       return;
     }
 
-    // Validate phone number format (Vietnamese phone number)
-    const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
-    if (!phoneRegex.test(phone)) {
+    // Validate phone number format (will normalize to +84 later)
+    const phoneRegex = /^(0|\+84)[0-9]{9}|[0-9]{9,11}$/;
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
       toast({
         title: "Lỗi",
         description: "Vui lòng nhập số điện thoại hợp lệ",

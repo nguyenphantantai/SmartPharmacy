@@ -66,7 +66,8 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }: Regis
       return 'Nhập số điện thoại';
     }
     const cleanPhone = phoneValue.replace(/\s/g, '');
-    const phoneRegex = /^(0|\+84)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-6|8|9]|9[0-4|6-9])[0-9]{7}$/;
+    // Accept 0xxxxxxxxx, +84xxxxxxxxx, or digits only (9-11) then normalize later
+    const phoneRegex = /^(0|\+84)[0-9]{9}|[0-9]{9,11}$/;
     if (!phoneRegex.test(cleanPhone)) {
       return 'Số điện thoại Việt Nam không hợp lệ (VD: 0987654321)';
     }
@@ -179,9 +180,9 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }: Regis
       return;
     }
 
-    // Validate phone number format
-    const phoneRegex = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
-    if (!phoneRegex.test(phone)) {
+    // Validate phone number format (loose, will normalize to E.164 when send OTP)
+    const phoneRegex = /^(0|\+84)[0-9]{9}|[0-9]{9,11}$/;
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
       toast({
         title: "Lỗi",
         description: "Số điện thoại không hợp lệ",

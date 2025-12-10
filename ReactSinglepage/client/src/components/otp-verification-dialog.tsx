@@ -65,8 +65,8 @@ export default function OTPVerificationDialog({
       
       // Auto send OTP when dialog opens
       console.log('🔥 OTP Dialog opened, auto sending OTP...');
-      console.log('📱 phoneNumber:', phoneNumber);
-      sendOTPMutation.mutate({ phone: phoneNumber, method: 'sms' });
+    console.log('📱 phoneNumber:', phoneNumber);
+    sendOTPMutation.mutate({ phone: phoneNumber, method: 'sms' });
     }
   }, [isOpen, phoneNumber]);
 
