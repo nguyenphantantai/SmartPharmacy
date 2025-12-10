@@ -832,6 +832,8 @@ export class PaymentController {
       console.log('📨 Request headers:', JSON.stringify(req.headers, null, 2));
       console.log('📨 Query params:', JSON.stringify(req.query, null, 2));
       console.log('📨 Client IP:', req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress);
+      console.log('📨 User-Agent:', req.headers['user-agent']);
+      console.log('📨 ⚠️ IMPORTANT: If you see this log, VNPay successfully called your IPN URL!');
       
       const callbackData = req.query as any as VnpayCallbackData;
 
@@ -854,26 +856,63 @@ export class PaymentController {
       // Extract order ID from vnp_TxnRef (orderNumber) or extraData (database orderId)
       let order;
       
-      // Try to find by orderNumber first (vnp_TxnRef)
-      order = await Order.findOne({
-        orderNumber: callbackData.vnp_TxnRef,
-      });
-
-      // If not found, try by sanitized orderNumber (remove non-alphanumeric)
-      if (!order) {
-        const sanitizedRef = callbackData.vnp_TxnRef?.replace(/[^A-Za-z0-9]/g, '');
-        if (sanitizedRef) {
-          order = await Order.findOne({ orderNumber: sanitizedRef });
+      console.log('🔍 Searching for order with vnp_TxnRef:', callbackData.vnp_TxnRef);
+      
+      // IMPORTANT: vnp_TxnRef is sanitized (no hyphens), but orderNumber in DB has hyphens
+      // So we need to find by comparing sanitized versions
+      
+      // Priority 1: Try to find by extraData (database orderId) - most reliable
+      if (callbackData.vnp_ExtraData) {
+        try {
+          const extraData = Buffer.from(callbackData.vnp_ExtraData, 'base64').toString('utf-8');
+          console.log('🔍 Trying to find order by extraData (orderId):', extraData);
+          order = await Order.findById(extraData);
+          if (order) {
+            console.log('✅ Order found by extraData (orderId):', order.orderNumber);
+          }
+        } catch (e) {
+          console.warn('⚠️ Failed to decode extraData:', e);
         }
       }
 
-      // If not found and extraData exists, try to find by database orderId
-      if (!order && callbackData.vnp_ExtraData) {
-        try {
-          const extraData = Buffer.from(callbackData.vnp_ExtraData, 'base64').toString('utf-8');
-          order = await Order.findById(extraData);
-        } catch (e) {
-          console.warn('Failed to decode extraData:', e);
+      // Priority 2: Try to find by exact orderNumber match (in case orderNumber doesn't have hyphens)
+      if (!order) {
+        console.log('🔍 Trying to find order by exact orderNumber:', callbackData.vnp_TxnRef);
+        order = await Order.findOne({
+          orderNumber: callbackData.vnp_TxnRef,
+        });
+        if (order) {
+          console.log('✅ Order found by exact orderNumber:', order.orderNumber);
+        }
+      }
+
+      // Priority 3: Find by comparing sanitized orderNumber (remove hyphens from DB orderNumber)
+      // This handles the case: vnp_TxnRef = "ORD1765393814535HKXG", orderNumber in DB = "ORD-1765393814535-HKXG"
+      if (!order) {
+        console.log('🔍 Trying to find order by sanitized orderNumber comparison...');
+        // Get all orders and compare sanitized versions
+        // More efficient: use regex to find orders that match when sanitized
+        const sanitizedTxnRef = callbackData.vnp_TxnRef?.replace(/[^A-Za-z0-9]/g, '');
+        if (sanitizedTxnRef) {
+          // Find orders where sanitized orderNumber matches sanitized vnp_TxnRef
+          const allOrders = await Order.find({
+            paymentMethod: 'vnpay',
+            paymentStatus: { $ne: 'paid' }, // Only unpaid orders
+          }).limit(100); // Limit to recent orders
+          
+          for (const o of allOrders) {
+            const sanitizedOrderNumber = o.orderNumber.replace(/[^A-Za-z0-9]/g, '');
+            if (sanitizedOrderNumber === sanitizedTxnRef) {
+              order = o;
+              console.log('✅ Order found by sanitized comparison:', {
+                vnp_TxnRef: callbackData.vnp_TxnRef,
+                sanitizedTxnRef: sanitizedTxnRef,
+                orderNumber: o.orderNumber,
+                sanitizedOrderNumber: sanitizedOrderNumber,
+              });
+              break;
+            }
+          }
         }
       }
 
@@ -881,7 +920,21 @@ export class PaymentController {
         console.error('❌ Order not found for VNPay callback:', {
           vnp_TxnRef: callbackData.vnp_TxnRef,
           vnp_ExtraData: callbackData.vnp_ExtraData,
+          vnp_ResponseCode: callbackData.vnp_ResponseCode,
+          vnp_TransactionStatus: callbackData.vnp_TransactionStatus,
         });
+        console.error('❌ Debug info:');
+        console.error('   - vnp_TxnRef (from VNPay):', callbackData.vnp_TxnRef);
+        if (callbackData.vnp_ExtraData) {
+          try {
+            const decodedExtraData = Buffer.from(callbackData.vnp_ExtraData, 'base64').toString('utf-8');
+            console.error('   - Decoded extraData (should be orderId):', decodedExtraData);
+          } catch (e) {
+            console.error('   - Failed to decode extraData:', e);
+          }
+        } else {
+          console.error('   - ⚠️ No extraData provided by VNPay!');
+        }
         // VNPay expects 200 status even if order not found
         return res.status(200).json({ RspCode: '01', Message: 'Order not found' });
       }
