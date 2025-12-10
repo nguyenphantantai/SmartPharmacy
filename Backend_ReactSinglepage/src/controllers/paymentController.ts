@@ -429,8 +429,8 @@ export class PaymentController {
       const testResult = VnpayService.testCredentials();
 
       // Get detected URLs from request
-      const detectedReturnUrl = this.getBaseUrl(req, false);
-      const detectedIpnUrl = this.getBaseUrl(req, true);
+      const detectedReturnUrl = PaymentController.getBaseUrl(req, false);
+      const detectedIpnUrl = PaymentController.getBaseUrl(req, true);
 
       res.json({
         success: true,
@@ -525,25 +525,50 @@ export class PaymentController {
       const txnRef = order.orderNumber.replace(/[^A-Za-z0-9]/g, '');
 
       // Get client IP address from request
-      // Convert IPv6 ::1 to IPv4 127.0.0.1 for VNPay compatibility
-      let clientIp = req.ip || 
-        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-        (req.headers['x-real-ip'] as string) ||
-        req.socket.remoteAddress ||
-        '127.0.0.1';
+      // Priority: x-forwarded-for (from reverse proxy) > x-real-ip > req.ip > socket.remoteAddress
+      // On Render, x-forwarded-for contains the real client IP
+      let clientIp = '127.0.0.1'; // Default fallback
+      
+      // Check x-forwarded-for first (most reliable on Render/cloud platforms)
+      if (req.headers['x-forwarded-for']) {
+        const forwardedIps = String(req.headers['x-forwarded-for']).split(',');
+        clientIp = forwardedIps[0].trim();
+        console.log('📡 Client IP from x-forwarded-for:', clientIp, '(all IPs:', forwardedIps, ')');
+      } else if (req.headers['x-real-ip']) {
+        clientIp = String(req.headers['x-real-ip']).trim();
+        console.log('📡 Client IP from x-real-ip:', clientIp);
+      } else if (req.ip) {
+        clientIp = req.ip;
+        console.log('📡 Client IP from req.ip:', clientIp);
+      } else if (req.socket.remoteAddress) {
+        clientIp = req.socket.remoteAddress;
+        console.log('📡 Client IP from socket.remoteAddress:', clientIp);
+      } else {
+        console.warn('⚠️ Could not determine client IP, using fallback 127.0.0.1');
+      }
       
       // Convert IPv6 localhost to IPv4
-      if (clientIp === '::1' || clientIp === '::ffff:127.0.0.1') {
+      if (clientIp === '::1' || clientIp === '::ffff:127.0.0.1' || clientIp.startsWith('::ffff:127.0.0.1')) {
         clientIp = '127.0.0.1';
+        console.log('📡 Converted IPv6 localhost to IPv4:', clientIp);
       }
+      
+      // Log all IP-related headers for debugging
+      console.log('📡 IP Detection Debug:', {
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+        'x-real-ip': req.headers['x-real-ip'],
+        'req.ip': req.ip,
+        'socket.remoteAddress': req.socket.remoteAddress,
+        'finalClientIp': clientIp,
+      });
 
       // Get return URL from request (auto-detect production URL)
       let returnUrl: string;
       let ipnUrl: string;
       
       try {
-        returnUrl = this.getBaseUrl(req, false);
-        ipnUrl = this.getBaseUrl(req, true);
+        returnUrl = PaymentController.getBaseUrl(req, false);
+        ipnUrl = PaymentController.getBaseUrl(req, true);
       } catch (urlError: any) {
         console.error('Error getting base URL:', urlError);
         // Fallback to environment variables

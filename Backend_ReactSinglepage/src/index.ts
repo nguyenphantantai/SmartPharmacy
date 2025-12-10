@@ -52,6 +52,10 @@ const initializeAIServices = async () => {
 
 const app = express();
 
+// Trust proxy - Required for Render and other cloud platforms to get correct client IP
+// This allows Express to read x-forwarded-* headers correctly
+app.set('trust proxy', true);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
