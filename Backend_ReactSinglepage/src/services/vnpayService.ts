@@ -17,6 +17,8 @@ export interface VnpayPaymentRequest {
   amount: number;
   extraData?: string;
   ipAddr?: string; // Client IP address
+  returnUrl?: string; // Frontend return URL (optional, will use env or auto-detect)
+  ipnUrl?: string; // Backend callback URL (optional, will use env or auto-detect)
 }
 
 export interface VnpayPaymentResponse {
@@ -272,6 +274,19 @@ export class VnpayService {
     // Get client IP address (use provided or default to 127.0.0.1 for localhost)
     const clientIp = request.ipAddr || '127.0.0.1';
 
+    // Use provided returnUrl or fallback to env or default
+    // IMPORTANT: When deployed, this must be a public URL, not localhost!
+    const returnUrl = request.returnUrl || VNPAY_CONFIG.returnUrl;
+    
+    // Log URL configuration for debugging
+    if (process.env.NODE_ENV === 'development' || returnUrl.includes('localhost')) {
+      console.log('⚠️ VNPay ReturnUrl:', returnUrl);
+      if (returnUrl.includes('localhost')) {
+        console.log('⚠️ WARNING: Using localhost returnUrl. This will fail in production!');
+        console.log('⚠️ Please set VNPAY_RETURN_URL environment variable to your production frontend URL');
+      }
+    }
+
     // Normalize orderInfo: remove Vietnamese diacritics and special characters
     // VNPay requires: "Tiếng Việt không dấu và không bao gồm các ký tự đặc biệt"
     // Also limit length to 100 characters (VNPay requirement)
@@ -300,7 +315,7 @@ export class VnpayService {
       vnp_OrderInfo: normalizedOrderInfo, // Use normalized order info
       vnp_OrderType: 'other',
       vnp_Locale: 'vn',
-      vnp_ReturnUrl: VNPAY_CONFIG.returnUrl,
+      vnp_ReturnUrl: returnUrl, // Use dynamic returnUrl
       vnp_IpAddr: clientIp,
       vnp_CreateDate: createDate,
     };
@@ -372,20 +387,32 @@ export class VnpayService {
       console.log('VNPay URL parameters count:', Object.keys(sortedPaymentData).length);
       console.log('VNPay hash length:', secureHash.length, '(should be 128 for SHA512)');
       console.log('VNPay TMN Code:', VNPAY_CONFIG.tmnCode);
-      console.log('VNPay ReturnUrl:', VNPAY_CONFIG.returnUrl);
+      console.log('VNPay ReturnUrl:', returnUrl);
       console.log('✅ VNPay Credentials Verified:');
       console.log('   TMN Code:', VNPAY_CONFIG.tmnCode, '(Đúng theo email VNPay)');
       console.log('   Hash Secret:', VNPAY_CONFIG.hashSecret.substring(0, 10) + '...', '(Đúng theo email VNPay)');
       console.log('');
+      // Get IPN URL from request if provided, otherwise use config
+      const ipnUrl = request.ipnUrl || VNPAY_CONFIG.ipnUrl;
+      
       console.log('⚠️ VNPay Code=99 - Các bước khắc phục:');
       console.log('   1. ⚠️ QUAN TRỌNG: Đăng ký IPN URL trong VNPay Merchant Portal');
       console.log('      - Đăng nhập: https://sandbox.vnpayment.vn/merchantv2/');
       console.log('      - Vào phần "Cấu hình" hoặc "Thông tin tích hợp"');
-      console.log('      - Đăng ký IPN URL:', VNPAY_CONFIG.ipnUrl);
+      console.log('      - Đăng ký IPN URL:', ipnUrl);
+      if (ipnUrl.includes('localhost')) {
+        console.log('      - ⚠️ WARNING: IPN URL đang dùng localhost!');
+        console.log('      - Khi deploy, phải set VNPAY_IPN_URL trong .env với URL production');
+        console.log('      - Ví dụ: VNPAY_IPN_URL=https://yourdomain.com/api/payment/vnpay/callback');
+      }
       console.log('      - Gửi IPN URL này cho VNPay support nếu cần');
       console.log('   2. Kiểm tra ReturnUrl có được chấp nhận không');
-      console.log('      - ReturnUrl hiện tại:', VNPAY_CONFIG.returnUrl);
-      console.log('      - Nếu localhost không được chấp nhận, dùng ngrok: ngrok http 3000');
+      console.log('      - ReturnUrl hiện tại:', returnUrl);
+      if (returnUrl.includes('localhost')) {
+        console.log('      - ⚠️ WARNING: ReturnUrl đang dùng localhost!');
+        console.log('      - Khi deploy, phải set VNPAY_RETURN_URL trong .env với URL production');
+        console.log('      - Ví dụ: VNPAY_RETURN_URL=https://yourdomain.com/payment-success');
+      }
       console.log('   3. Test với thẻ test từ email VNPay:');
       console.log('      - Số thẻ: 9704198526191432198');
       console.log('      - Tên: NGUYEN VAN A');

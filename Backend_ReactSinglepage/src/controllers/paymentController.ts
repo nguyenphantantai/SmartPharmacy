@@ -3,8 +3,68 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import { MomoService, MomoCallbackData } from '../services/momoService';
 import { VnpayService, VnpayCallbackData } from '../services/vnpayService';
 import { Order } from '../models/schema';
+import { config } from '../config/index';
 
 export class PaymentController {
+  /**
+   * Get base URL from request (supports production with reverse proxy)
+   * This automatically detects the correct URL when deployed
+   */
+  private static getBaseUrl(req: Request, isBackend: boolean = false): string {
+    // Priority 1: Use environment variable if set (ALWAYS prefer env vars in production)
+    if (isBackend) {
+      const envIpnUrl = process.env.VNPAY_IPN_URL;
+      if (envIpnUrl) {
+        console.log('✅ Using VNPAY_IPN_URL from environment:', envIpnUrl);
+        return envIpnUrl;
+      }
+    } else {
+      const envReturnUrl = process.env.VNPAY_RETURN_URL;
+      if (envReturnUrl) {
+        console.log('✅ Using VNPAY_RETURN_URL from environment:', envReturnUrl);
+        return envReturnUrl;
+      }
+    }
+
+    // Priority 2: Build from request headers (works with reverse proxy)
+    // This is fallback for development or when env vars not set
+    const protocol = req.headers['x-forwarded-proto'] || 
+                     (req.secure ? 'https' : 'http') || 
+                     'http';
+    const host = req.headers['x-forwarded-host'] || 
+                 req.headers.host || 
+                 'localhost:5000';
+    
+    // Remove port from host if it's standard (80 for http, 443 for https)
+    let cleanHost = host.toString();
+    if ((protocol === 'http' && cleanHost.endsWith(':80')) ||
+        (protocol === 'https' && cleanHost.endsWith(':443'))) {
+      cleanHost = cleanHost.split(':')[0];
+    }
+
+    const baseUrl = `${protocol}://${cleanHost}`;
+
+    if (isBackend) {
+      // For IPN URL (backend callback)
+      const ipnUrl = `${baseUrl}/api/payment/vnpay/callback`;
+      console.log('⚠️ Auto-detected IPN URL (consider setting VNPAY_IPN_URL):', ipnUrl);
+      return ipnUrl;
+    } else {
+      // For return URL (frontend redirect)
+      // Try to get frontend URL from CORS origin first
+      if (config.corsOrigin && !config.corsOrigin.includes('localhost')) {
+        const returnUrl = `${config.corsOrigin}/payment-success`;
+        console.log('✅ Using frontend URL from CORS_ORIGIN:', returnUrl);
+        return returnUrl;
+      }
+      
+      // Fallback: construct from backend URL (replace port)
+      const frontendUrl = baseUrl.replace(':5000', ':3000').replace(/:\d+$/, '');
+      const returnUrl = `${frontendUrl}/payment-success`;
+      console.log('⚠️ Auto-detected Return URL (consider setting VNPAY_RETURN_URL):', returnUrl);
+      return returnUrl;
+    }
+  }
   /**
    * Create MoMo payment request
    * POST /api/payment/momo/create
@@ -385,13 +445,26 @@ export class PaymentController {
         clientIp = '127.0.0.1';
       }
 
+      // Get return URL from request (auto-detect production URL)
+      const returnUrl = this.getBaseUrl(req, false);
+      const ipnUrl = this.getBaseUrl(req, true);
+
       console.log('Creating VNPay payment request:', {
         orderId: txnRef,
         amount: amount,
         orderInfo: orderInfo || `Thanh toán đơn hàng ${order.orderNumber}`,
         clientIp: clientIp,
         originalOrderNumber: order.orderNumber,
+        returnUrl: returnUrl,
+        ipnUrl: ipnUrl,
       });
+
+      // Log warning if using localhost in production
+      if (process.env.NODE_ENV === 'production' && returnUrl.includes('localhost')) {
+        console.error('❌ CRITICAL: VNPay ReturnUrl is using localhost in production!');
+        console.error('   Please set VNPAY_RETURN_URL environment variable');
+        console.error('   Example: VNPAY_RETURN_URL=https://yourdomain.com/payment-success');
+      }
 
       // Create VNPay payment URL
       const payUrl = VnpayService.createPaymentUrl({
@@ -400,6 +473,8 @@ export class PaymentController {
         amount: amount,
         extraData: orderId, // Store database order ID in extraData for callback
         ipAddr: clientIp, // Pass client IP address
+        returnUrl: returnUrl, // Pass dynamic return URL
+        ipnUrl: ipnUrl, // Pass dynamic IPN URL (for reference, not used in URL creation)
       });
 
       console.log('VNPay payment URL created successfully');
