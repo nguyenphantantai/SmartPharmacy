@@ -396,16 +396,20 @@ export class VnpayService {
       const ipnUrl = request.ipnUrl || VNPAY_CONFIG.ipnUrl;
       
       console.log('⚠️ VNPay Code=99 - Các bước khắc phục:');
-      console.log('   1. ⚠️ QUAN TRỌNG: Đăng ký IPN URL trong VNPay Merchant Portal');
-      console.log('      - Đăng nhập: https://sandbox.vnpayment.vn/merchantv2/');
-      console.log('      - Vào phần "Cấu hình" hoặc "Thông tin tích hợp"');
-      console.log('      - Đăng ký IPN URL:', ipnUrl);
-      if (ipnUrl.includes('localhost')) {
+      console.log('   1. ✅ IPN URL Configuration:');
+      console.log('      - IPN URL đã được detect/configure:', ipnUrl);
+      if (!ipnUrl.includes('localhost')) {
+        console.log('      - ✅ IPN URL là production URL (không phải localhost)');
+        console.log('      - ⚠️ QUAN TRỌNG: Đảm bảo IPN URL này đã được đăng ký trong VNPay Merchant Portal');
+        console.log('      - Kiểm tra tại: https://sandbox.vnpayment.vn/vnpaygw-sit-testing/ipn');
+        console.log('      - Terminal Code:', VNPAY_CONFIG.tmnCode);
+        console.log('      - IPN URL phải khớp:', ipnUrl);
+      } else {
         console.log('      - ⚠️ WARNING: IPN URL đang dùng localhost!');
         console.log('      - Khi deploy, phải set VNPAY_IPN_URL trong .env với URL production');
         console.log('      - Ví dụ: VNPAY_IPN_URL=https://yourdomain.com/api/payment/vnpay/callback');
+        console.log('      - Sau đó đăng ký IPN URL trong VNPay Merchant Portal');
       }
-      console.log('      - Gửi IPN URL này cho VNPay support nếu cần');
       console.log('   2. Kiểm tra ReturnUrl có được chấp nhận không');
       console.log('      - ReturnUrl hiện tại:', returnUrl);
       if (returnUrl.includes('localhost')) {

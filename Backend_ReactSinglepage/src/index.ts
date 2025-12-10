@@ -207,6 +207,24 @@ const startServer = async () => {
       console.log(`📊 Environment: ${config.nodeEnv}`);
       console.log(`🌐 CORS Origin: ${config.corsOrigin}`);
       
+      // Log VNPay configuration status
+      console.log('\n💳 VNPay Configuration Status:');
+      console.log(`   VNPAY_TMN_CODE: ${process.env.VNPAY_TMN_CODE ? '✅ Set' : '❌ NOT SET'}`);
+      console.log(`   VNPAY_HASH_SECRET: ${process.env.VNPAY_HASH_SECRET ? '✅ Set' : '❌ NOT SET'}`);
+      console.log(`   VNPAY_RETURN_URL: ${process.env.VNPAY_RETURN_URL || '❌ NOT SET (will auto-detect)'}`);
+      console.log(`   VNPAY_IPN_URL: ${process.env.VNPAY_IPN_URL || '❌ NOT SET (will auto-detect)'}`);
+      if (process.env.NODE_ENV === 'production') {
+        if (!process.env.VNPAY_RETURN_URL || process.env.VNPAY_RETURN_URL.includes('localhost')) {
+          console.log('   ⚠️  WARNING: VNPAY_RETURN_URL not set or using localhost in production!');
+          console.log('   ⚠️  Please set VNPAY_RETURN_URL in Render environment variables');
+        }
+        if (!process.env.VNPAY_IPN_URL || process.env.VNPAY_IPN_URL.includes('localhost')) {
+          console.log('   ⚠️  WARNING: VNPAY_IPN_URL not set or using localhost in production!');
+          console.log('   ⚠️  Please set VNPAY_IPN_URL in Render environment variables');
+        }
+      }
+      console.log('');
+      
       // Start automatic sync job - sync medicines từ collection medicines sang products mỗi 10 giây
       const SYNC_INTERVAL = 10 * 1000; // 10 giây - giảm từ 30 giây để đồng bộ nhanh hơn
       setInterval(async () => {

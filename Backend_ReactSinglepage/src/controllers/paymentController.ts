@@ -11,58 +11,93 @@ export class PaymentController {
    * This automatically detects the correct URL when deployed
    */
   private static getBaseUrl(req: Request, isBackend: boolean = false): string {
-    // Priority 1: Use environment variable if set (ALWAYS prefer env vars in production)
-    if (isBackend) {
-      const envIpnUrl = process.env.VNPAY_IPN_URL;
-      if (envIpnUrl) {
-        console.log('✅ Using VNPAY_IPN_URL from environment:', envIpnUrl);
-        return envIpnUrl;
+    try {
+      // Priority 1: Use environment variable if set (ALWAYS prefer env vars in production)
+      if (isBackend) {
+        const envIpnUrl = process.env.VNPAY_IPN_URL;
+        if (envIpnUrl) {
+          console.log('✅ Using VNPAY_IPN_URL from environment:', envIpnUrl);
+          return envIpnUrl;
+        }
+      } else {
+        const envReturnUrl = process.env.VNPAY_RETURN_URL;
+        if (envReturnUrl) {
+          console.log('✅ Using VNPAY_RETURN_URL from environment:', envReturnUrl);
+          return envReturnUrl;
+        }
       }
-    } else {
-      const envReturnUrl = process.env.VNPAY_RETURN_URL;
-      if (envReturnUrl) {
-        console.log('✅ Using VNPAY_RETURN_URL from environment:', envReturnUrl);
-        return envReturnUrl;
+
+      // Priority 2: Build from request headers (works with reverse proxy)
+      // This is fallback for development or when env vars not set
+      let protocol = 'https'; // Default to https for production
+      
+      // Check x-forwarded-proto first (from reverse proxy)
+      if (req.headers['x-forwarded-proto']) {
+        protocol = String(req.headers['x-forwarded-proto']).split(',')[0].trim();
+      } else {
+        // Check if request is secure (Express may not have req.secure in all cases)
+        const isSecure = (req as any).secure || 
+                        req.headers['x-forwarded-ssl'] === 'on' ||
+                        (req.headers['x-forwarded-proto'] as string)?.includes('https');
+        protocol = isSecure ? 'https' : 'http';
       }
-    }
 
-    // Priority 2: Build from request headers (works with reverse proxy)
-    // This is fallback for development or when env vars not set
-    const protocol = req.headers['x-forwarded-proto'] || 
-                     (req.secure ? 'https' : 'http') || 
-                     'http';
-    const host = req.headers['x-forwarded-host'] || 
-                 req.headers.host || 
-                 'localhost:5000';
-    
-    // Remove port from host if it's standard (80 for http, 443 for https)
-    let cleanHost = host.toString();
-    if ((protocol === 'http' && cleanHost.endsWith(':80')) ||
-        (protocol === 'https' && cleanHost.endsWith(':443'))) {
-      cleanHost = cleanHost.split(':')[0];
-    }
-
-    const baseUrl = `${protocol}://${cleanHost}`;
-
-    if (isBackend) {
-      // For IPN URL (backend callback)
-      const ipnUrl = `${baseUrl}/api/payment/vnpay/callback`;
-      console.log('⚠️ Auto-detected IPN URL (consider setting VNPAY_IPN_URL):', ipnUrl);
-      return ipnUrl;
-    } else {
-      // For return URL (frontend redirect)
-      // Try to get frontend URL from CORS origin first
-      if (config.corsOrigin && !config.corsOrigin.includes('localhost')) {
-        const returnUrl = `${config.corsOrigin}/payment-success`;
-        console.log('✅ Using frontend URL from CORS_ORIGIN:', returnUrl);
-        return returnUrl;
+      // Get host from headers
+      let host = 'localhost:5000'; // Default fallback
+      if (req.headers['x-forwarded-host']) {
+        host = String(req.headers['x-forwarded-host']).split(',')[0].trim();
+      } else if (req.headers.host) {
+        host = String(req.headers.host);
       }
       
-      // Fallback: construct from backend URL (replace port)
-      const frontendUrl = baseUrl.replace(':5000', ':3000').replace(/:\d+$/, '');
-      const returnUrl = `${frontendUrl}/payment-success`;
-      console.log('⚠️ Auto-detected Return URL (consider setting VNPAY_RETURN_URL):', returnUrl);
-      return returnUrl;
+      // Remove port from host if it's standard (80 for http, 443 for https)
+      let cleanHost = host;
+      if ((protocol === 'http' && cleanHost.endsWith(':80')) ||
+          (protocol === 'https' && cleanHost.endsWith(':443'))) {
+        cleanHost = cleanHost.split(':')[0];
+      }
+
+      const baseUrl = `${protocol}://${cleanHost}`;
+
+      if (isBackend) {
+        // For IPN URL (backend callback)
+        const ipnUrl = `${baseUrl}/api/payment/vnpay/callback`;
+        console.log('⚠️ Auto-detected IPN URL (consider setting VNPAY_IPN_URL):', ipnUrl);
+        return ipnUrl;
+      } else {
+        // For return URL (frontend redirect)
+        // Try to get frontend URL from CORS origin first
+        try {
+          if (config && config.corsOrigin && !config.corsOrigin.includes('localhost')) {
+            const returnUrl = `${config.corsOrigin}/payment-success`;
+            console.log('✅ Using frontend URL from CORS_ORIGIN:', returnUrl);
+            return returnUrl;
+          }
+        } catch (configError) {
+          console.warn('Could not access config.corsOrigin:', configError);
+        }
+        
+        // Fallback: construct from backend URL (remove port or replace)
+        let frontendUrl = baseUrl;
+        // Remove port number if present
+        frontendUrl = frontendUrl.replace(/:\d+$/, '');
+        // If still has port 5000, try to replace with common frontend patterns
+        if (frontendUrl.includes(':5000')) {
+          frontendUrl = frontendUrl.replace(':5000', '');
+        }
+        
+        const returnUrl = `${frontendUrl}/payment-success`;
+        console.log('⚠️ Auto-detected Return URL (consider setting VNPAY_RETURN_URL):', returnUrl);
+        return returnUrl;
+      }
+    } catch (error: any) {
+      console.error('Error in getBaseUrl:', error);
+      // Fallback to environment variables or defaults
+      if (isBackend) {
+        return process.env.VNPAY_IPN_URL || 'http://localhost:5000/api/payment/vnpay/callback';
+      } else {
+        return process.env.VNPAY_RETURN_URL || 'http://localhost:3000/payment-success';
+      }
     }
   }
   /**
@@ -375,6 +410,63 @@ export class PaymentController {
   }
 
   /**
+   * Test VNPay credentials and environment configuration
+   * GET /api/payment/vnpay/test-credentials
+   */
+  static async testVnpayCredentials(req: Request, res: Response) {
+    try {
+      const envVars = {
+        VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE || 'NOT SET',
+        VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET ? '***SET***' : 'NOT SET',
+        VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || 'NOT SET',
+        VNPAY_IPN_URL: process.env.VNPAY_IPN_URL || 'NOT SET',
+        VNPAY_URL: process.env.VNPAY_URL || 'NOT SET',
+        NODE_ENV: process.env.NODE_ENV || 'NOT SET',
+        CORS_ORIGIN: process.env.CORS_ORIGIN || 'NOT SET',
+      };
+
+      // Test creating a payment URL
+      const testResult = VnpayService.testCredentials();
+
+      // Get detected URLs from request
+      const detectedReturnUrl = this.getBaseUrl(req, false);
+      const detectedIpnUrl = this.getBaseUrl(req, true);
+
+      res.json({
+        success: true,
+        environment: {
+          nodeEnv: process.env.NODE_ENV,
+          isProduction: process.env.NODE_ENV === 'production',
+        },
+        environmentVariables: envVars,
+        detectedUrls: {
+          returnUrl: detectedReturnUrl,
+          ipnUrl: detectedIpnUrl,
+        },
+        testResult: testResult,
+        recommendations: {
+          ...(envVars.VNPAY_RETURN_URL === 'NOT SET' && {
+            returnUrl: '⚠️ Set VNPAY_RETURN_URL in Render environment variables',
+          }),
+          ...(envVars.VNPAY_IPN_URL === 'NOT SET' && {
+            ipnUrl: '⚠️ Set VNPAY_IPN_URL in Render environment variables',
+          }),
+          ...(detectedReturnUrl.includes('localhost') && process.env.NODE_ENV === 'production' && {
+            critical: '❌ CRITICAL: ReturnUrl is using localhost in production!',
+          }),
+        },
+      });
+    } catch (error: any) {
+      console.error('Test VNPay credentials error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to test VNPay credentials',
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
+  }
+
+  /**
    * Create VNPay payment request
    * POST /api/payment/vnpay/create
    */
@@ -446,8 +538,19 @@ export class PaymentController {
       }
 
       // Get return URL from request (auto-detect production URL)
-      const returnUrl = this.getBaseUrl(req, false);
-      const ipnUrl = this.getBaseUrl(req, true);
+      let returnUrl: string;
+      let ipnUrl: string;
+      
+      try {
+        returnUrl = this.getBaseUrl(req, false);
+        ipnUrl = this.getBaseUrl(req, true);
+      } catch (urlError: any) {
+        console.error('Error getting base URL:', urlError);
+        // Fallback to environment variables
+        returnUrl = process.env.VNPAY_RETURN_URL || 'http://localhost:3000/payment-success';
+        ipnUrl = process.env.VNPAY_IPN_URL || 'http://localhost:5000/api/payment/vnpay/callback';
+        console.log('Using fallback URLs:', { returnUrl, ipnUrl });
+      }
 
       console.log('Creating VNPay payment request:', {
         orderId: txnRef,
@@ -457,7 +560,20 @@ export class PaymentController {
         originalOrderNumber: order.orderNumber,
         returnUrl: returnUrl,
         ipnUrl: ipnUrl,
+        requestHeaders: {
+          host: req.headers.host,
+          'x-forwarded-host': req.headers['x-forwarded-host'],
+          'x-forwarded-proto': req.headers['x-forwarded-proto'],
+        },
       });
+
+      // Log IPN URL configuration status
+      if (!ipnUrl.includes('localhost')) {
+        console.log('✅ IPN URL Configuration:');
+        console.log(`   IPN URL: ${ipnUrl}`);
+        console.log('   ⚠️  Đảm bảo IPN URL này đã được đăng ký trong VNPay Merchant Portal');
+        console.log('   Kiểm tra tại: https://sandbox.vnpayment.vn/vnpaygw-sit-testing/ipn');
+      }
 
       // Log warning if using localhost in production
       if (process.env.NODE_ENV === 'production' && returnUrl.includes('localhost')) {
@@ -465,17 +581,35 @@ export class PaymentController {
         console.error('   Please set VNPAY_RETURN_URL environment variable');
         console.error('   Example: VNPAY_RETURN_URL=https://yourdomain.com/payment-success');
       }
+      
+      if (process.env.NODE_ENV === 'production' && ipnUrl.includes('localhost')) {
+        console.error('❌ CRITICAL: VNPay IPN URL is using localhost in production!');
+        console.error('   Please set VNPAY_IPN_URL environment variable');
+        console.error('   Example: VNPAY_IPN_URL=https://yourdomain.com/api/payment/vnpay/callback');
+      }
 
       // Create VNPay payment URL
-      const payUrl = VnpayService.createPaymentUrl({
-        orderId: txnRef, // sanitized for VNPay
-        orderInfo: orderInfo || `Thanh toán đơn hàng ${order.orderNumber}`,
-        amount: amount,
-        extraData: orderId, // Store database order ID in extraData for callback
-        ipAddr: clientIp, // Pass client IP address
-        returnUrl: returnUrl, // Pass dynamic return URL
-        ipnUrl: ipnUrl, // Pass dynamic IPN URL (for reference, not used in URL creation)
-      });
+      let payUrl: string;
+      try {
+        payUrl = VnpayService.createPaymentUrl({
+          orderId: txnRef, // sanitized for VNPay
+          orderInfo: orderInfo || `Thanh toán đơn hàng ${order.orderNumber}`,
+          amount: amount,
+          extraData: orderId, // Store database order ID in extraData for callback
+          ipAddr: clientIp, // Pass client IP address
+          returnUrl: returnUrl, // Pass dynamic return URL
+          ipnUrl: ipnUrl, // Pass dynamic IPN URL (for reference, not used in URL creation)
+        });
+      } catch (createUrlError: any) {
+        console.error('Error creating VNPay payment URL:', createUrlError);
+        console.error('Error details:', {
+          message: createUrlError.message,
+          stack: createUrlError.stack,
+          orderId: txnRef,
+          returnUrl: returnUrl,
+        });
+        throw createUrlError; // Re-throw to be caught by outer try-catch
+      }
 
       console.log('VNPay payment URL created successfully');
 
