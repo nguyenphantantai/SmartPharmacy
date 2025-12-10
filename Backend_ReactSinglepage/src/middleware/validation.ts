@@ -9,6 +9,9 @@ export const handleValidationErrors = (
 ) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('❌ [Validation] Validation errors:', errors.array());
+    console.log('❌ [Validation] Request params:', req.params);
+    console.log('❌ [Validation] Request query:', req.query);
     return res.status(400).json({
       success: false,
       message: 'Validation failed',
@@ -140,11 +143,31 @@ export const validateReview = [
   handleValidationErrors,
 ];
 
-// ID parameter validation
+// ID parameter validation - accepts both UUID and MongoDB ObjectId
 export const validateId = [
   param('id')
-    .isUUID()
-    .withMessage('Valid ID is required'),
+    .custom((value) => {
+      console.log('🔍 [Validation] validateId - Checking ID:', value);
+      console.log('🔍 [Validation] validateId - ID type:', typeof value);
+      console.log('🔍 [Validation] validateId - ID length:', value?.length);
+      
+      // Check if it's a valid MongoDB ObjectId (24 hex characters)
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(value);
+      // Check if it's a valid UUID
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+      
+      console.log('🔍 [Validation] validateId - Is MongoDB ObjectId:', isMongoId);
+      console.log('🔍 [Validation] validateId - Is UUID:', isUUID);
+      
+      if (!isMongoId && !isUUID) {
+        console.log('❌ [Validation] validateId - Invalid ID format');
+        throw new Error('ID must be a valid UUID or MongoDB ObjectId');
+      }
+      
+      console.log('✅ [Validation] validateId - ID validation passed');
+      return true;
+    })
+    .withMessage('Valid ID (UUID or MongoDB ObjectId) is required'),
   handleValidationErrors,
 ];
 

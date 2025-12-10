@@ -81,7 +81,7 @@ export default function ProductGridCard({ product }: ProductGridCardProps) {
         </div>
 
         <div className="px-4 pb-4">
-          <div className="h-12 text-sm font-medium line-clamp-2 mb-2 text-foreground">{product.name}</div>
+          <div className="min-h-[3rem] text-sm font-medium mb-2 text-foreground break-words">{product.name}</div>
           
           {/* Stock and Expiration Info */}
           <div className="space-y-1 mb-2">

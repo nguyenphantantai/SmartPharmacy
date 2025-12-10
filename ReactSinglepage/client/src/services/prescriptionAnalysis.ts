@@ -28,6 +28,16 @@ export interface PrescriptionAnalysisResult {
   totalEstimatedPrice: number;
   requiresConsultation: boolean;
   analysisNotes: string[];
+  // Backend response structure
+  prescriptionMedicines?: Array<{
+    originalText: string;
+    originalDosage?: string | null;
+    matchedProduct?: any;
+    suggestions?: any[];
+    hasMatch: boolean;
+    suggestionText?: string; // Formatted suggestion text for "Thuốc đề xuất"
+  }>;
+  relatedMedicines?: any[];
 }
 
 // Database thuốc mẫu

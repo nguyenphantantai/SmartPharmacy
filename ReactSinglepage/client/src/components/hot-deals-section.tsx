@@ -4,13 +4,16 @@ import ProductCardWithQuantity from "./product-card-with-quantity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE } from "@/lib/utils";
 import { hasValidImage } from "@/lib/imageUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function HotDealsSection() {
+  const { isInitialized } = useAuth();
+  
   const { data: hotDeals, isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products/hot"],
     queryFn: async () => {
       console.log('🔥 Fetching hot deals from:', `${API_BASE}/api/products/hot`);
-      const response = await fetch(`${API_BASE}/products/hot`);
+      const response = await fetch(`${API_BASE}/api/products/hot`);
       console.log('📡 Hot deals response status:', response.status);
       if (!response.ok) {
         throw new Error("Failed to fetch hot products");
@@ -22,6 +25,7 @@ export default function HotDealsSection() {
       });
       return result.data || [];
     },
+    enabled: isInitialized, // Chỉ chạy khi AuthContext đã sẵn sàng
   });
   
   console.log('🔥 HotDealsSection state:', { isLoading, error: error?.message, productCount: hotDeals?.length });

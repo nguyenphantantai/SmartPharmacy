@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
-  Phone, 
   FileText, 
   Clock, 
   CheckCircle, 
@@ -39,11 +38,6 @@ export default function DrugConsultation() {
 
   const handleSavePrescription = () => {
     setLocation("/luu-don-thuoc");
-  };
-
-  const handleCallNow = () => {
-    // TODO: Implement call functionality
-    console.log("Calling hotline...");
   };
 
   return (
@@ -109,29 +103,6 @@ export default function DrugConsultation() {
 
           {/* Right Panel - Order Options */}
           <div className="space-y-6">
-            {/* Order via Hotline */}
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="bg-red-500 text-white rounded-full p-3">
-                    <Phone className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-red-900">
-                      Đặt hàng qua tổng đài
-                    </h3>
-                    <p className="text-red-700 mb-4">Nhanh chóng, miễn phí</p>
-                    <Button 
-                      onClick={handleCallNow}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      Gọi ngay
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Prescription Drugs */}
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-6">

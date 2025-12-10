@@ -4,20 +4,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import ProductCardWithQuantity from "./product-card-with-quantity";
 import { API_BASE } from "@/lib/utils";
 import { hasValidImage } from "@/lib/imageUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductGridProps {}
 
 export default function ProductGrid({}: ProductGridProps) {
+  const { isInitialized } = useAuth();
+  
   const { data: products, isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE}/products`);
+      const response = await fetch(`${API_BASE}/api/products`);
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
       const result = await response.json();
       return result.data.products || [];
     },
+    enabled: isInitialized, // Chỉ chạy khi AuthContext đã sẵn sàng
   });
 
   if (isLoading) {

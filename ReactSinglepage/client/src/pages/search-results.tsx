@@ -8,6 +8,8 @@ import { Search, Filter, SortAsc, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { API_BASE } from "@/lib/utils";
+import { getImageUrl } from "@/lib/imageUtils";
 
 export default function SearchResultsPage() {
   const [query, setQuery] = useState(() => {
@@ -15,6 +17,7 @@ export default function SearchResultsPage() {
     return urlParams.get('q') || '';
   });
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
+  const [apiProducts, setApiProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'relevance' | 'price-asc' | 'price-desc' | 'name'>('relevance');
@@ -23,14 +26,80 @@ export default function SearchResultsPage() {
   useEffect(() => {
     if (query.trim()) {
       setIsLoading(true);
-      const results = SearchService.searchProducts(query, 50);
-      setSearchResults(results);
+      
+      // Search from static data (for non-medicine products)
+      const staticResults = SearchService.searchProducts(query, 50);
+      
+      // Search from API (for medicines and other products in database)
+      const fetchApiProducts = async () => {
+        try {
+          const response = await fetch(`${API_BASE}/api/products?search=${encodeURIComponent(query)}&limit=100`);
+          const data = await response.json();
+          
+          if (data.success && data.data?.products) {
+            setApiProducts(data.data.products);
+          } else {
+            setApiProducts([]);
+          }
+        } catch (error) {
+          console.error('Error fetching products from API:', error);
+          setApiProducts([]);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      fetchApiProducts();
+      
+      // Combine static results with API results
+      setSearchResults(staticResults);
+    } else {
+      setSearchResults(null);
+      setApiProducts([]);
       setIsLoading(false);
     }
   }, [query]);
 
+  // Combine static products and API products
+  const allProducts = [
+    ...(searchResults?.products || []).map(p => ({
+      ...p,
+      source: 'static' as const
+    })),
+    ...apiProducts.map(p => ({
+      id: p._id || p.id,
+      name: p.name,
+      description: p.description || '',
+      price: String(p.price),
+      originalPrice: p.originalPrice ? String(p.originalPrice) : undefined,
+      unit: p.unit || 'đơn vị',
+      imageUrl: p.imageUrl || '/medicine-images/default-medicine.jpg',
+      category: p.category || '',
+      brand: p.brand || '',
+      isNew: p.isNew || false,
+      discountPercentage: p.discountPercentage ? String(p.discountPercentage) : undefined,
+      isGift: false,
+      type: 'medicine' as const,
+      source: 'api' as const
+    }))
+  ];
+
+  // Remove duplicates by name (prioritize API products)
+  const uniqueProducts = allProducts.reduce((acc, product) => {
+    const existing = acc.find(p => p.name.toLowerCase() === product.name.toLowerCase());
+    if (!existing || (product.source === 'api' && existing.source === 'static')) {
+      if (existing) {
+        const index = acc.indexOf(existing);
+        acc[index] = product;
+      } else {
+        acc.push(product);
+      }
+    }
+    return acc;
+  }, [] as any[]);
+
   // Sort products
-  const sortedProducts = searchResults?.products ? [...searchResults.products].sort((a, b) => {
+  const sortedProducts = uniqueProducts.sort((a, b) => {
     switch (sortBy) {
       case 'price-asc':
         return parseInt(a.price) - parseInt(b.price);
@@ -39,9 +108,18 @@ export default function SearchResultsPage() {
       case 'name':
         return a.name.localeCompare(b.name);
       default:
-        return 0; // Keep original order for relevance
+        // Relevance: exact name match first, then starts with, then contains
+        const queryLower = query.toLowerCase();
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        
+        if (aName === queryLower && bName !== queryLower) return -1;
+        if (bName === queryLower && aName !== queryLower) return 1;
+        if (aName.startsWith(queryLower) && !bName.startsWith(queryLower)) return -1;
+        if (bName.startsWith(queryLower) && !aName.startsWith(queryLower)) return 1;
+        return 0;
     }
-  }) : [];
+  });
 
   const formatPrice = (price: string) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -51,18 +129,18 @@ export default function SearchResultsPage() {
   };
 
   // Convert SearchProduct to Product for ProductCard component
-  const convertToProduct = (searchProduct: SearchProduct): Product => {
+  const convertToProduct = (searchProduct: any): Product => {
     return {
       id: searchProduct.id,
       name: searchProduct.name,
-      description: searchProduct.description,
+      description: searchProduct.description || '',
       price: searchProduct.price,
       originalPrice: searchProduct.originalPrice || null,
       discountPercentage: searchProduct.discountPercentage ? parseInt(searchProduct.discountPercentage) : 0,
-      imageUrl: searchProduct.imageUrl,
-      category: searchProduct.category,
-      brand: searchProduct.brand,
-      unit: searchProduct.unit,
+      imageUrl: getImageUrl(searchProduct.imageUrl),
+      category: searchProduct.category || '',
+      brand: searchProduct.brand || '',
+      unit: searchProduct.unit || 'đơn vị',
       inStock: true, // Default to true for search results
       isHot: false, // Default to false
       isNew: searchProduct.isNew || false,
@@ -107,13 +185,10 @@ export default function SearchResultsPage() {
         </div>
 
         {/* Results Summary */}
-        {searchResults && (
+        {sortedProducts.length > 0 && (
           <div className="mb-6">
             <p className="text-gray-600">
-              Tìm thấy <span className="font-semibold">{searchResults.total}</span> sản phẩm
-              {searchResults.categories.length > 0 && (
-                <span> trong {searchResults.categories.length} danh mục</span>
-              )}
+              Tìm thấy <span className="font-semibold">{sortedProducts.length}</span> sản phẩm
             </p>
           </div>
         )}
@@ -163,7 +238,7 @@ export default function SearchResultsPage() {
         )}
 
         {/* No Results */}
-        {!isLoading && searchResults && searchResults.products.length === 0 && (
+        {!isLoading && sortedProducts.length === 0 && (
           <Card className="text-center py-12">
             <CardContent>
               <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -193,7 +268,7 @@ export default function SearchResultsPage() {
         )}
 
         {/* Results Grid */}
-        {!isLoading && searchResults && searchResults.products.length > 0 && (
+        {!isLoading && sortedProducts.length > 0 && (
           <div className={
             viewMode === 'grid' 
               ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
@@ -207,9 +282,12 @@ export default function SearchResultsPage() {
                   <Card className="p-4">
                     <div className="flex gap-4">
                       <img
-                        src={product.imageUrl}
+                        src={getImageUrl(product.imageUrl)}
                         alt={product.name}
                         className="w-20 h-20 object-cover rounded-md"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = `${API_BASE}/medicine-images/default-medicine.jpg`;
+                        }}
                       />
                       <div className="flex-1">
                         <h3 className="font-semibold text-lg mb-1">{product.name}</h3>

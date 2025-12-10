@@ -14,6 +14,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  isInitialized: boolean; // Thêm loading state
   login: (userData: User, token: string) => void;
   logout: () => void;
   showLoginDialog: () => void;
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false); // Thêm loading state
   const { toast } = useToast();
 
   // Initialize auth state from localStorage
@@ -64,6 +66,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.removeItem('user');
       }
     }
+    
+    // Đánh dấu đã khởi tạo xong
+    setIsInitialized(true);
   }, []);
 
   const login = (userData: User, authToken: string) => {
@@ -115,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     token,
     isAuthenticated: !!user && !!token,
+    isInitialized,
     login,
     logout,
     showLoginDialog,

@@ -38,7 +38,7 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }: Regis
   const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(true);
   const [showFirebaseOTP, setShowFirebaseOTP] = useState(false);
   const [showBackendOTP, setShowBackendOTP] = useState(false);
-  const [useFirebaseOTP, setUseFirebaseOTP] = useState(false); // Use backend OTP for testing
+  const [useFirebaseOTP, setUseFirebaseOTP] = useState(true); // Use Firebase OTP to send real SMS
   const { toast } = useToast();
 
   // Debug state changes
@@ -618,7 +618,7 @@ export default function RegisterForm({ isOpen, onClose, onSwitchToLogin }: Regis
                     } focus:border-green-500 focus:ring-green-500`}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    onKeyPress={(e) => e.key === 'Enter' && handleVerifyOTP()}
+                    onKeyPress={(e) => e.key === 'Enter' && handleRegister()}
                     onBlur={() => handleFieldBlur('otp', otp)}
                     maxLength={6}
                     disabled={!otpSent}

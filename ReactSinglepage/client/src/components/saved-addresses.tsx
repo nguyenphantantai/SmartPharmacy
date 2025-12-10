@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin, Trash2, Edit, Plus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE } from "@/lib/utils";
 
 interface SavedAddress {
   id: string;
@@ -23,18 +25,99 @@ interface SavedAddressesProps {
 
 export default function SavedAddresses({ onSelectAddress, onEditAddress }: SavedAddressesProps) {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const { user, token } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const hasAutoSelectedRef = useRef(false);
+  const lastUserRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Load saved addresses from localStorage
-    const saved = localStorage.getItem('saved_addresses');
-    if (saved) {
-      try {
-        setSavedAddresses(JSON.parse(saved));
-      } catch (error) {
-        console.error('Error loading saved addresses:', error);
-      }
+    // Reset auto-select flag when user changes
+    if (lastUserRef.current !== user?._id) {
+      hasAutoSelectedRef.current = false;
+      lastUserRef.current = user?._id || null;
     }
-  }, []);
+
+    const loadAddresses = async () => {
+      // If user is logged in, load from API
+      if (user && token) {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`${API_BASE}/api/addresses`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data) {
+              // Map API format to component format
+              const mappedAddresses = data.data.map((addr: any) => ({
+                id: addr._id || addr.id,
+                name: addr.receiverName,
+                phone: addr.receiverPhone,
+                province: addr.province,
+                provinceName: addr.provinceName,
+                district: addr.district,
+                districtName: addr.districtName,
+                ward: addr.ward,
+                wardName: addr.wardName,
+                address: addr.address,
+                isDefault: addr.isDefault || false,
+              }));
+              setSavedAddresses(mappedAddresses);
+              
+              // Also set default address automatically if exists (only once)
+              if (!hasAutoSelectedRef.current) {
+                const defaultAddress = mappedAddresses.find((addr: SavedAddress) => addr.isDefault);
+                if (defaultAddress) {
+                  hasAutoSelectedRef.current = true;
+                  // Small delay to ensure form is ready
+                  setTimeout(() => {
+                    onSelectAddress(defaultAddress);
+                  }, 100);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading addresses from API:', error);
+          // Fallback to localStorage if API fails
+          loadFromLocalStorage();
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // Fallback to localStorage if not logged in
+        loadFromLocalStorage();
+      }
+    };
+
+    const loadFromLocalStorage = () => {
+      const saved = localStorage.getItem('saved_addresses');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setSavedAddresses(parsed);
+          
+          // Auto-select default from localStorage (only once)
+          if (!hasAutoSelectedRef.current && parsed.length > 0) {
+            const defaultAddress = parsed.find((addr: SavedAddress) => addr.isDefault) || parsed[0];
+            if (defaultAddress) {
+              hasAutoSelectedRef.current = true;
+              setTimeout(() => {
+                onSelectAddress(defaultAddress);
+              }, 100);
+            }
+          }
+        } catch (error) {
+          console.error('Error loading saved addresses:', error);
+        }
+      }
+    };
+
+    loadAddresses();
+  }, [user, token]); // Removed onSelectAddress from dependencies to prevent infinite loop
 
   const saveAddresses = (addresses: SavedAddress[]) => {
     setSavedAddresses(addresses);
@@ -54,6 +137,15 @@ export default function SavedAddresses({ onSelectAddress, onEditAddress }: Saved
     saveAddresses(updated);
   };
 
+  if (isLoading) {
+    return (
+      <div className="text-center py-4">
+        <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <p className="mt-2 text-sm text-gray-500">Đang tải địa chỉ...</p>
+      </div>
+    );
+  }
+
   if (savedAddresses.length === 0) {
     return null;
   }
@@ -62,7 +154,7 @@ export default function SavedAddresses({ onSelectAddress, onEditAddress }: Saved
     <div className="space-y-4">
       <h4 className="font-medium text-gray-900 flex items-center gap-2">
         <MapPin className="h-4 w-4" />
-        Địa chỉ đã lưu
+        Địa chỉ đã lưu ({savedAddresses.length})
       </h4>
       
       <div className="space-y-3">

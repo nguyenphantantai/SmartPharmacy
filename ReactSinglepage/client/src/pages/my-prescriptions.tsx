@@ -30,9 +30,11 @@ import { useLocation } from "wouter";
 
 export default function MyPrescriptions() {
   const [, setLocation] = useLocation();
-  const { prescriptions, getPrescriptionById } = usePrescription();
+  const { prescriptions, getPrescriptionById, fetchPrescriptionById, isLoading } = usePrescription();
   const [activeTab, setActiveTab] = useState<'consultation' | 'saved'>('consultation');
   const [selectedPrescription, setSelectedPrescription] = useState<string | null>(null);
+  const [selectedPrescriptionData, setSelectedPrescriptionData] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   const sidebarMenuItems = [
     { icon: User, label: "Thông tin cá nhân", href: "/account/thong-tin-ca-nhan" },
@@ -60,16 +62,30 @@ export default function MyPrescriptions() {
     // TODO: Show toast notification
   };
 
-  const handleViewDetails = (id: string) => {
+  const handleViewDetails = async (id: string) => {
     setSelectedPrescription(id);
+    setLoadingDetails(true);
+    
+    // Try to get from local cache first
+    let prescription = getPrescriptionById(id);
+    
+    // If not found, fetch from API
+    if (!prescription) {
+      try {
+        prescription = await fetchPrescriptionById(id);
+      } catch (error) {
+        console.error('Error fetching prescription:', error);
+      }
+    }
+    
+    setSelectedPrescriptionData(prescription);
+    setLoadingDetails(false);
   };
 
   const handleBackToList = () => {
     setSelectedPrescription(null);
+    setSelectedPrescriptionData(null);
   };
-
-  // Get selected prescription data
-  const selectedPrescriptionData = selectedPrescription ? getPrescriptionById(selectedPrescription) : null;
 
   return (
     <div className="bg-background min-h-screen flex flex-col">
@@ -273,6 +289,11 @@ export default function MyPrescriptions() {
                       </Button>
                     </div>
                   </>
+                ) : loadingDetails ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-500">Đang tải chi tiết đơn thuốc...</p>
+                  </div>
                 ) : selectedPrescriptionData ? (
                   <>
                     {/* Prescription Details */}
@@ -321,12 +342,60 @@ export default function MyPrescriptions() {
 
                       <div className="flex items-center space-x-4">
                         <span className="text-sm font-medium text-gray-600">Họ và tên:</span>
-                        <span className="text-sm text-gray-900">{selectedPrescriptionData.customerName}</span>
+                        <span className="text-sm text-gray-900">
+                          {selectedPrescriptionData.customerName && selectedPrescriptionData.customerName !== 'NOT FOUND' && selectedPrescriptionData.customerName.trim() !== ''
+                            ? selectedPrescriptionData.customerName 
+                            : 'Không có'}
+                        </span>
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        <span className="text-sm font-medium text-gray-600">Số điện thoại:</span>
-                        <span className="text-sm text-gray-900">{selectedPrescriptionData.phoneNumber}</span>
+                        <span className="text-sm font-medium text-gray-600">Bác sĩ:</span>
+                        <span className="text-sm text-gray-900">
+                          {selectedPrescriptionData.doctorName && selectedPrescriptionData.doctorName !== 'NOT FOUND' && selectedPrescriptionData.doctorName.trim() !== ''
+                            ? selectedPrescriptionData.doctorName 
+                            : 'Không có'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm font-medium text-gray-600">Bệnh viện/phòng khám:</span>
+                        <span className="text-sm text-gray-900">
+                          {selectedPrescriptionData.hospitalName && selectedPrescriptionData.hospitalName !== 'NOT FOUND' && selectedPrescriptionData.hospitalName.trim() !== ''
+                            ? selectedPrescriptionData.hospitalName 
+                            : 'Không có'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm font-medium text-gray-600">Ngày khám:</span>
+                        <span className="text-sm text-gray-900">
+                          {selectedPrescriptionData.examinationDate && selectedPrescriptionData.examinationDate !== 'Không có'
+                            ? new Date(selectedPrescriptionData.examinationDate).toLocaleDateString('vi-VN')
+                            : 'Không có'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-4">
+                        <span className="text-sm font-medium text-gray-600">Năm sinh/ Tuổi:</span>
+                        <span className="text-sm text-gray-900">
+                          {selectedPrescriptionData.age 
+                            ? `${selectedPrescriptionData.age} tuổi`
+                            : selectedPrescriptionData.yearOfBirth 
+                            ? `Năm ${selectedPrescriptionData.yearOfBirth}`
+                            : selectedPrescriptionData.dateOfBirth && selectedPrescriptionData.dateOfBirth !== 'Không có'
+                            ? new Date(selectedPrescriptionData.dateOfBirth).getFullYear().toString()
+                            : 'Không có'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-start space-x-4">
+                        <span className="text-sm font-medium text-gray-600">Chẩn đoán bệnh:</span>
+                        <span className="text-sm text-gray-900">
+                          {selectedPrescriptionData.diagnosis && selectedPrescriptionData.diagnosis !== 'NOT FOUND' && selectedPrescriptionData.diagnosis.trim() !== '' 
+                            ? selectedPrescriptionData.diagnosis 
+                            : 'Không có'}
+                        </span>
                       </div>
 
                       {selectedPrescriptionData.note && (
@@ -355,27 +424,37 @@ export default function MyPrescriptions() {
                     <div className="mb-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Hình đơn thuốc</h3>
                       <div className="relative inline-block">
-                        <img
-                          src={selectedPrescriptionData.imageUrl}
-                          alt="Hình đơn thuốc"
-                          className="w-48 h-48 object-cover rounded-lg shadow-md border border-gray-200"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `
-                                <div class="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                                  <div class="text-center text-gray-500">
-                                    <div class="text-4xl mb-2">📄</div>
-                                    <p class="text-sm">Hình đơn thuốc</p>
-                                    <p class="text-xs text-gray-400">Không có hình ảnh</p>
+                        {selectedPrescriptionData.imageUrl ? (
+                          <img
+                            src={selectedPrescriptionData.imageUrl}
+                            alt="Hình đơn thuốc"
+                            className="max-w-full h-auto rounded-lg shadow-md border border-gray-200"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `
+                                  <div class="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                                    <div class="text-center text-gray-500">
+                                      <div class="text-4xl mb-2">📄</div>
+                                      <p class="text-sm">Hình đơn thuốc</p>
+                                      <p class="text-xs text-gray-400">Không có hình ảnh</p>
+                                    </div>
                                   </div>
-                                </div>
-                              `;
-                            }
-                          }}
-                        />
+                                `;
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-gray-500">
+                              <div className="text-4xl mb-2">📄</div>
+                              <p className="text-sm">Hình đơn thuốc</p>
+                              <p className="text-xs text-gray-400">Không có hình ảnh</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 

@@ -102,7 +102,7 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
           <div className="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2 floating-animation shadow-lg">
             {discount}%
           </div>
-          <h3 className="font-semibold text-sm mb-2 line-clamp-2 text-shadow" data-testid={`text-product-name-${product.id}`}>
+          <h3 className="font-semibold text-sm mb-2 text-shadow break-words min-h-[2.5rem]" data-testid={`text-product-name-${product.id}`}>
             {product.name}
           </h3>
           
@@ -187,7 +187,7 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
             target.src = "/images/medicines/default.jpg";
           }}
         />
-        <h3 className="font-semibold text-sm mb-2 line-clamp-2" data-testid={`text-product-name-${product._id || product.id}`}>
+        <h3 className="font-semibold text-sm mb-2 break-words min-h-[2.5rem]" data-testid={`text-product-name-${product._id || product.id}`}>
           {product.name}
         </h3>
         

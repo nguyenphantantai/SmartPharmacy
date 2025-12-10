@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Package, Calendar, MapPin, Phone, CreditCard, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { getImageUrl } from '@/lib/imageUtils';
+import { API_BASE } from '@/lib/utils';
 
 interface Medicine {
   _id: string;
@@ -63,6 +65,10 @@ export const RecentOrderCard: React.FC<RecentOrderCardProps> = ({ order, onReord
     }).format(price);
   };
 
+  const effectiveStatus = (order.paymentStatus === 'paid' && (order.status === 'pending' || order.status === 'processing'))
+    ? 'confirmed'
+    : order.status;
+
   const formatDate = (dateString: string) => {
     return format(new Date(dateString), 'dd/MM/yyyy HH:mm', { locale: vi });
   };
@@ -75,8 +81,8 @@ export const RecentOrderCard: React.FC<RecentOrderCardProps> = ({ order, onReord
             <Package className="h-5 w-5" />
             Đơn thuốc gần nhất
           </CardTitle>
-          <Badge className={statusConfig[order.status].color}>
-            {statusConfig[order.status].label}
+          <Badge className={statusConfig[effectiveStatus as keyof typeof statusConfig].color}>
+            {statusConfig[effectiveStatus as keyof typeof statusConfig].label}
           </Badge>
         </div>
         <div className="text-sm text-gray-600">
@@ -115,21 +121,25 @@ export const RecentOrderCard: React.FC<RecentOrderCardProps> = ({ order, onReord
             {order.medicines.map((medicine) => (
               <div key={medicine._id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <img 
-                  src={medicine.imageUrl || '/placeholder-medicine.jpg'} 
-                  alt={medicine.name}
+                  src={getImageUrl(medicine.imageUrl)} 
+                  alt={medicine.name || 'Sản phẩm'}
                   className="w-12 h-12 object-cover rounded"
+                  onError={(e) => {
+                    // Fallback nếu image load fail
+                    (e.target as HTMLImageElement).src = `${API_BASE}/medicine-images/default-medicine.jpg`;
+                  }}
                 />
                 <div className="flex-1">
-                  <h5 className="font-medium text-sm">{medicine.name}</h5>
+                  <h5 className="font-medium text-sm">{medicine.name || 'Sản phẩm không xác định'}</h5>
                   {medicine.description && (
                     <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                       {medicine.description}
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                    <span>Số lượng: {medicine.quantity} {medicine.unit}</span>
+                    <span>Số lượng: {medicine.quantity} {medicine.unit || 'đơn vị'}</span>
                     <span>•</span>
-                    <span>Giá: {formatPrice(medicine.price)}</span>
+                    <span>Giá: {formatPrice(medicine.price || 0)}</span>
                   </div>
                 </div>
                 <div className="text-right">

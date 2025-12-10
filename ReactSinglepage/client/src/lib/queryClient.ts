@@ -4,7 +4,10 @@ import { API_BASE } from "./utils";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const error = new Error(`${res.status}: ${text}`);
+    (error as any).status = res.status;
+    (error as any).responseText = text;
+    throw error;
   }
 }
 
@@ -42,6 +45,16 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const path = queryKey.join("/") as string;
+    
+    // Skip health check for health endpoint itself
+    if (path.includes('/api/health')) {
+      const res = await fetch(path.startsWith("http") ? path : `${API_BASE}${path}`, {
+        credentials: "include",
+      });
+      await throwIfResNotOk(res);
+      return await res.json();
+    }
+    
     const token = localStorage.getItem('auth_token');
     const headers: Record<string, string> = {};
     
@@ -67,12 +80,13 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      refetchOnWindowFocus: true, // Tự động refetch khi user quay lại tab
+      staleTime: 30 * 1000, // 30 giây - giảm từ 5 phút để dữ liệu được refresh nhanh hơn
+      retry: 3, // Thử lại 3 lần khi fail
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
     },
     mutations: {
-      retry: false,
+      retry: 1, // Thử lại 1 lần cho mutations
     },
   },
 });

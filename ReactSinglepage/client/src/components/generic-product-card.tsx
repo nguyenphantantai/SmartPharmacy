@@ -47,16 +47,56 @@ export default function GenericProductCard({
     handleShowNotification();
   }, [lastAddedItem]);
 
+  const handleCardClick = () => {
+    const productId = product._id || product.id;
+    if (productId) {
+      setLocation(`/product/${productId}`);
+    }
+  };
+
   return (
     <>
-      <div className="bg-white rounded-xl overflow-hidden shadow-md border">
+      <div 
+        className="bg-white rounded-xl overflow-hidden shadow-md border cursor-pointer hover:shadow-lg transition-shadow"
+        onClick={handleCardClick}
+      >
         <div className="relative p-3">
-          <img src={getImageUrl(product.imageUrl)} alt={product.name} className="w-full h-36 object-cover rounded-lg" />
+          <img 
+            src={getImageUrl(product.imageUrl)} 
+            alt={product.name} 
+            className="w-full h-36 object-cover rounded-lg"
+            crossOrigin="anonymous"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              const currentSrc = target.src;
+              console.error('❌ Image failed to load:', {
+                productName: product.name,
+                imageUrl: product.imageUrl,
+                attemptedUrl: currentSrc
+              });
+              // Fallback to default image if Supabase URL fails
+              const defaultUrl = `${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/medicine-images/default-medicine.jpg`;
+              if (target.src !== defaultUrl) {
+                console.log('🔄 Falling back to default image');
+                target.src = defaultUrl;
+              }
+            }}
+            onLoad={() => {
+              if (import.meta.env.DEV) {
+                console.log('✅ Image loaded successfully:', product.name);
+              }
+            }}
+            loading="eager"
+          />
         </div>
 
         <div className="px-4 pb-4">
-          <div className="h-12 text-sm font-medium line-clamp-2 mb-2 text-foreground">{product.name}</div>
-          <div className="text-primary font-extrabold text-lg mb-2">{format(product.price)} ₫/{product.unit}</div>
+          <div className="min-h-[3rem] text-sm font-medium mb-2 text-foreground break-words">
+            {product.name || product.id || 'Sản phẩm không có tên'}
+          </div>
+          <div className="text-primary font-extrabold text-lg mb-2">
+            {format(product.price || "0")} ₫/{product.unit || "cái"}
+          </div>
           <div className="flex items-center gap-2 mb-3">
             {product.brandLabel ? (
               <span className="text-xs bg-blue-600 text-white px-3 py-1 rounded-full">{product.brandLabel}</span>
@@ -65,23 +105,17 @@ export default function GenericProductCard({
             )}
           </div>
           
-          {/* Action Buttons */}
+          {/* Action Button */}
           <div className="space-y-2">
             <Button 
-              onClick={() => setIsPopupOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                console.log('📦 Opening product selection popup:', product.name);
+                setIsPopupOpen(true);
+              }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 text-sm font-semibold rounded-lg"
             >
-              Mua ngay
-            </Button>
-            <Button 
-              onClick={() => {
-                console.log('🛒 Adding directly to cart:', product.name);
-                addItem(product, 1, true); // Add 1 item with notification
-              }} 
-              variant="outline"
-              className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-2 text-sm font-semibold rounded-lg"
-            >
-              Thêm vào giỏ
+              Chọn sản phẩm
             </Button>
           </div>
         </div>

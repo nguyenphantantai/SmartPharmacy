@@ -34,6 +34,7 @@ export const authenticateToken = async (
     }
 
     console.log('Auth middleware - Verifying token...');
+    console.log('Auth middleware - JWT Secret:', config.jwtSecret ? 'SET' : 'NOT SET');
     const decoded = jwt.verify(token, config.jwtSecret) as any;
     console.log('Auth middleware - Token decoded:', decoded);
     
@@ -68,10 +69,25 @@ export const authenticateToken = async (
     });
 
     next();
-  } catch (error) {
+  } catch (error: any) {
+    console.log('Auth middleware - Error:', error);
+    
+    // Check if token is expired
+    if (error.name === 'TokenExpiredError') {
+      res.status(403).json({ 
+        success: false, 
+        message: 'Token expired',
+        code: 'TOKEN_EXPIRED',
+        expiredAt: error.expiredAt
+      });
+      return;
+    }
+    
+    // Other JWT errors
     res.status(403).json({ 
       success: false, 
-      message: 'Invalid token' 
+      message: 'Invalid token',
+      code: 'INVALID_TOKEN'
     });
     return;
   }

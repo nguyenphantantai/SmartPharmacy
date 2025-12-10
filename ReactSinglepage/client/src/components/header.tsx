@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import GarenaAuthDialog from "./garena-auth-dialog";
 import SearchDropdown from "./search-dropdown";
 import { SearchProduct } from "@/services/searchService";
+import { API_BASE } from "@/lib/utils";
 
 interface HeaderProps {
   searchQuery: string;
@@ -27,7 +28,8 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const navRef = useRef<HTMLDivElement | null>(null);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState<number>(0);
 
   useLayoutEffect(() => {
     const measure = () => {
@@ -56,6 +58,45 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     setIsCategoryOpen(false);
     setIsSearchDropdownOpen(false);
   }, [location]);
+
+  // Load unread notification count
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (!user || !token) {
+        setUnreadNotificationCount(0);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/api/notifications/unread-count`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUnreadNotificationCount(data.data.unreadCount || 0);
+          }
+        } else if (response.status === 403 || response.status === 401) {
+          // Token expired or invalid - logout user
+          const data = await response.json().catch(() => ({}));
+          if (data.code === 'TOKEN_EXPIRED' || data.code === 'INVALID_TOKEN') {
+            console.log('Token expired or invalid, logging out...');
+            logout();
+          }
+        }
+      } catch (error) {
+        console.error('Error loading unread notification count:', error);
+      }
+    };
+
+    loadUnreadCount();
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(loadUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [user, token]);
 
   // Handle search input focus
   const handleSearchFocus = () => {
@@ -166,9 +207,22 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
           
           {/* User actions */}
           <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0 bounce-in">
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10 transition-all duration-300 hover:scale-110 h-8 w-8 sm:h-10 sm:w-10">
-              <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-            </Button>
+            {user ? (
+              <Link href="/account/thong-bao">
+                <Button variant="ghost" size="icon" className="relative text-primary-foreground hover:bg-white/10 transition-all duration-300 hover:scale-110 h-8 w-8 sm:h-10 sm:w-10">
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                  {unreadNotificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-red-500 text-white rounded-full text-xs min-w-4 h-4 sm:min-w-5 sm:h-5 px-1 flex items-center justify-center">
+                      {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            ) : (
+              <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10 transition-all duration-300 hover:scale-110 h-8 w-8 sm:h-10 sm:w-10">
+                <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+              </Button>
+            )}
             {isCartPage ? (
               <Link href="/cart">
                 <Button
@@ -218,7 +272,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <div className="flex items-center gap-2">
                 <Link href="/account">
                   <span className="text-sm text-primary-foreground hover:text-secondary cursor-pointer">
-                    Xin chào, {user.firstName} {user.lastName}
+                    Xin chào, {[user.firstName, user.lastName].filter(Boolean).join(' ') || 'Khách hàng'}
                   </span>
                 </Link>
                 <Button

@@ -1,4 +1,5 @@
 import { useFilters } from "@/contexts/FilterContext";
+import { Card } from "@/components/ui/card";
 
 interface CategoryTabsProps {
   categories: Array<{
@@ -18,15 +19,15 @@ export default function CategoryTabs({ categories }: CategoryTabsProps) {
   };
 
   return (
-    <section className="bg-card border rounded-xl overflow-hidden mb-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4">
+    <section className="mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-4">
         {categories.map((category) => (
-          <div 
-            key={category.value} 
-            className={`p-4 border-r last:border-r-0 border-b sm:border-b-0 cursor-pointer transition-colors ${
-              filters.selectedCategory === category.value 
-                ? 'bg-primary/10 border-primary' 
-                : 'hover:bg-muted/50'
+          <Card
+            key={category.value}
+            className={`p-4 text-center border rounded-2xl cursor-pointer hover:shadow-md transition-shadow ${
+              filters.selectedCategory === category.value
+                ? 'border-primary shadow-md bg-primary/5'
+                : ''
             }`}
             onClick={() => handleCategorySelect(category.value)}
           >
@@ -36,6 +37,10 @@ export default function CategoryTabs({ categories }: CategoryTabsProps) {
                 alt={category.label}
                 className="h-full w-full object-contain p-2"
                 loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "/images/medicines/default.jpg";
+                }}
               />
             </div>
             <div className={`text-sm text-center leading-snug ${
@@ -43,7 +48,7 @@ export default function CategoryTabs({ categories }: CategoryTabsProps) {
             }`}>
               {category.label}
             </div>
-          </div>
+          </Card>
         ))}
       </div>
     </section>

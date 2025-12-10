@@ -23,8 +23,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { LoginDialogWrapper } from "@/components/LoginDialogWrapper";
 import { RecentOrderCard } from "@/components/RecentOrderCard";
-
-const API_BASE = 'http://localhost:5000';
+import { ReorderDialog } from "@/components/reorder-dialog";
+import { getImageUrl } from "@/lib/imageUtils";
+import { API_BASE } from "@/lib/utils";
 
 interface UserOrder {
   _id: string;
@@ -70,6 +71,8 @@ export default function OrderTrackingPage() {
   const [loadingUserOrders, setLoadingUserOrders] = useState(true);
   const [loadingRecentOrder, setLoadingRecentOrder] = useState(true);
   const [error, setError] = useState("");
+  const [reorderDialogOpen, setReorderDialogOpen] = useState(false);
+  const [reorderOrderId, setReorderOrderId] = useState<string>("");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { apiRequest } = useApiRequest();
@@ -171,6 +174,7 @@ export default function OrderTrackingPage() {
         const result = await response.json();
         
         if (result.success) {
+          // API đã trả về medicines rồi, không cần map lại
           setRecentOrder(result.data);
         }
       } catch (error: any) {
@@ -208,8 +212,11 @@ export default function OrderTrackingPage() {
     });
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
+  const getStatusInfo = (status: string, paymentStatus?: string) => {
+    const effectiveStatus = (paymentStatus === 'paid' && (status === 'pending' || status === 'processing'))
+      ? 'confirmed'
+      : status;
+    switch (effectiveStatus) {
       case 'pending':
         return { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-800', icon: Clock };
       case 'confirmed':
@@ -349,11 +356,8 @@ export default function OrderTrackingPage() {
               <RecentOrderCard 
                 order={recentOrder}
                 onReorder={() => {
-                  // TODO: Implement reorder functionality
-                  toast({
-                    title: "Tính năng sắp có",
-                    description: "Chức năng đặt lại sẽ được hỗ trợ sớm",
-                  });
+                  setReorderOrderId(recentOrder._id);
+                  setReorderDialogOpen(true);
                 }}
               />
             ) : (
@@ -402,7 +406,7 @@ export default function OrderTrackingPage() {
                     ) : (
                       <div className="space-y-3">
                         {userOrders.map((order) => {
-                          const statusInfo = getStatusInfo(order.status);
+                          const statusInfo = getStatusInfo(order.status, (order as any).paymentStatus);
                           const Icon = statusInfo.icon;
                           return (
                             <div
@@ -443,8 +447,8 @@ export default function OrderTrackingPage() {
                     <CardHeader>
                       <CardTitle className="flex items-center justify-between">
                         <span>Chi tiết đơn hàng #{selectedOrder.orderNumber}</span>
-                        <Badge className={getStatusInfo(selectedOrder.status).color}>
-                          {getStatusInfo(selectedOrder.status).label}
+                        <Badge className={getStatusInfo(selectedOrder.status, (selectedOrder as any).paymentStatus).color}>
+                          {getStatusInfo(selectedOrder.status, (selectedOrder as any).paymentStatus).label}
                         </Badge>
                       </CardTitle>
                     </CardHeader>
@@ -503,26 +507,54 @@ export default function OrderTrackingPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {selectedOrder.items.map((item) => (
-                          <div key={item._id} className="flex items-center gap-4 p-3 border rounded-lg">
-                            <img
-                              src={item.productId.imageUrl}
-                              alt={item.productId.name}
-                              className="w-16 h-16 object-cover rounded-lg"
-                            />
-                            <div className="flex-1">
-                              <h4 className="font-medium">{item.productId.name}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {item.quantity} x {format(item.productId.price)} ₫/{item.productId.unit}
-                              </p>
+                        {selectedOrder.items.map((item) => {
+                          // Kiểm tra nếu productId null hoặc undefined
+                          if (!item.productId) {
+                            return (
+                              <div key={item._id} className="flex items-center gap-4 p-3 border rounded-lg">
+                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                  <Package className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-muted-foreground">Sản phẩm đã bị xóa</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {item.quantity} x {format(item.price || 0)} ₫
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-medium text-primary">
+                                    {format(item.price * item.quantity)} ₫
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div key={item._id} className="flex items-center gap-4 p-3 border rounded-lg">
+                              <img
+                                src={getImageUrl(item.productId.imageUrl)}
+                                alt={item.productId.name || 'Sản phẩm'}
+                                className="w-16 h-16 object-cover rounded-lg"
+                                onError={(e) => {
+                                  // Fallback nếu image load fail
+                                  (e.target as HTMLImageElement).src = `${API_BASE}/medicine-images/default-medicine.jpg`;
+                                }}
+                              />
+                              <div className="flex-1">
+                                <h4 className="font-medium">{item.productId.name || 'Sản phẩm không xác định'}</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {item.quantity} x {format(item.productId.price || item.price || 0)} ₫/{item.productId.unit || 'đơn vị'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium text-primary">
+                                  {format(item.price * item.quantity)} ₫
+                                </p>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-medium text-primary">
-                                {format(item.price * item.quantity)} ₫
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
@@ -541,6 +573,13 @@ export default function OrderTrackingPage() {
         </main>
 
         <Footer />
+        
+        {/* Reorder Dialog */}
+        <ReorderDialog
+          open={reorderDialogOpen}
+          onOpenChange={setReorderDialogOpen}
+          orderId={reorderOrderId}
+        />
       </div>
     </LoginDialogWrapper>
   );

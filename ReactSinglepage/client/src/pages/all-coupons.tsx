@@ -7,19 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Copy, Clock, Percent, Truck, Gift, Sparkles, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
+import { fetchAllPromotions } from "@/api/promotions";
 
 interface Coupon {
-  id: string;
-  code: string;
-  description: string;
-  discountType: 'percentage' | 'fixed' | 'freeship';
-  discountValue: number;
-  minOrderAmount: number;
-  expiryDate: string;
+  _id: string;
+  name: string;
+  description?: string;
+  type: 'order_threshold' | 'combo' | 'flash_sale' | 'category_bundle' | 'discount' | 'freeship';
+  code?: string;
   isActive: boolean;
-  category: 'general' | 'freeship' | 'event';
+  status?: 'active' | 'inactive' | string;
+  startDate: string;
+  endDate: string;
+  minOrderValue?: number;
+  minOrderAmount?: number;
+  discountPercent?: number;
+  value?: number;
+  maxDiscountAmount?: number;
   usageCount?: number;
-  maxUsage?: number;
+  usageLimit?: number;
 }
 
 export default function AllCouponsPage() {
@@ -28,117 +34,37 @@ export default function AllCouponsPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'percentage' | 'freeship' | 'event'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [savedCouponIds, setSavedCouponIds] = useState<Set<string>>(new Set());
 
-  // Mock data - sau này sẽ thay bằng API call
+  // Load saved coupon IDs from localStorage
   useEffect(() => {
-    const mockCoupons: Coupon[] = [
-      {
-        id: '1',
-        code: 'GIAM10',
-        description: 'Giảm 10% cho đơn từ 200.000đ',
-        discountType: 'percentage',
-        discountValue: 10,
-        minOrderAmount: 200000,
-        expiryDate: '2025-10-20',
-        isActive: true,
-        category: 'general',
-        usageCount: 150,
-        maxUsage: 1000
-      },
-      {
-        id: '2',
-        code: 'FREESHIP',
-        description: 'Miễn phí ship cho đơn từ 300.000đ',
-        discountType: 'freeship',
-        discountValue: 0,
-        minOrderAmount: 300000,
-        expiryDate: '2025-12-31',
-        isActive: true,
-        category: 'freeship',
-        usageCount: 89,
-        maxUsage: 500
-      },
-      {
-        id: '3',
-        code: 'NEWUSER20',
-        description: 'Giảm 20% cho khách hàng mới',
-        discountType: 'percentage',
-        discountValue: 20,
-        minOrderAmount: 100000,
-        expiryDate: '2025-11-15',
-        isActive: true,
-        category: 'event',
-        usageCount: 45,
-        maxUsage: 200
-      },
-      {
-        id: '4',
-        code: 'VIP50K',
-        description: 'Giảm 50.000đ cho đơn từ 500.000đ',
-        discountType: 'fixed',
-        discountValue: 50000,
-        minOrderAmount: 500000,
-        expiryDate: '2025-09-30',
-        isActive: true,
-        category: 'general',
-        usageCount: 23,
-        maxUsage: 100
-      },
-      {
-        id: '5',
-        code: 'WEEKEND15',
-        description: 'Giảm 15% cuối tuần',
-        discountType: 'percentage',
-        discountValue: 15,
-        minOrderAmount: 150000,
-        expiryDate: '2025-08-25',
-        isActive: true,
-        category: 'event',
-        usageCount: 67,
-        maxUsage: 300
-      },
-      {
-        id: '6',
-        code: 'MEDICINE5',
-        description: 'Giảm 5% thuốc kê đơn',
-        discountType: 'percentage',
-        discountValue: 5,
-        minOrderAmount: 100000,
-        expiryDate: '2025-12-20',
-        isActive: true,
-        category: 'general',
-        usageCount: 34,
-        maxUsage: 200
-      },
-      {
-        id: '7',
-        code: 'BEAUTY12',
-        description: 'Giảm 12% sản phẩm làm đẹp',
-        discountType: 'percentage',
-        discountValue: 12,
-        minOrderAmount: 250000,
-        expiryDate: '2025-11-30',
-        isActive: true,
-        category: 'event',
-        usageCount: 78,
-        maxUsage: 150
-      },
-      {
-        id: '8',
-        code: 'MOMBABY8',
-        description: 'Giảm 8% đồ mẹ và bé',
-        discountType: 'percentage',
-        discountValue: 8,
-        minOrderAmount: 400000,
-        expiryDate: '2025-10-15',
-        isActive: true,
-        category: 'general',
-        usageCount: 56,
-        maxUsage: 100
+    try {
+      const savedCoupons = JSON.parse(localStorage.getItem('saved_coupons') || '[]');
+      const savedIds = new Set(savedCoupons.map((c: any) => c._id || c.id).filter(Boolean));
+      setSavedCouponIds(savedIds);
+    } catch (error) {
+      console.error('Error loading saved coupons:', error);
+    }
+  }, []);
+
+  // Fetch real promotions from API
+  useEffect(() => {
+    const loadPromotions = async () => {
+      try {
+        const promotions = await fetchAllPromotions(false);
+        setCoupons(promotions);
+        setFilteredCoupons(promotions);
+      } catch (error) {
+        console.error('Error loading promotions:', error);
+        toast({
+          title: 'Lỗi',
+          description: 'Không thể tải mã khuyến mãi',
+          variant: 'destructive'
+        });
       }
-    ];
-    setCoupons(mockCoupons);
-    setFilteredCoupons(mockCoupons);
+    };
+    
+    loadPromotions();
   }, []);
 
   // Filter coupons based on tab and search
@@ -148,19 +74,20 @@ export default function AllCouponsPage() {
     // Filter by tab
     if (activeTab !== 'all') {
       if (activeTab === 'percentage') {
-        filtered = filtered.filter(coupon => coupon.discountType === 'percentage');
+        filtered = filtered.filter(coupon => coupon.type === 'order_threshold' || coupon.type === 'flash_sale' || coupon.type === 'discount');
       } else if (activeTab === 'freeship') {
-        filtered = filtered.filter(coupon => coupon.discountType === 'freeship');
+        filtered = filtered.filter(coupon => coupon.type === 'freeship' || (coupon.type === 'order_threshold' && (coupon.discountPercent === 0 || coupon.value === 0)));
       } else if (activeTab === 'event') {
-        filtered = filtered.filter(coupon => coupon.category === 'event');
+        filtered = filtered.filter(coupon => coupon.type === 'flash_sale');
       }
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
       filtered = filtered.filter(coupon => 
-        coupon.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        coupon.description.toLowerCase().includes(searchQuery.toLowerCase())
+        (coupon.code && coupon.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (coupon.name && coupon.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (coupon.description && coupon.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -168,20 +95,59 @@ export default function AllCouponsPage() {
   }, [coupons, activeTab, searchQuery]);
 
   const handleCopyCode = async (code: string) => {
+    if (!code) return;
+    
     try {
       await navigator.clipboard.writeText(code);
       setCopiedCode(code);
-      toast.success(`Đã sao chép mã ${code}`);
+      toast({
+        title: 'Thành công',
+        description: `Đã sao chép mã ${code}`
+      });
       
       setTimeout(() => setCopiedCode(null), 2000);
     } catch (err) {
-      toast.error('Không thể sao chép mã');
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể sao chép mã',
+        variant: 'destructive'
+      });
     }
   };
 
-  const handleUseNow = (coupon: Coupon) => {
-    handleCopyCode(coupon.code);
-    toast.info(`Mã ${coupon.code} đã được sao chép! Vào giỏ hàng để sử dụng.`);
+  const handleSaveCoupon = (coupon: Coupon) => {
+    try {
+      // Save coupon to localStorage for later use
+      const savedCoupons = JSON.parse(localStorage.getItem('saved_coupons') || '[]');
+      const existingIndex = savedCoupons.findIndex((c: any) => c._id === coupon._id);
+      
+      if (existingIndex >= 0) {
+        savedCoupons[existingIndex] = coupon;
+      } else {
+        savedCoupons.push(coupon);
+      }
+      
+      localStorage.setItem('saved_coupons', JSON.stringify(savedCoupons));
+      
+      // Update state to disable the button
+      const couponId = coupon._id || coupon.id;
+      if (couponId) {
+        setSavedCouponIds(prev => new Set([...prev, couponId]));
+      }
+      
+      // Show success notification
+      toast({
+        title: 'Thành công',
+        description: `Đã lưu mã giảm giá ${coupon.code || coupon.name}`,
+      });
+    } catch (error) {
+      console.error('Error saving coupon:', error);
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể lưu mã giảm giá',
+        variant: 'destructive'
+      });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -196,39 +162,49 @@ export default function AllCouponsPage() {
   };
 
   const getCouponIcon = (coupon: Coupon) => {
-    switch (coupon.discountType) {
-      case 'percentage':
+    switch (coupon.type) {
+      case 'order_threshold':
+        return coupon.discountPercent && coupon.discountPercent > 0 ? <Percent className="w-4 h-4" /> : <Truck className="w-4 h-4" />;
+      case 'discount':
         return <Percent className="w-4 h-4" />;
       case 'freeship':
         return <Truck className="w-4 h-4" />;
-      case 'fixed':
+      case 'flash_sale':
+        return <Sparkles className="w-4 h-4" />;
+      case 'combo':
         return <Gift className="w-4 h-4" />;
+      case 'category_bundle':
+        return <Percent className="w-4 h-4" />;
       default:
         return <Sparkles className="w-4 h-4" />;
     }
   };
 
   const getCouponColor = (coupon: Coupon) => {
-    switch (coupon.category) {
+    switch (coupon.type) {
+      case 'flash_sale':
+        return 'bg-purple-50 border-purple-200 hover:bg-purple-100';
+      case 'order_threshold':
+        return coupon.discountPercent && coupon.discountPercent > 0 ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-green-50 border-green-200 hover:bg-green-100';
+      case 'discount':
+        return 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100';
       case 'freeship':
         return 'bg-green-50 border-green-200 hover:bg-green-100';
-      case 'event':
-        return 'bg-purple-50 border-purple-200 hover:bg-purple-100';
       default:
         return 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100';
     }
   };
 
   const getUsagePercentage = (coupon: Coupon) => {
-    if (!coupon.maxUsage) return 0;
-    return Math.round((coupon.usageCount || 0) / coupon.maxUsage * 100);
+    if (!coupon.usageLimit) return 0;
+    return Math.round((coupon.usageCount || 0) / coupon.usageLimit * 100);
   };
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-screen flex flex-col">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="flex-1 container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -292,7 +268,7 @@ export default function AllCouponsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
           {filteredCoupons.map((coupon) => (
             <Card 
-              key={coupon.id} 
+              key={coupon._id || coupon.id} 
               className={`${getCouponColor(coupon)} border-2 hover:shadow-xl transition-all duration-300 hover:scale-105 cursor-pointer group`}
             >
               <CardContent className="p-6">
@@ -307,33 +283,44 @@ export default function AllCouponsPage() {
                         variant="secondary" 
                         className="bg-gradient-to-r from-green-400 to-emerald-500 text-white border-0"
                       >
-                        {coupon.code}
+                        {coupon.code || 'Tự động'}
                       </Badge>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      HSD: {formatDate(coupon.expiryDate)}
+                      {formatDate(coupon.startDate)} - {formatDate(coupon.endDate)}
                     </div>
+                    {coupon.isActive === false && (
+                      <Badge className="mt-1" variant="secondary">Tạm dừng</Badge>
+                    )}
                   </div>
                 </div>
 
                 {/* Description */}
                 <div className="mb-4">
                   <p className="text-sm text-gray-700 font-medium mb-2">
-                    {coupon.description}
+                    {coupon.description || coupon.name}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Đơn tối thiểu: {formatCurrency(coupon.minOrderAmount)}
-                  </p>
+                  {(coupon.minOrderValue || coupon.minOrderAmount) && (
+                    <p className="text-xs text-gray-500">
+                      Đơn tối thiểu: {formatCurrency(coupon.minOrderValue || coupon.minOrderAmount!)}
+                    </p>
+                  )}
+                  {(coupon.discountPercent || coupon.value) && (
+                    <p className="text-xs text-green-600 font-medium">
+                      {coupon.discountPercent ? `Giảm ${coupon.discountPercent}%` : 
+                       coupon.type === 'discount' ? `Giảm ${coupon.value}%` : `Giảm ${formatCurrency(coupon.value!)}`}
+                    </p>
+                  )}
                   
                   {/* Usage Progress */}
-                  {coupon.maxUsage && (
+                  {coupon.usageLimit && (
                     <div className="mt-2">
                       <div className="flex justify-between text-xs text-gray-500 mb-1">
                         <span>Đã sử dụng</span>
-                        <span>{coupon.usageCount || 0}/{coupon.maxUsage}</span>
+                        <span>{coupon.usageCount || 0}/{coupon.usageLimit}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div 
@@ -348,20 +335,16 @@ export default function AllCouponsPage() {
                 {/* Actions */}
                 <div className="space-y-2">
                   <Button
-                    onClick={() => handleCopyCode(coupon.code)}
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                    onClick={() => handleSaveCoupon(coupon)}
+                    disabled={savedCouponIds.has(coupon._id || coupon.id)}
+                    className={`w-full shadow-lg ${
+                      savedCouponIds.has(coupon._id || coupon.id) 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                    }`}
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    {copiedCode === coupon.code ? 'Đã sao chép!' : 'Sao chép mã'}
-                  </Button>
-                  
-                  <Button
-                    onClick={() => handleUseNow(coupon)}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg"
-                  >
-                    Dùng ngay
+                    <Gift className="w-4 h-4 mr-2" />
+                    {savedCouponIds.has(coupon._id || coupon.id) ? 'Đã lưu' : 'Lưu mã giảm giá'}
                   </Button>
                 </div>
               </CardContent>

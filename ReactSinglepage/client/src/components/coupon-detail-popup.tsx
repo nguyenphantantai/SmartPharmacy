@@ -5,34 +5,33 @@ import { Copy, Clock, Percent, Truck, Gift, Sparkles, X, CheckCircle } from "luc
 import { toast } from "@/hooks/use-toast";
 
 interface Coupon {
-  id: string;
-  code: string;
-  description: string;
-  discountType: 'percentage' | 'fixed' | 'freeship';
-  discountValue: number;
-  minOrderAmount: number;
-  expiryDate: string;
+  _id: string;
+  name: string;
+  description?: string;
+  type: 'order_threshold' | 'combo' | 'flash_sale' | 'category_bundle';
+  code?: string;
   isActive: boolean;
-  category: 'general' | 'freeship' | 'event';
-  usageCount?: number;
-  maxUsage?: number;
-  terms?: string[];
+  startDate: string;
+  endDate: string;
+  minOrderValue?: number;
+  discountPercent?: number;
+  maxDiscountAmount?: number;
 }
 
 interface CouponDetailPopupProps {
   coupon: Coupon | null;
   isOpen: boolean;
   onClose: () => void;
-  onCopyCode: (code: string) => void;
-  onUseNow: (coupon: Coupon) => void;
+  onSaveCoupon: (coupon: Coupon) => void;
+  savedCouponIds?: Set<string>;
 }
 
 export default function CouponDetailPopup({ 
   coupon, 
   isOpen, 
   onClose, 
-  onCopyCode, 
-  onUseNow 
+  onSaveCoupon,
+  savedCouponIds = new Set()
 }: CouponDetailPopupProps) {
   if (!isOpen || !coupon) return null;
 
@@ -48,46 +47,45 @@ export default function CouponDetailPopup({
   };
 
   const getCouponIcon = (coupon: Coupon) => {
-    switch (coupon.discountType) {
-      case 'percentage':
-        return <Percent className="w-6 h-6" />;
-      case 'freeship':
-        return <Truck className="w-6 h-6" />;
-      case 'fixed':
+    switch (coupon.type) {
+      case 'order_threshold':
+        return coupon.discountPercent && coupon.discountPercent > 0 ? <Percent className="w-6 h-6" /> : <Truck className="w-6 h-6" />;
+      case 'flash_sale':
+        return <Sparkles className="w-6 h-6" />;
+      case 'combo':
         return <Gift className="w-6 h-6" />;
+      case 'category_bundle':
+        return <Percent className="w-6 h-6" />;
       default:
         return <Sparkles className="w-6 h-6" />;
     }
   };
 
   const getCouponColor = (coupon: Coupon) => {
-    switch (coupon.category) {
-      case 'freeship':
-        return 'bg-green-50 border-green-200';
-      case 'event':
+    switch (coupon.type) {
+      case 'flash_sale':
         return 'bg-purple-50 border-purple-200';
+      case 'order_threshold':
+        return coupon.discountPercent && coupon.discountPercent > 0 ? 'bg-yellow-50 border-yellow-200' : 'bg-green-50 border-green-200';
       default:
         return 'bg-yellow-50 border-yellow-200';
     }
   };
 
   const getDiscountText = (coupon: Coupon) => {
-    switch (coupon.discountType) {
-      case 'percentage':
-        return `Giảm ${coupon.discountValue}%`;
-      case 'fixed':
-        return `Giảm ${formatCurrency(coupon.discountValue)}`;
-      case 'freeship':
-        return 'Miễn phí ship';
-      default:
-        return 'Giảm giá';
+    if (coupon.discountPercent && coupon.discountPercent > 0) {
+      return `Giảm ${coupon.discountPercent}%`;
+    } else if (coupon.type === 'discount' && coupon.value) {
+      return `Giảm ${coupon.value}%`;
+    } else if (coupon.type === 'order_threshold') {
+      return 'Miễn phí ship';
+    } else if (coupon.value) {
+      return `Giảm ${formatCurrency(coupon.value)}`;
+    } else {
+      return 'Giảm giá';
     }
   };
 
-  const getUsagePercentage = (coupon: Coupon) => {
-    if (!coupon.maxUsage) return 0;
-    return Math.round((coupon.usageCount || 0) / coupon.maxUsage * 100);
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -107,7 +105,7 @@ export default function CouponDetailPopup({
               {getCouponIcon(coupon)}
             </div>
             <div>
-              <CardTitle className="text-xl">{coupon.code}</CardTitle>
+              <CardTitle className="text-xl">{coupon.code || 'Tự động'}</CardTitle>
               <Badge 
                 variant="secondary" 
                 className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-0 mt-1"
@@ -122,77 +120,44 @@ export default function CouponDetailPopup({
           {/* Description */}
           <div>
             <h3 className="font-semibold text-gray-800 mb-2">Mô tả</h3>
-            <p className="text-gray-700">{coupon.description}</p>
+            <p className="text-gray-700">{coupon.description || coupon.name}</p>
           </div>
 
           {/* Details */}
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-800">Chi tiết</h3>
             
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Đơn hàng tối thiểu:</span>
-              <span className="font-semibold text-orange-600">
-                {formatCurrency(coupon.minOrderAmount)}
-              </span>
-            </div>
+            {coupon.minOrderValue && (
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Đơn hàng tối thiểu:</span>
+                <span className="font-semibold text-orange-600">
+                  {formatCurrency(coupon.minOrderValue)}
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Hạn sử dụng:</span>
               <span className="font-semibold text-red-600 flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                {formatDate(coupon.expiryDate)}
+                {formatDate(coupon.endDate)}
               </span>
             </div>
-
-            {coupon.maxUsage && (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Đã sử dụng:</span>
-                  <span className="font-semibold">
-                    {coupon.usageCount || 0}/{coupon.maxUsage}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-yellow-400 to-orange-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${getUsagePercentage(coupon)}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
           </div>
-
-          {/* Terms */}
-          {coupon.terms && coupon.terms.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-gray-800 mb-2">Điều khoản sử dụng</h3>
-              <ul className="space-y-1">
-                {coupon.terms.map((term, index) => (
-                  <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                    {term}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="space-y-3 pt-4 border-t">
             <Button
-              onClick={() => onCopyCode(coupon.code)}
-              variant="outline"
-              className="w-full border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+              onClick={() => onSaveCoupon(coupon)}
+              disabled={savedCouponIds.has(coupon._id)}
+              className={`w-full shadow-lg ${
+                savedCouponIds.has(coupon._id) 
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white'
+              }`}
             >
-              <Copy className="w-4 h-4 mr-2" />
-              Sao chép mã
-            </Button>
-            
-            <Button
-              onClick={() => onUseNow(coupon)}
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white shadow-lg"
-            >
-              Dùng ngay
+              <Gift className="w-4 h-4 mr-2" />
+              {savedCouponIds.has(coupon._id) ? 'Đã lưu' : 'Lưu mã giảm giá'}
             </Button>
           </div>
 

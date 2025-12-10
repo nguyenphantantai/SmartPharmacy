@@ -137,7 +137,7 @@ export interface IProduct extends mongoose.Document {
   inStock: boolean;
   stockQuantity: number;
   isHot: boolean;
-  isNew: boolean;
+  isNewProduct: boolean;
   isPrescription: boolean;
   // Expiration tracking fields
   expirationDate?: Date;
@@ -204,7 +204,7 @@ const productSchema = new Schema({
     type: Boolean,
     default: false,
   },
-  isNew: {
+  isNewProduct: {
     type: Boolean,
     default: false,
   },
@@ -241,8 +241,10 @@ export interface IOrder extends Document {
   couponCode?: string;
   shippingAddress: string;
   shippingPhone: string;
-  paymentMethod: 'cash' | 'card' | 'bank_transfer';
+  paymentMethod: 'cash' | 'card' | 'bank_transfer' | 'momo' | 'vnpay';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
+  momoOrderId?: string; // Store MoMo orderId for payment status queries
+  vnpayTransactionNo?: string; // Store VNPay transaction number
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -290,13 +292,23 @@ const orderSchema = new Schema<IOrder>({
   },
   paymentMethod: {
     type: String,
-    enum: ['cash', 'card', 'bank_transfer'],
+    enum: ['cash', 'card', 'bank_transfer', 'momo', 'vnpay'],
     required: true,
   },
   paymentStatus: {
     type: String,
     enum: ['pending', 'paid', 'failed', 'refunded'],
     default: 'pending',
+  },
+  momoOrderId: {
+    type: String,
+    trim: true,
+    sparse: true, // Allow multiple null values
+  },
+  vnpayTransactionNo: {
+    type: String,
+    trim: true,
+    sparse: true, // Allow multiple null values
   },
   notes: {
     type: String,
@@ -373,11 +385,18 @@ const cartSchema = new Schema<ICart>({
 // Prescription Schema
 export interface IPrescription extends Document {
   userId: mongoose.Types.ObjectId;
+  prescriptionNumber?: string;
+  customerName: string;
+  phoneNumber: string;
   doctorName: string;
   hospitalName?: string;
   prescriptionImage: string;
+  examinationDate?: Date;
+  dateOfBirth?: Date; // Ngày tháng năm sinh
+  diagnosis?: string;
   status: 'pending' | 'approved' | 'rejected' | 'saved';
   notes?: string;
+  rejectionReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -387,6 +406,22 @@ const prescriptionSchema = new Schema<IPrescription>({
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true,
+  },
+  prescriptionNumber: {
+    type: String,
+    unique: true,
+    sparse: true, // Allow multiple null values, but enforce uniqueness for non-null values
+    trim: true,
+  },
+  customerName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  phoneNumber: {
+    type: String,
+    default: '',
+    trim: true,
   },
   doctorName: {
     type: String,
@@ -401,12 +436,26 @@ const prescriptionSchema = new Schema<IPrescription>({
     type: String,
     required: true,
   },
+  examinationDate: {
+    type: Date,
+  },
+  dateOfBirth: {
+    type: Date,
+  },
+  diagnosis: {
+    type: String,
+    trim: true,
+  },
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected', 'saved'],
     default: 'pending',
   },
   notes: {
+    type: String,
+    trim: true,
+  },
+  rejectionReason: {
     type: String,
     trim: true,
   },
@@ -532,7 +581,7 @@ export interface IInvoice extends Document {
   taxAmount: number;
   taxPercentage: number;
   totalAmount: number;
-  paymentMethod: 'cash' | 'card' | 'bank_transfer' | 'momo' | 'zalopay';
+  paymentMethod: 'cash' | 'card' | 'bank_transfer' | 'momo' | 'vnpay';
   paymentStatus: 'pending' | 'paid' | 'partial' | 'refunded';
   status: 'draft' | 'confirmed' | 'completed' | 'cancelled';
   notes?: string;
@@ -1005,27 +1054,27 @@ const stockMovementSchema = new Schema<IStockMovement>({
 
 // Create indexes for better performance
 userSchema.index({ email: 1 });
-userSchema.index({ phone: 1 });
-categorySchema.index({ slug: 1 });
+// Note: phone index is created automatically by unique: true, no need to duplicate
+// Note: slug index is created automatically by unique: true, no need to duplicate
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ categoryId: 1 });
 productSchema.index({ isHot: 1 });
-productSchema.index({ isNew: 1 });
+productSchema.index({ isNewProduct: 1 });
 orderSchema.index({ userId: 1 });
-orderSchema.index({ orderNumber: 1 });
+// Note: orderNumber index is created automatically by unique: true, no need to duplicate
 cartSchema.index({ userId: 1 });
 prescriptionSchema.index({ userId: 1 });
 reviewSchema.index({ productId: 1 });
-invoiceSchema.index({ invoiceNumber: 1 });
+// Note: invoiceNumber index is created automatically by unique: true, no need to duplicate
 invoiceSchema.index({ customerId: 1 });
 invoiceSchema.index({ createdAt: -1 });
 invoiceSchema.index({ status: 1 });
 invoiceSchema.index({ paymentStatus: 1 });
-importSchema.index({ importNumber: 1 });
+// Note: importNumber index is created automatically by unique: true, no need to duplicate
 importSchema.index({ supplierId: 1 });
 importSchema.index({ status: 1 });
 importSchema.index({ createdAt: -1 });
-exportSchema.index({ exportNumber: 1 });
+// Note: exportNumber index is created automatically by unique: true, no need to duplicate
 exportSchema.index({ reason: 1 });
 exportSchema.index({ status: 1 });
 exportSchema.index({ createdAt: -1 });
@@ -1157,7 +1206,7 @@ const couponUsageSchema = new Schema<ICouponUsage>({
 });
 
 // Indexes
-couponSchema.index({ code: 1 });
+// Note: code index is created automatically by unique: true, no need to duplicate
 couponSchema.index({ isActive: 1 });
 couponSchema.index({ validFrom: 1, validUntil: 1 });
 couponUsageSchema.index({ couponId: 1 });
@@ -1250,22 +1299,176 @@ const savedPrescriptionSchema = new Schema<ISavedPrescription>({
   timestamps: true,
 });
 
+// Address Schema
+export interface IAddress extends Document {
+  userId: mongoose.Types.ObjectId;
+  receiverName: string;
+  receiverPhone: string;
+  province: string;
+  provinceName: string;
+  district: string;
+  districtName: string;
+  ward: string;
+  wardName: string;
+  address: string; // Số nhà, tên đường
+  addressType: 'home' | 'company';
+  isDefault: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const addressSchema = new Schema<IAddress>({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  receiverName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  receiverPhone: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  province: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  provinceName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  district: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  districtName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  ward: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  wardName: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  address: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  addressType: {
+    type: String,
+    enum: ['home', 'company'],
+    default: 'home',
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
+  },
+}, {
+  timestamps: true,
+});
+
 // Indexes
 savedPrescriptionSchema.index({ userId: 1 });
 savedPrescriptionSchema.index({ prescriptionId: 1 });
 savedPrescriptionSchema.index({ orderId: 1 });
 savedPrescriptionSchema.index({ isActive: 1 });
+addressSchema.index({ userId: 1 });
+addressSchema.index({ userId: 1, isDefault: 1 });
 
 // Export models
 export const User = mongoose.model<IUser>('User', userSchema);
 export const Category = mongoose.model<ICategory>('Category', categorySchema);
 export const Product = mongoose.model<IProduct>('Product', productSchema);
+// Search History Schema - Lưu lịch sử tìm kiếm
+export interface ISearchHistory extends Document {
+  userId?: mongoose.Types.ObjectId; // Optional vì guest cũng có thể tìm kiếm
+  keyword: string;
+  clickResult?: mongoose.Types.ObjectId; // Product ID nếu user click vào kết quả
+  createdAt: Date;
+}
+
+const searchHistorySchema = new Schema<ISearchHistory>({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: false, // Allow null for guest searches
+    index: true,
+  },
+  keyword: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true,
+  },
+  clickResult: {
+    type: Schema.Types.ObjectId,
+    ref: 'Product',
+    required: false,
+  },
+}, {
+  timestamps: { createdAt: true, updatedAt: false },
+});
+
+// View History Schema - Lưu lịch sử xem sản phẩm
+export interface IViewHistory extends Document {
+  userId?: mongoose.Types.ObjectId; // Optional vì guest cũng có thể xem
+  productId: mongoose.Types.ObjectId;
+  viewDuration?: number; // Thời gian xem (seconds) - optional, có thể tính sau
+  createdAt: Date;
+}
+
+const viewHistorySchema = new Schema<IViewHistory>({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: false, // Allow null for guest views
+    index: true,
+  },
+  productId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+    index: true,
+  },
+  viewDuration: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+}, {
+  timestamps: { createdAt: true, updatedAt: false },
+});
+
+// Indexes for better query performance
+searchHistorySchema.index({ userId: 1, createdAt: -1 });
+searchHistorySchema.index({ keyword: 1, createdAt: -1 });
+viewHistorySchema.index({ userId: 1, createdAt: -1 });
+viewHistorySchema.index({ productId: 1, createdAt: -1 });
+viewHistorySchema.index({ userId: 1, productId: 1 }); // Composite index for user-product queries
+
 export const Order = mongoose.model<IOrder>('Order', orderSchema);
 export const OrderItem = mongoose.model<IOrderItem>('OrderItem', orderItemSchema);
 export const Cart = mongoose.model<ICart>('Cart', cartSchema);
+export const SearchHistory = mongoose.model<ISearchHistory>('SearchHistory', searchHistorySchema);
+export const ViewHistory = mongoose.model<IViewHistory>('ViewHistory', viewHistorySchema);
 export const Prescription = mongoose.model<IPrescription>('Prescription', prescriptionSchema);
 export const Review = mongoose.model<IReview>('Review', reviewSchema);
 export const Supplier = mongoose.model<ISupplier>('Supplier', supplierSchema);
+export const Address = mongoose.model<IAddress>('Address', addressSchema);
 export const Invoice = mongoose.model<IInvoice>('Invoice', invoiceSchema);
 export const Import = mongoose.model<IImport>('Import', importSchema);
 export const Export = mongoose.model<IExport>('Export', exportSchema);
@@ -1318,7 +1521,7 @@ const promotionSchema = new Schema<IPromotion>({
 promotionSchema.index({ isActive: 1 });
 promotionSchema.index({ startDate: 1, endDate: 1 });
 promotionSchema.index({ type: 1 });
-promotionSchema.index({ code: 1 });
+// Note: code index is created automatically by unique: true (sparse), no need to duplicate
 
 // Promotion Item Schema (for combo rules - B)
 export interface IPromotionItem extends Document {
@@ -1375,9 +1578,108 @@ const loyaltyTransactionSchema = new Schema<ILoyaltyTransaction>({
 loyaltyTransactionSchema.index({ userId: 1, createdAt: -1 });
 loyaltyTransactionSchema.index({ orderId: 1 });
 
+// P-Xu Vàng Schema
+export interface IPPointAccount extends Document {
+  userId: mongoose.Types.ObjectId;
+  balance: number; // Số P-Xu hiện tại
+  lifetimePoints: number; // Tổng P-Xu đã nhận (không bao gồm đã dùng)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const pPointAccountSchema = new Schema<IPPointAccount>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+  balance: { type: Number, default: 0, min: 0 },
+  lifetimePoints: { type: Number, default: 0, min: 0 },
+}, { timestamps: true });
+
+pPointAccountSchema.index({ userId: 1 });
+
+export interface IPPointTransaction extends Document {
+  userId: mongoose.Types.ObjectId;
+  orderId?: mongoose.Types.ObjectId;
+  type: 'earn' | 'redeem' | 'adjust';
+  points: number; // Dương khi nhận, âm khi dùng
+  description?: string;
+  createdAt: Date;
+}
+
+const pPointTransactionSchema = new Schema<IPPointTransaction>({
+  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  orderId: { type: Schema.Types.ObjectId, ref: 'Order' },
+  type: { type: String, enum: ['earn', 'redeem', 'adjust'], required: true },
+  points: { type: Number, required: true },
+  description: { type: String, trim: true },
+}, { timestamps: { createdAt: true, updatedAt: false } });
+
+pPointTransactionSchema.index({ userId: 1, createdAt: -1 });
+pPointTransactionSchema.index({ orderId: 1 });
+
 // Exports for new models
 export const Promotion = mongoose.model<IPromotion>('Promotion', promotionSchema);
 export const PromotionItem = mongoose.model<IPromotionItem>('PromotionItem', promotionItemSchema);
 export const LoyaltyAccount = mongoose.model<ILoyaltyAccount>('LoyaltyAccount', loyaltyAccountSchema);
 export const LoyaltyTransaction = mongoose.model<ILoyaltyTransaction>('LoyaltyTransaction', loyaltyTransactionSchema);
+export const PPointAccount = mongoose.model<IPPointAccount>('PPointAccount', pPointAccountSchema);
+export const PPointTransaction = mongoose.model<IPPointTransaction>('PPointTransaction', pPointTransactionSchema);
+
+// Notification Schema
+export interface INotification extends Document {
+  userId: mongoose.Types.ObjectId;
+  type: 'order' | 'brand' | 'promotion' | 'health' | 'news' | 'system';
+  title: string;
+  content: string;
+  link?: string; // URL to related page
+  isRead: boolean;
+  metadata?: {
+    orderId?: mongoose.Types.ObjectId;
+    orderNumber?: string;
+    [key: string]: any;
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const notificationSchema = new Schema<INotification>({
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+  },
+  type: {
+    type: String,
+    enum: ['order', 'brand', 'promotion', 'health', 'news', 'system'],
+    required: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  content: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  link: {
+    type: String,
+    trim: true,
+  },
+  isRead: {
+    type: Boolean,
+    default: false,
+  },
+  metadata: {
+    type: Schema.Types.Mixed,
+    default: {},
+  },
+}, {
+  timestamps: true,
+});
+
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, isRead: 1 });
+notificationSchema.index({ userId: 1, type: 1 });
+
+export const Notification = mongoose.model<INotification>('Notification', notificationSchema);
 

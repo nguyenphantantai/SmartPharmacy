@@ -43,6 +43,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => {
       const idx = prev.findIndex((i) => (i.product._id || i.product.id) === (product._id || product.id));
       if (idx >= 0) {
+        // Product already in cart, just update quantity
         const next = [...prev];
         next[idx] = { ...next[idx], quantity: next[idx].quantity + quantity };
         if (showNotification) {
@@ -50,6 +51,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         }
         return next;
       }
+      // New product being added - clear applied coupon
+      localStorage.removeItem('applied_coupon');
       if (showNotification) {
         setLastAddedItem(newItem);
       }

@@ -7,6 +7,9 @@ import { config } from '../config/index.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { OTPService } from '../services/otpService.js';
 import { FirebasePhoneService, FirebaseGoogleService, initializeFirebase } from '../services/firebaseService.js';
+import { SupabaseStorageService } from '../services/supabaseService.js';
+import fs from 'fs';
+import path from 'path';
 
 // In-memory OTP storage (in production, use Redis or database)
 const otpStorage = new Map<string, { otp: string; expiresAt: Date; phone: string }>();
@@ -250,6 +253,106 @@ export class AuthController {
       });
     } catch (error) {
       console.error('Update profile error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  }
+
+  // Upload avatar
+  static async uploadAvatar(req: MulterRequest, res: Response) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded',
+        });
+      }
+
+      const userId = req.user!.id;
+
+      // Validate file type
+      if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Only image files are allowed',
+        });
+      }
+
+      // Validate file size (5MB max)
+      if (req.file.size > 5 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          message: 'File size must be less than 5MB',
+        });
+      }
+
+      try {
+        // Upload to Supabase Storage
+        const timestamp = Date.now();
+        const extension = req.file.originalname.split('.').pop() || 'jpg';
+        const safeFileName = `avatar_${userId}_${timestamp}.${extension}`;
+        const supabasePath = `avatars/${safeFileName}`;
+        
+        const { url } = await SupabaseStorageService.uploadImage(
+          'user-avatars',
+          supabasePath,
+          req.file.buffer,
+          req.file.mimetype
+        );
+        
+        // Delete old avatar if exists
+        const user = await User.findById(userId);
+        if (user && user.avatar) {
+          try {
+            // Extract path from old avatar URL
+            const oldUrl = user.avatar;
+            if (oldUrl.includes('supabase.co') && oldUrl.includes('user-avatars')) {
+              const urlParts = oldUrl.split('/user-avatars/');
+              if (urlParts.length > 1) {
+                const oldPath = `avatars/${urlParts[1]}`;
+                await SupabaseStorageService.deleteImage('user-avatars', oldPath);
+              }
+            }
+          } catch (deleteError) {
+            // Log but don't fail if old avatar deletion fails
+            console.warn('⚠️ Failed to delete old avatar:', deleteError);
+          }
+        }
+
+        // Update user avatar in database
+        const updatedUser = await User.findByIdAndUpdate(
+          userId,
+          { avatar: url },
+          { new: true, select: '-password' }
+        ).lean();
+
+        if (!updatedUser) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found',
+          });
+        }
+
+        res.json({
+          success: true,
+          message: 'Avatar uploaded successfully',
+          data: {
+            avatar: url,
+            user: updatedUser,
+          },
+        });
+      } catch (error: any) {
+        console.error('❌ Error uploading avatar to Supabase:', error.message);
+        return res.status(500).json({
+          success: false,
+          message: 'Error uploading avatar. Please try again.',
+          error: error.message,
+        });
+      }
+    } catch (error: any) {
+      console.error('Upload avatar error:', error);
       res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -723,13 +826,33 @@ export class AuthController {
       const firstNamePart = nameParts[0] || '';
       const lastNamePart = nameParts.slice(1).join(' ') || lastName || '';
 
-      // Handle avatar upload if provided
+      // Handle avatar upload if provided - CHỈ upload lên Supabase, không fallback
       let avatarUrl = undefined;
       if (req.file) {
-        // For now, we'll just store the file info
-        // In production, you'd upload to cloud storage (AWS S3, Cloudinary, etc.)
-        avatarUrl = `uploads/avatars/${req.file.originalname}`;
-        console.log('Avatar file received:', req.file.originalname, req.file.size);
+        try {
+          // Upload to Supabase Storage
+          const userId = req.user?.id || 'unknown';
+          const timestamp = Date.now();
+          const extension = req.file.originalname.split('.').pop() || 'jpg';
+          const safeFileName = `${userId}_${timestamp}.${extension}`;
+          const supabasePath = `avatars/${safeFileName}`;
+          
+          const { url } = await SupabaseStorageService.uploadImage(
+            'user-avatars',
+            supabasePath,
+            req.file.buffer,
+            req.file.mimetype
+          );
+          
+          avatarUrl = url;
+          console.log('✅ Avatar uploaded to Supabase:', url);
+        } catch (error: any) {
+          console.error('❌ Error uploading avatar to Supabase:', error.message);
+          return res.status(500).json({
+            success: false,
+            message: 'Error uploading avatar. Please try again.',
+          });
+        }
       }
 
       // Update user profile

@@ -1,4 +1,4 @@
-import { CreditCard, Smartphone, Wallet, Banknote } from "lucide-react";
+import { CreditCard, Wallet, Banknote } from "lucide-react";
 
 interface PaymentMethodFormProps {
   paymentMethod: string;
@@ -14,32 +14,11 @@ const paymentMethods = [
     color: "text-green-600"
   },
   { 
-    id: "bank_transfer", 
-    label: "Thanh toán bằng chuyển khoản (QR Code)",
-    description: "Quét mã QR để chuyển khoản",
-    icon: Smartphone,
+    id: "vnpay", 
+    label: "Thanh toán bằng VNPay",
+    description: "Thanh toán nhanh qua VNPay",
+    icon: CreditCard,
     color: "text-blue-600"
-  },
-  { 
-    id: "bank_transfer_atm", 
-    label: "Thanh toán bằng thẻ ATM nội địa và tài khoản ngân hàng",
-    description: "Thanh toán qua thẻ ATM hoặc tài khoản ngân hàng",
-    icon: CreditCard,
-    color: "text-purple-600"
-  },
-  { 
-    id: "card", 
-    label: "Thanh toán bằng thẻ quốc tế Visa, Master, JCB, AMEX",
-    description: "Hỗ trợ GooglePay, ApplePay",
-    icon: CreditCard,
-    color: "text-indigo-600"
-  },
-  { 
-    id: "zalopay", 
-    label: "Thanh toán bằng ví ZaloPay",
-    description: "Thanh toán nhanh qua ví ZaloPay",
-    icon: Wallet,
-    color: "text-blue-500"
   },
   { 
     id: "momo", 

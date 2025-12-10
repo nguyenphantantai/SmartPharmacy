@@ -6,4 +6,4 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // API base URL for backend server
-export const API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://localhost:5000/api";
+export const API_BASE = (import.meta as any)?.env?.VITE_API_BASE || "http://localhost:5000";

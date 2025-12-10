@@ -5,12 +5,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PrescriptionProvider } from "@/contexts/PrescriptionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import AppReadyWrapper from "@/components/app-ready-wrapper";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import CartPage from "@/pages/cart";
 import CheckoutPage from "@/pages/checkout";
 import OrderConfirmationPage from "@/pages/order-confirmation";
 import OrderTrackingPage from "@/pages/order-tracking";
+import PaymentSuccessPage from "@/pages/payment-success";
 import SearchResultsPage from "@/pages/search-results";
 import MedicinePage from "@/pages/medicine";
 import LookupPage from "@/pages/lookup";
@@ -158,14 +160,25 @@ import PrescriptionAnalysisResultPage from "@/pages/prescription-analysis-result
 import MyPrescriptionsPage from "@/pages/my-prescriptions";
 import AllCouponsPage from "@/pages/all-coupons";
 import AccountPage from "@/pages/account";
+import AddressManagementPage from "@/pages/address-management";
+import PPointHistoryPage from "@/pages/p-point-history";
+import NotificationsPage from "@/pages/notifications";
+import HealthSpendingPage from "@/pages/health-spending";
+import HealthToolsPage from "@/pages/health-tools";
+import BMICalculatorPage from "@/pages/bmi-calculator";
+import BMRCalculatorPage from "@/pages/bmr-calculator";
 import OrderHistoryPage from "@/pages/order-history";
 import OrderDetailPage from "@/pages/order-detail";
+import GoldenOrderHistoryPage from "@/pages/golden-order-history";
+import DealHotThang9Page from "@/pages/deal-hot-thang-9";
+import MoreCategoriesPage from "@/pages/more-categories";
 import SavedPrescriptionsPage from "@/pages/saved-prescriptions";
 import UpdateEmailPage from "@/pages/update-email";
 import UpdatePasswordPage from "@/pages/update-password";
 import PrescriptionDetailsPage from "@/pages/prescription-details";
 import SavePrescriptionPage from "@/pages/save-prescription";
 import HealthCheckPage from "@/pages/health-check";
+import ProductDetailPage from "@/pages/product-detail";
 import AsthmaAssessmentPage from "@/pages/asthma-assessment";
 import AsthmaAbuseAssessmentPage from "@/pages/asthma-abuse-assessment";
 import AsthmaAbuseResultPage from "@/pages/asthma-abuse-result";
@@ -189,7 +202,9 @@ function Router() {
       <Route path="/checkout" component={CheckoutPage} />
       <Route path="/order-confirmation/:id" component={OrderConfirmationPage} />
       <Route path="/track-order" component={OrderTrackingPage} />
+      <Route path="/payment-success" component={PaymentSuccessPage} />
       <Route path="/search" component={SearchResultsPage} />
+      <Route path="/product/:id" component={ProductDetailPage} />
       <Route path="/thuoc" component={MedicinePage} />
       <Route path="/benh" component={LookupPage} />
       <Route path="/benh/dau" component={HeadDiseasesPage} />
@@ -339,8 +354,19 @@ function Router() {
       <Route path="/ma-giam-gia" component={AllCouponsPage} />
       <Route path="/account" component={AccountPage} />
       <Route path="/account/thong-tin-ca-nhan" component={AccountPage} />
+      <Route path="/account/dia-chi-nhan-hang" component={AddressManagementPage} />
       <Route path="/account/lich-su-don-hang" component={OrderHistoryPage} />
+      <Route path="/account/ma-giam-gia" component={AllCouponsPage} />
+      <Route path="/account/lich-su-p-xu" component={PPointHistoryPage} />
+      <Route path="/account/thong-bao" component={NotificationsPage} />
+      <Route path="/account/chi-tieu-suc-khoe" component={HealthSpendingPage} />
+      <Route path="/account/cong-cu-suc-khoe" component={HealthToolsPage} />
+      <Route path="/account/cong-cu-suc-khoe/bmi" component={BMICalculatorPage} />
+      <Route path="/account/cong-cu-suc-khoe/bmr" component={BMRCalculatorPage} />
       <Route path="/account/chi-tiet-don-hang/:id" component={OrderDetailPage} />
+      <Route path="/lich-su-don-vang" component={GoldenOrderHistoryPage} />
+      <Route path="/deal-hot-thang-9" component={DealHotThang9Page} />
+      <Route path="/xem-them" component={MoreCategoriesPage} />
       <Route path="/account/don-thuoc-da-luu" component={SavedPrescriptionsPage} />
       <Route path="/account/don-thuoc-cua-toi" component={MyPrescriptionsPage} />
       <Route path="/account/cap-nhat-email" component={UpdateEmailPage} />
@@ -372,10 +398,12 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <PrescriptionProvider>
-            <Toaster />
-            <CartProvider>
-              <Router />
-            </CartProvider>
+            <AppReadyWrapper>
+              <Toaster />
+              <CartProvider>
+                <Router />
+              </CartProvider>
+            </AppReadyWrapper>
           </PrescriptionProvider>
         </AuthProvider>
       </TooltipProvider>

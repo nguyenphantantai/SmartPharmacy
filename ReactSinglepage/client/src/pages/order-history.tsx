@@ -20,6 +20,9 @@ import {
   Save
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { ReorderDialog } from "@/components/reorder-dialog";
+import { getImageUrl } from "@/lib/imageUtils";
+import { API_BASE } from "@/lib/utils";
 
 interface OrderItem {
   _id: string;
@@ -55,6 +58,8 @@ export default function OrderHistoryPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>(null);
+  const [reorderDialogOpen, setReorderDialogOpen] = useState(false);
+  const [reorderOrderId, setReorderOrderId] = useState<string>("");
 
   const format = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
   const formatDate = (dateString: string) => {
@@ -67,8 +72,13 @@ export default function OrderHistoryPage() {
     });
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
+  const getStatusInfo = (status: string, paymentStatus?: string) => {
+    // If payment was confirmed, prefer showing "Đã xác nhận"
+    const effectiveStatus = (paymentStatus === 'paid' && (status === 'pending' || status === 'processing'))
+      ? 'confirmed'
+      : status;
+
+    switch (effectiveStatus) {
       case 'pending':
         return { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-800', icon: Clock };
       case 'confirmed':
@@ -102,6 +112,9 @@ export default function OrderHistoryPage() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
+        setLoading(true);
+        console.log('OrderHistoryPage - Fetching orders...');
+        
         const [ordersResponse, statsResponse] = await Promise.all([
           apiRequest("GET", "/api/orders"),
           apiRequest("GET", "/api/orders/stats")
@@ -110,20 +123,41 @@ export default function OrderHistoryPage() {
         const ordersData = await ordersResponse.json();
         const statsData = await statsResponse.json();
 
+        console.log('OrderHistoryPage - Orders response:', ordersData);
+        console.log('OrderHistoryPage - Stats response:', statsData);
+
         if (ordersData.success) {
-          setOrders(ordersData.data);
+          console.log('OrderHistoryPage - Orders data:', ordersData.data);
+          console.log('OrderHistoryPage - Orders count:', ordersData.data?.length || 0);
+          setOrders(ordersData.data || []);
+        } else {
+          console.error('OrderHistoryPage - Orders API failed:', ordersData);
         }
+        
         if (statsData.success) {
+          console.log('OrderHistoryPage - Stats data:', statsData.data);
           setStats(statsData.data);
+        } else {
+          console.error('OrderHistoryPage - Stats API failed:', statsData);
         }
       } catch (error) {
-        console.error('Error fetching orders:', error);
+        console.error('OrderHistoryPage - Error fetching orders:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchOrders();
+
+    // Check if order was just created and refresh immediately
+    const orderCreated = localStorage.getItem('orderCreated');
+    if (orderCreated) {
+      console.log('Order was created, refreshing order list...');
+      setTimeout(() => {
+        fetchOrders();
+        localStorage.removeItem('orderCreated');
+      }, 1000); // Wait 1 second for backend to process
+    }
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchOrders, 30000);
@@ -133,11 +167,30 @@ export default function OrderHistoryPage() {
       fetchOrders();
     };
 
+    // Listen for storage events (when order is created in another tab/window)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'orderCreated') {
+        console.log('Order created in another tab, refreshing...');
+        fetchOrders();
+        localStorage.removeItem('orderCreated');
+      }
+    };
+
+    // Listen for custom event (when order is created in same tab)
+    const handleOrderCreated = () => {
+      console.log('Order created event received, refreshing...');
+      fetchOrders();
+    };
+
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('orderCreated', handleOrderCreated);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('orderCreated', handleOrderCreated);
     };
   }, []);
 
@@ -145,21 +198,9 @@ export default function OrderHistoryPage() {
     setLocation(`/account/chi-tiet-don-hang/${orderId}`);
   };
 
-  const handleReorder = async (orderId: string) => {
-    try {
-      const response = await apiRequest(`/orders/${orderId}/reorder`, {
-        method: 'POST'
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        // Navigate to cart with reorder items
-        setLocation('/cart');
-        // You might want to add items to cart here
-      }
-    } catch (error) {
-      console.error('Error reordering:', error);
-    }
+  const handleReorder = (orderId: string) => {
+    setReorderOrderId(orderId);
+    setReorderDialogOpen(true);
   };
 
   const handleSavePrescription = (orderId: string) => {
@@ -304,7 +345,7 @@ export default function OrderHistoryPage() {
         ) : (
           <div className="space-y-4">
             {orders.map((order) => {
-              const statusInfo = getStatusInfo(order.status);
+              const statusInfo = getStatusInfo(order.status, (order as any).paymentStatus);
               const StatusIcon = statusInfo.icon;
 
               return (
@@ -346,21 +387,44 @@ export default function OrderHistoryPage() {
                     <div className="mb-4">
                       <h4 className="font-medium mb-2">Sản phẩm:</h4>
                       <div className="space-y-2">
-                        {order.items.slice(0, 3).map((item) => (
-                          <div key={item._id} className="flex items-center gap-3">
-                            <img 
-                              src={item.productId.imageUrl} 
-                              alt={item.productId.name}
-                              className="w-12 h-12 object-cover rounded"
-                            />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{item.productId.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.quantity} x {format(item.productId.price)}đ
+                        {order.items.slice(0, 3).map((item) => {
+                          // Kiểm tra nếu productId null hoặc undefined
+                          if (!item.productId) {
+                            return (
+                              <div key={item._id} className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-gray-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-medium text-sm text-muted-foreground">Sản phẩm đã bị xóa</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {item.quantity} x {format(item.price || 0)}đ
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <div key={item._id} className="flex items-center gap-3">
+                              <img 
+                                src={getImageUrl(item.productId.imageUrl)} 
+                                alt={item.productId.name || 'Sản phẩm'}
+                                className="w-12 h-12 object-cover rounded"
+                                onError={(e) => {
+                                  // Fallback nếu image load fail
+                                  (e.target as HTMLImageElement).src = `${API_BASE}/medicine-images/default-medicine.jpg`;
+                                }}
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{item.productId.name || 'Sản phẩm không xác định'}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {item.quantity} x {format(item.productId.price || item.price || 0)}đ
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                         {order.items.length > 3 && (
                           <div className="text-sm text-muted-foreground">
                             +{order.items.length - 3} sản phẩm khác
@@ -410,6 +474,13 @@ export default function OrderHistoryPage() {
       </main>
 
       <Footer />
+      
+      {/* Reorder Dialog */}
+      <ReorderDialog
+        open={reorderDialogOpen}
+        onOpenChange={setReorderDialogOpen}
+        orderId={reorderOrderId}
+      />
     </div>
   );
 }

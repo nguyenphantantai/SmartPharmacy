@@ -80,31 +80,44 @@ export default function FirebaseOTPDialog({
     }
   }, [isOpen, phoneNumber]);
 
-  const initializeFirebaseOTP = async () => {
+  const initializeFirebaseOTP = async (retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    
     try {
       console.log('🔥 Initializing Firebase OTP...');
       console.log('📱 Phone number:', phoneNumber);
+      console.log(`🔄 Retry attempt: ${retryCount + 1}/${MAX_RETRIES + 1}`);
       
       // Check if element exists before initializing
       const element = document.getElementById('recaptcha-container');
       console.log('🔍 Element check:', element);
       
       if (!element) {
-        console.error('❌ Element not found, retrying...');
-        setTimeout(() => {
-          initializeFirebaseOTP();
-        }, 200);
-        return;
+        if (retryCount < MAX_RETRIES) {
+          console.warn(`⚠️ Element not found, retrying in 500ms... (${retryCount + 1}/${MAX_RETRIES})`);
+          setTimeout(() => {
+            initializeFirebaseOTP(retryCount + 1);
+          }, 500);
+          return;
+        } else {
+          throw new Error('reCAPTCHA container element not found after multiple retries');
+        }
       }
       
       // Clear any existing reCAPTCHA
       if (recaptchaVerifier) {
-        recaptchaVerifier.clear();
+        try {
+          recaptchaVerifier.clear();
+        } catch (clearError) {
+          console.warn('⚠️ Error clearing existing reCAPTCHA:', clearError);
+        }
       }
 
       // Initialize reCAPTCHA with proper error handling
+      console.log('🔐 Initializing reCAPTCHA verifier...');
       const verifier = initializeRecaptcha('recaptcha-container');
       setRecaptchaVerifier(verifier);
+      console.log('✅ reCAPTCHA verifier created');
 
       // Format phone number for Firebase - Fix Vietnamese phone number format
       let formattedPhone = phoneNumber;
@@ -120,8 +133,9 @@ export default function FirebaseOTPDialog({
       console.log('📱 Formatted phone:', formattedPhone);
       console.log('🔐 Using Firebase Phone Authentication with reCAPTCHA');
       
-      // Wait for reCAPTCHA to be ready
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for reCAPTCHA to be ready (increased wait time)
+      console.log('⏳ Waiting for reCAPTCHA to be ready...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Send OTP via Firebase Phone Authentication (REAL SMS) - Following Firebase docs
       console.log('🚀 Attempting to send OTP via Firebase...');
@@ -132,6 +146,14 @@ export default function FirebaseOTPDialog({
         authDomain: auth.app.options.authDomain,
         projectId: auth.app.options.projectId
       });
+      
+      // Check if domain is authorized (helpful error message)
+      const currentDomain = window.location.hostname;
+      console.log('🌐 Current domain:', currentDomain);
+      console.log('⚠️ If you see auth/internal-error-encountered, check:');
+      console.log('   1. Firebase Console > Authentication > Settings > Authorized domains');
+      console.log('   2. Ensure "localhost" is added for development');
+      console.log('   3. Check API Key restrictions in Google Cloud Console');
       
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, verifier);
       
@@ -172,7 +194,7 @@ export default function FirebaseOTPDialog({
       } else if (error.code === 'auth/quota-exceeded') {
         errorMessage = "Đã vượt quá giới hạn gửi SMS. Vui lòng thử lại sau";
       } else if (error.code === 'auth/internal-error-encountered') {
-        errorMessage = "Lỗi hệ thống Firebase. Vui lòng kiểm tra cấu hình Firebase project và thử lại";
+        errorMessage = "Lỗi hệ thống Firebase. Vui lòng kiểm tra:\n1. Authorized domains đã thêm 'localhost' trong Firebase Console\n2. API Key restrictions trong Google Cloud Console\n3. Identity Toolkit API đã được enable";
       } else if (error.code === 'auth/operation-not-allowed') {
         errorMessage = "Phone Authentication chưa được kích hoạt trong Firebase Console";
       } else if (error.code === 'auth/invalid-app-credential') {

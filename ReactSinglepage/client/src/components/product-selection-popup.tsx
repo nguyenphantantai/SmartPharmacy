@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { X, Minus, Plus } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
@@ -19,19 +20,41 @@ export default function ProductSelectionPopup({
   onClose 
 }: ProductSelectionPopupProps) {
   const [quantity, setQuantity] = useState(1);
+  const [mounted, setMounted] = useState(false);
   const { addItem } = useCart();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  // Ensure component is mounted before using portal
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Prevent body scroll when popup is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      // Reset quantity when popup closes
+      setQuantity(1);
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   console.log('🔍 ProductSelectionPopup rendered:', { 
     isOpen, 
     productName: product.name, 
     quantity,
+    mounted,
     timestamp: new Date().toISOString()
   });
 
-  if (!isOpen) {
-    console.log('❌ Popup not open, returning null');
+  if (!isOpen || !mounted) {
+    console.log('❌ Popup not open or not mounted, returning null');
     return null;
   }
 
@@ -66,7 +89,7 @@ export default function ProductSelectionPopup({
     }
   };
 
-  return (
+  const popupContent = (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[99999] p-4"
       style={{ 
@@ -78,6 +101,12 @@ export default function ProductSelectionPopup({
         zIndex: 99999,
         animation: 'none',
         transform: 'none'
+      }}
+      onClick={(e) => {
+        // Close when clicking on backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
       }}
     >
       <div 
@@ -211,4 +240,7 @@ export default function ProductSelectionPopup({
       </div>
     </div>
   );
+
+  // Use portal to render outside the DOM tree
+  return createPortal(popupContent, document.body);
 }

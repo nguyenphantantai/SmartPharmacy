@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { API_BASE } from "@/lib/utils";
+import { getImageUrl } from "@/lib/imageUtils";
 
 interface OrderItem {
   _id: string;
@@ -73,8 +75,11 @@ export default function OrderDetailPage() {
     });
   };
 
-  const getStatusInfo = (status: string) => {
-    switch (status) {
+  const getStatusInfo = (status: string, paymentStatus?: string) => {
+    const effectiveStatus = (paymentStatus === 'paid' && (status === 'pending' || status === 'processing'))
+      ? 'confirmed'
+      : status;
+    switch (effectiveStatus) {
       case 'pending':
         return { label: 'Chờ xác nhận', color: 'bg-yellow-100 text-yellow-800' };
       case 'confirmed':
@@ -122,6 +127,30 @@ export default function OrderDetailPage() {
             initialQuantities[item._id] = item.quantity;
           });
           setEditingItems(initialQuantities);
+
+          // For MoMo payment, always check payment status to ensure it's up-to-date
+          // This ensures payment status is updated if callback was successful or delayed
+          if (result.data.paymentMethod === 'momo' && result.data.paymentStatus !== 'paid') {
+            try {
+              // Query payment status from MoMo
+              const paymentResponse = await fetch(`${API_BASE}/api/payment/momo/status/${result.data.orderNumber}`);
+              const paymentResult = await paymentResponse.json();
+              
+              // If payment status has changed to paid, refresh order data
+              if (paymentResult.success && paymentResult.data.paymentStatus === 'paid') {
+                // Refresh order data to get updated payment status
+                const refreshResponse = await apiRequest("GET", `/api/orders/${params.id}`);
+                const refreshResult = await refreshResponse.json();
+                if (refreshResult.success) {
+                  setOrder(refreshResult.data);
+                  console.log('Order payment status updated to paid after MoMo check');
+                }
+              }
+            } catch (error) {
+              console.error('Error checking MoMo payment status:', error);
+              // Continue with order data even if payment status check fails
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching order detail:', error);
@@ -252,7 +281,7 @@ export default function OrderDetailPage() {
     );
   }
 
-  const statusInfo = getStatusInfo(order.status);
+  const statusInfo = getStatusInfo(order.status, (order as any).paymentStatus);
   const newTotal = calculateNewTotal();
   const originalTotal = order.totalAmount;
   const changedItems = getChangedItems();
@@ -372,33 +401,58 @@ export default function OrderDetailPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.items.map((item) => (
-                    <div key={item._id} className="flex items-center gap-4 p-4 border rounded-lg">
-                      <img
-                        src={item.productId.imageUrl}
-                        alt={item.productId.name}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-medium">{item.productId.name}</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {item.productId.description || 'Không có mô tả'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Đơn giá: {format(item.price)} ₫/{item.productId.unit}
-                        </p>
-                      </div>
-                      
-                      {isEditing ? (
-                        <div className="flex items-center gap-3">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityChange(item._id, editingItems[item._id] - 1)}
-                            disabled={editingItems[item._id] <= 0}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
+                  {order.items.map((item) => {
+                    // Kiểm tra nếu productId null hoặc undefined
+                    if (!item.productId) {
+                      return (
+                        <div key={item._id} className="flex items-center gap-4 p-4 border rounded-lg">
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                            <Package className="w-8 h-8 text-gray-400" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-muted-foreground">Sản phẩm đã bị xóa</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Đơn giá: {format(item.price || 0)} ₫
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Số lượng: {item.quantity}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div key={item._id} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <img
+                          src={getImageUrl(item.productId.imageUrl)}
+                          alt={item.productId.name || 'Sản phẩm'}
+                          className="w-16 h-16 object-cover rounded-lg"
+                          onError={(e) => {
+                            // Fallback nếu image load fail
+                            (e.target as HTMLImageElement).src = `${API_BASE}/medicine-images/default-medicine.jpg`;
+                          }}
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-medium">{item.productId.name || 'Sản phẩm không xác định'}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {item.productId.description || 'Không có mô tả'}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Đơn giá: {format(item.productId.price || item.price || 0)} ₫/{item.productId.unit || 'đơn vị'}
+                          </p>
+                        </div>
+                        
+                        {isEditing ? (
+                          <div className="flex items-center gap-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuantityChange(item._id, editingItems[item._id] - 1)}
+                              disabled={editingItems[item._id] <= 0}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
                           <Input
                             type="number"
                             value={editingItems[item._id] || 0}
@@ -431,7 +485,8 @@ export default function OrderDetailPage() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
 
                 {/* Order Summary */}

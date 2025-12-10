@@ -7,7 +7,7 @@ import HotDealsSection from "@/components/hot-deals-section";
 import TopSellingSection from "@/components/top-selling-section";
 import PromotionalBanners from "@/components/promotional-banners";
 import { Footer } from "@/components/footer";
-import { MessageCircle } from "lucide-react";
+import { AIChat } from "@/components/ai-chat";
 import { useState } from "react";
 
 export default function Home() {
@@ -32,15 +32,8 @@ export default function Home() {
       <PromotionalBanners />
       <Footer />
       
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button 
-          data-testid="button-chat"
-          className="bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-full p-4 shadow-lg transition-all duration-300 hover:scale-110 floating-animation neon-glow focus-visible"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </button>
-      </div>
+      {/* AI Chat Component */}
+      <AIChat />
     </div>
   );
 }

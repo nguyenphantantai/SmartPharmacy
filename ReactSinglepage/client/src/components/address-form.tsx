@@ -145,6 +145,17 @@ export default function AddressForm({ formData, onFormDataChange, senderData }: 
   };
 
   const selectSavedAddress = (address: any) => {
+    // Load districts and wards for the selected address
+    if (address.province) {
+      const newDistricts = getDistrictsByProvince(address.province);
+      setDistricts(newDistricts);
+      
+      if (address.district) {
+        const newWards = getWardsByDistrict(address.province, address.district);
+        setWards(newWards);
+      }
+    }
+
     onFormDataChange({
       receiverName: address.name,
       receiverPhone: address.phone,

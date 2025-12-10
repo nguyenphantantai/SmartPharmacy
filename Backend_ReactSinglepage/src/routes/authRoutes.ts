@@ -45,6 +45,7 @@ if (process.env.NODE_ENV === 'development') {
 // Protected routes
 router.get('/profile', authenticateToken, AuthController.getProfile);
 router.put('/profile', authenticateToken, AuthController.updateProfile);
+router.post('/avatar', authenticateToken, upload.single('avatar'), AuthController.uploadAvatar as any);
 router.put('/change-password', authenticateToken, AuthController.changePassword);
 router.post('/complete-profile', authenticateToken, upload.single('avatar'), AuthController.completeProfile as any);
 

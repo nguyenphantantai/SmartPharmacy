@@ -6,17 +6,25 @@ import { Copy, Clock, Percent, Truck, Gift, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import CouponDetailPopup from "./coupon-detail-popup";
+import { fetchAllPromotions } from "@/api/promotions";
 
 interface Coupon {
-  id: string;
-  code: string;
-  description: string;
-  discountType: 'percentage' | 'fixed' | 'freeship';
-  discountValue: number;
-  minOrderAmount: number;
-  expiryDate: string;
+  _id: string;
+  name: string;
+  description?: string;
+  type: 'order_threshold' | 'combo' | 'flash_sale' | 'category_bundle' | 'discount' | 'freeship';
+  code?: string;
   isActive: boolean;
-  category: 'general' | 'freeship' | 'event';
+  status?: 'active' | 'inactive' | string;
+  startDate: string;
+  endDate: string;
+  minOrderValue?: number;
+  minOrderAmount?: number;
+  discountPercent?: number;
+  value?: number;
+  maxDiscountAmount?: number;
+  usageCount?: number;
+  usageLimit?: number;
 }
 
 export default function CouponSection() {
@@ -26,108 +34,61 @@ export default function CouponSection() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [savedCouponIds, setSavedCouponIds] = useState<Set<string>>(new Set());
 
-  // Mock data - sau này sẽ thay bằng API call
+  // Load saved coupon IDs from localStorage
   useEffect(() => {
-    const mockCoupons: Coupon[] = [
-      {
-        id: '1',
-        code: 'GIAM10',
-        description: 'Giảm 10% cho đơn từ 200.000đ',
-        discountType: 'percentage',
-        discountValue: 10,
-        minOrderAmount: 200000,
-        expiryDate: '2025-10-20',
-        isActive: true,
-        category: 'general'
-      },
-      {
-        id: '2',
-        code: 'FREESHIP',
-        description: 'Miễn phí ship cho đơn từ 300.000đ',
-        discountType: 'freeship',
-        discountValue: 0,
-        minOrderAmount: 300000,
-        expiryDate: '2025-12-31',
-        isActive: true,
-        category: 'freeship'
-      },
-      {
-        id: '3',
-        code: 'NEWUSER20',
-        description: 'Giảm 20% cho khách hàng mới',
-        discountType: 'percentage',
-        discountValue: 20,
-        minOrderAmount: 100000,
-        expiryDate: '2025-11-15',
-        isActive: true,
-        category: 'event'
-      },
-      {
-        id: '4',
-        code: 'VIP50K',
-        description: 'Giảm 50.000đ cho đơn từ 500.000đ',
-        discountType: 'fixed',
-        discountValue: 50000,
-        minOrderAmount: 500000,
-        expiryDate: '2025-09-30',
-        isActive: true,
-        category: 'general'
-      },
-      {
-        id: '5',
-        code: 'WEEKEND15',
-        description: 'Giảm 15% cuối tuần',
-        discountType: 'percentage',
-        discountValue: 15,
-        minOrderAmount: 150000,
-        expiryDate: '2025-08-25',
-        isActive: true,
-        category: 'event'
-      },
-      {
-        id: '6',
-        code: 'MEDICINE5',
-        description: 'Giảm 5% thuốc kê đơn',
-        discountType: 'percentage',
-        discountValue: 5,
-        minOrderAmount: 100000,
-        expiryDate: '2025-12-20',
-        isActive: true,
-        category: 'general'
+    try {
+      const savedCoupons = JSON.parse(localStorage.getItem('saved_coupons') || '[]');
+      const savedIds = new Set(savedCoupons.map((c: any) => c._id));
+      setSavedCouponIds(savedIds);
+    } catch (error) {
+      console.error('Error loading saved coupons:', error);
+    }
+  }, []);
+
+  // Fetch real promotions from API
+  useEffect(() => {
+    const loadPromotions = async () => {
+      try {
+        const promotions = await fetchAllPromotions(false);
+        setCoupons(promotions);
+      } catch (error) {
+        console.error('Error loading promotions:', error);
+        toast({
+          title: 'Lỗi',
+          description: 'Không thể tải mã khuyến mãi',
+          variant: 'destructive'
+        });
       }
-    ];
-    setCoupons(mockCoupons);
+    };
+    
+    loadPromotions();
   }, []);
 
   const filteredCoupons = coupons.filter(coupon => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'percentage') return coupon.discountType === 'percentage';
-    if (activeTab === 'freeship') return coupon.discountType === 'freeship';
-    if (activeTab === 'event') return coupon.category === 'event';
+    if (activeTab === 'percentage') return coupon.type === 'order_threshold' || coupon.type === 'flash_sale' || coupon.type === 'discount';
+    if (activeTab === 'freeship') return coupon.type === 'freeship' || (coupon.type === 'order_threshold' && (coupon.discountPercent === 0 || coupon.value === 0));
+    if (activeTab === 'event') return coupon.type === 'flash_sale';
     return true;
   });
 
-  const handleCopyCode = async (code: string) => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopiedCode(code);
-      toast.success(`Đã sao chép mã ${code}`);
-      
-      // Reset copied state after 2 seconds
-      setTimeout(() => setCopiedCode(null), 2000);
-    } catch (err) {
-      toast.error('Không thể sao chép mã');
-    }
-  };
-
-  const handleUseNow = (coupon: Coupon) => {
-    // Copy code to clipboard first
-    handleCopyCode(coupon.code);
+  const handleSaveCoupon = (coupon: Coupon) => {
+    // Save coupon to localStorage for later use
+    const savedCoupons = JSON.parse(localStorage.getItem('saved_coupons') || '[]');
+    const existingIndex = savedCoupons.findIndex((c: any) => c._id === coupon._id);
     
-    // Redirect to cart or shopping page
-    // window.location.href = '/cart';
-    toast.info(`Mã ${coupon.code} đã được sao chép! Vào giỏ hàng để sử dụng.`);
+    if (existingIndex >= 0) {
+      savedCoupons[existingIndex] = coupon;
+    } else {
+      savedCoupons.push(coupon);
+    }
+    
+    localStorage.setItem('saved_coupons', JSON.stringify(savedCoupons));
+    
+    // Update state to disable the button
+    setSavedCouponIds(prev => new Set([...prev, coupon._id]));
   };
 
   const handleCouponClick = (coupon: Coupon) => {
@@ -152,26 +113,48 @@ export default function CouponSection() {
   };
 
   const getCouponIcon = (coupon: Coupon) => {
-    switch (coupon.discountType) {
-      case 'percentage':
+    switch (coupon.type) {
+      case 'order_threshold':
+        return coupon.discountPercent && coupon.discountPercent > 0 ? <Percent className="w-4 h-4" /> : <Truck className="w-4 h-4" />;
+      case 'discount':
         return <Percent className="w-4 h-4" />;
       case 'freeship':
         return <Truck className="w-4 h-4" />;
-      case 'fixed':
+      case 'flash_sale':
+        return <Sparkles className="w-4 h-4" />;
+      case 'combo':
         return <Gift className="w-4 h-4" />;
+      case 'category_bundle':
+        return <Percent className="w-4 h-4" />;
       default:
         return <Sparkles className="w-4 h-4" />;
     }
   };
 
   const getCouponColor = (coupon: Coupon) => {
-    switch (coupon.category) {
+    switch (coupon.type) {
+      case 'flash_sale':
+        return 'bg-lime-50 border-lime-200';
+      case 'order_threshold':
+        return coupon.discountPercent && coupon.discountPercent > 0 ? 'bg-green-50 border-green-200' : 'bg-teal-50 border-teal-200';
+      case 'discount':
+        return 'bg-green-50 border-green-200';
       case 'freeship':
         return 'bg-teal-50 border-teal-200';
-      case 'event':
-        return 'bg-lime-50 border-lime-200';
       default:
         return 'bg-green-50 border-green-200';
+    }
+  };
+
+  const getTypeLabel = (coupon: Coupon) => {
+    switch (coupon.type) {
+      case 'order_threshold': return 'Theo giá trị đơn';
+      case 'discount': return 'Giảm %/số tiền';
+      case 'freeship': return 'Freeship';
+      case 'flash_sale': return 'Flash sale';
+      case 'combo': return 'Combo';
+      case 'category_bundle': return 'Theo danh mục';
+      default: return 'Khuyến mãi';
     }
   };
 
@@ -241,26 +224,38 @@ export default function CouponSection() {
                         variant="secondary" 
                         className="bg-gradient-to-r from-green-400 to-emerald-500 text-white border-0"
                       >
-                        {coupon.code}
+                        {coupon.code || 'Tự động'}
                       </Badge>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      HSD: {formatDate(coupon.expiryDate)}
+                      {formatDate(coupon.startDate)} - {formatDate(coupon.endDate)}
                     </div>
+                    {coupon.isActive === false && (
+                      <Badge className="mt-1" variant="secondary">Tạm dừng</Badge>
+                    )}
                   </div>
                 </div>
 
                 {/* Description */}
                 <div className="mb-4">
                   <p className="text-sm text-gray-700 font-medium mb-2">
-                    {coupon.description}
+                    {coupon.description || coupon.name}
                   </p>
-                  <p className="text-xs text-gray-500">
-                    Đơn tối thiểu: {formatCurrency(coupon.minOrderAmount)}
-                  </p>
+                  <div className="text-xs text-gray-500 mb-1">{getTypeLabel(coupon)}</div>
+                  {(coupon.minOrderValue || coupon.minOrderAmount) && (
+                    <p className="text-xs text-gray-500">
+                      Đơn tối thiểu: {formatCurrency(coupon.minOrderValue || coupon.minOrderAmount!)}
+                    </p>
+                  )}
+                  {(coupon.discountPercent || coupon.value) && (
+                    <p className="text-xs text-green-600 font-medium">
+                      {coupon.discountPercent ? `Giảm ${coupon.discountPercent}%` : 
+                       coupon.type === 'discount' ? `Giảm ${coupon.value}%` : `Giảm ${formatCurrency(coupon.value!)}`}
+                    </p>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -268,24 +263,17 @@ export default function CouponSection() {
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleCopyCode(coupon.code);
+                      handleSaveCoupon(coupon);
                     }}
-                    variant="outline"
-                    size="sm"
-                    className="w-full border-green-300 text-green-700 hover:bg-green-100"
+                    disabled={savedCouponIds.has(coupon._id)}
+                    className={`w-full shadow-lg ${
+                      savedCouponIds.has(coupon._id) 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                    }`}
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    {copiedCode === coupon.code ? 'Đã sao chép!' : 'Sao chép mã'}
-                  </Button>
-                  
-                  <Button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUseNow(coupon);
-                    }}
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg"
-                  >
-                    Dùng ngay
+                    <Gift className="w-4 h-4 mr-2" />
+                    {savedCouponIds.has(coupon._id) ? 'Đã lưu' : 'Lưu mã giảm giá'}
                   </Button>
                 </div>
               </CardContent>
@@ -319,8 +307,8 @@ export default function CouponSection() {
         coupon={selectedCoupon}
         isOpen={isPopupOpen}
         onClose={handleClosePopup}
-        onCopyCode={handleCopyCode}
-        onUseNow={handleUseNow}
+        onSaveCoupon={handleSaveCoupon}
+        savedCouponIds={savedCouponIds}
       />
     </section>
   );

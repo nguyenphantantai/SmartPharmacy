@@ -7,10 +7,12 @@ import { ArrowLeft } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useApiRequest } from "@/hooks/useApiRequest";
+import { useAuth } from "@/contexts/AuthContext";
 import SenderForm from "@/components/sender-form";
 import AddressForm from "@/components/address-form";
 import PaymentMethodForm from "@/components/payment-method-form";
-import CouponInput from "@/components/coupon-input";
+import CouponSelector from "@/components/coupon-selector";
+import { API_BASE } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,24 +22,111 @@ export default function CheckoutPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { apiRequest } = useApiRequest();
+  const { isAuthenticated, showLoginDialog, user } = useAuth();
+  
 
   // Coupon state
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
 
-  // Load applied coupon from localStorage on mount
+  // Load applied coupon from localStorage on mount and when items change
+  // Validate coupon with backend to ensure it's still valid
   useEffect(() => {
-    try {
-      const savedCoupon = localStorage.getItem('applied_coupon');
-      if (savedCoupon) {
+    const validateAndLoadCoupon = async () => {
+      try {
+        const savedCoupon = localStorage.getItem('applied_coupon');
+        if (!savedCoupon) {
+          setAppliedCoupon(null);
+          setDiscountAmount(0);
+          return;
+        }
+
         const couponData = JSON.parse(savedCoupon);
-        setAppliedCoupon(couponData);
-        setDiscountAmount(couponData.discountAmount || 0);
+        const couponCode = couponData.code;
+
+        if (!couponCode) {
+          // No code, clear coupon
+          localStorage.removeItem('applied_coupon');
+          setAppliedCoupon(null);
+          setDiscountAmount(0);
+          return;
+        }
+
+        // Validate coupon with backend to ensure it's still valid
+        try {
+          const subtotal = items.reduce((sum, i) => sum + toNum(i.product.price) * i.quantity, 0);
+          
+          // Try promotion code validation first
+          const response = await apiRequest("POST", "/api/promotions/validate-code", {
+            code: couponCode,
+            orderAmount: subtotal,
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            // Coupon is still valid, update discount amount
+            const discountAmount = data.data.discountAmount;
+            setAppliedCoupon(couponData);
+            setDiscountAmount(discountAmount);
+            // Update localStorage with new discount amount
+            localStorage.setItem('applied_coupon', JSON.stringify({
+              ...couponData,
+              discountAmount: discountAmount,
+            }));
+          } else {
+            // Coupon is invalid or expired, remove it
+            console.log('Coupon validation failed:', data.message);
+            localStorage.removeItem('applied_coupon');
+            setAppliedCoupon(null);
+            setDiscountAmount(0);
+          }
+        } catch (promoError) {
+          // Try coupon validation as fallback
+          try {
+            const subtotal = items.reduce((sum, i) => sum + toNum(i.product.price) * i.quantity, 0);
+            const response = await apiRequest("POST", "/api/coupons/validate", {
+              code: couponCode,
+              orderAmount: subtotal,
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+              // Coupon is still valid, update discount amount
+              const discountAmount = data.data.discountAmount;
+              setAppliedCoupon(couponData);
+              setDiscountAmount(discountAmount);
+              // Update localStorage with new discount amount
+              localStorage.setItem('applied_coupon', JSON.stringify({
+                ...couponData,
+                discountAmount: discountAmount,
+              }));
+            } else {
+              // Coupon is invalid or expired, remove it
+              console.log('Coupon validation failed:', data.message);
+              localStorage.removeItem('applied_coupon');
+              setAppliedCoupon(null);
+              setDiscountAmount(0);
+            }
+          } catch (couponError) {
+            // Both validations failed, remove coupon
+            console.error('Error validating coupon:', couponError);
+            localStorage.removeItem('applied_coupon');
+            setAppliedCoupon(null);
+            setDiscountAmount(0);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved coupon:', error);
+        localStorage.removeItem('applied_coupon');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
       }
-    } catch (error) {
-      console.error('Error loading saved coupon:', error);
-    }
-  }, []);
+    };
+
+    validateAndLoadCoupon();
+  }, [items, apiRequest]); // Re-check when items change
 
   // Form data
   const [senderData, setSenderData] = useState({
@@ -90,6 +179,38 @@ export default function CheckoutPage() {
     setAddressData(data);
   };
 
+  // Check if token is valid before checkout
+  const checkTokenValidity = async (): Promise<boolean> => {
+    if (!isAuthenticated || !user) {
+      return false;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      return false;
+    }
+
+    try {
+      // Test token by calling a simple authenticated endpoint
+      const response = await fetch(`${API_BASE}/api/auth/profile`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        console.log('Token is invalid, user needs to login again');
+        return false;
+      }
+
+      return response.ok;
+    } catch (error) {
+      console.error('Error checking token validity:', error);
+      return false;
+    }
+  };
+
   const handleCheckout = async () => {
     // Validate form
     if (!senderData.senderName || !senderData.senderPhone || !addressData.receiverName || 
@@ -112,6 +233,20 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Check token validity if user is authenticated
+    if (isAuthenticated && user) {
+      const isTokenValid = await checkTokenValidity();
+      if (!isTokenValid) {
+        toast({
+          title: "Phiên đăng nhập đã hết hạn",
+          description: "Vui lòng đăng nhập lại để đặt hàng và xem lịch sử đơn hàng",
+          variant: "destructive"
+        });
+        showLoginDialog();
+        return;
+      }
+    }
+
     setIsProcessing(true);
 
     try {
@@ -126,15 +261,8 @@ export default function CheckoutPage() {
         });
       });
 
-      // Map payment method to backend format
-      const mapPaymentMethod = (method: string) => {
-        switch (method) {
-          case 'bank_transfer_atm':
-            return 'bank_transfer';
-          default:
-            return method;
-        }
-      };
+      const mappedPaymentMethod = paymentMethod;
+      console.log('Payment method:', paymentMethod);
 
       // Create order data
       const orderData = {
@@ -145,7 +273,7 @@ export default function CheckoutPage() {
         })),
         shippingAddress: `${addressData.address}, ${addressData.wardName}, ${addressData.districtName}, ${addressData.provinceName}`,
         shippingPhone: addressData.receiverPhone,
-        paymentMethod: mapPaymentMethod(paymentMethod),
+        paymentMethod: mappedPaymentMethod,
         notes: `Địa chỉ: ${addressData.address}, ${addressData.wardName}, ${addressData.districtName}, ${addressData.provinceName}`,
         couponCode: appliedCoupon?.code,
         discountAmount: discountAmount
@@ -156,20 +284,135 @@ export default function CheckoutPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Clear cart
-        clear();
+        console.log('Order created successfully:', result.data);
+        console.log('Order userId:', result.data.userId || 'GUEST');
+        console.log('Order payment method:', result.data.paymentMethod);
         
-        // Trigger order refresh for other pages
-        localStorage.setItem('orderCreated', Date.now().toString());
+        // IMPORTANT: For online payments (VNPay/MoMo), don't show success message yet
+        // Wait for payment confirmation before showing success
+        // Order is created but payment is still pending
         
-        // Show success message
-        toast({
-          title: "Đặt hàng thành công!",
-          description: `Mã đơn hàng: ${result.data.orderNumber}`,
-        });
+        // If payment method is MoMo, create payment request and redirect to MoMo payment page
+        if (mappedPaymentMethod === 'momo') {
+          console.log('Processing MoMo payment...');
+          try {
+            // Create MoMo payment request
+            console.log('Creating MoMo payment request for order:', result.data._id);
+            const paymentResponse = await apiRequest("POST", "/api/payment/momo/create", {
+              orderId: result.data._id,
+              amount: finalAmount,
+              orderInfo: `Thanh toán đơn hàng ${result.data.orderNumber}`,
+            });
+            
+            const paymentResult = await paymentResponse.json();
+            console.log('MoMo payment response:', paymentResult);
+            
+            if (paymentResult.success && paymentResult.data.payUrl) {
+              console.log('MoMo payment request created successfully, redirecting to MoMo payment page');
+              
+              // Redirect to MoMo payment page
+              window.location.href = paymentResult.data.payUrl;
+              
+              // Don't clear cart yet - wait for payment confirmation
+              // Don't redirect yet - wait for payment confirmation
+              setIsProcessing(false);
+              return; // Exit early
+            } else {
+              throw new Error(paymentResult.message || "Không thể tạo yêu cầu thanh toán MoMo");
+            }
+          } catch (error) {
+            console.error("MoMo payment creation error:", error);
+            toast({
+              title: "Lỗi",
+              description: error instanceof Error ? error.message : "Không thể tạo yêu cầu thanh toán MoMo",
+              variant: "destructive"
+            });
+            // For MoMo payment errors, don't redirect - let user try again or choose different payment method
+            // Don't clear cart - order is created but payment failed
+            setIsProcessing(false);
+            return; // Exit early
+          }
+        }
+        // If payment method is VNPay, create payment request and redirect to VNPay payment page
+        else if (mappedPaymentMethod === 'vnpay') {
+          console.log('Processing VNPay payment...');
+          try {
+            // Create VNPay payment request
+            console.log('Creating VNPay payment request for order:', result.data._id);
+            const paymentResponse = await apiRequest("POST", "/api/payment/vnpay/create", {
+              orderId: result.data._id,
+              amount: finalAmount,
+              orderInfo: `Thanh toán đơn hàng ${result.data.orderNumber}`,
+            });
+            
+            const paymentResult = await paymentResponse.json();
+            console.log('VNPay payment response:', paymentResult);
+            
+            if (paymentResult.success && paymentResult.data.payUrl) {
+              console.log('VNPay payment request created successfully, redirecting to VNPay payment page');
+              
+              // Show loading message (not success - payment is pending)
+              toast({
+                title: "Đang chuyển đến VNPay...",
+                description: "Vui lòng hoàn tất thanh toán trên trang VNPay",
+              });
+              
+              // Small delay to show toast, then redirect
+              setTimeout(() => {
+                // Redirect to VNPay payment page
+                window.location.href = paymentResult.data.payUrl;
+              }, 500);
+              
+              // Don't clear cart yet - wait for payment confirmation
+              // Don't show success message - payment is still pending
+              setIsProcessing(false);
+              return; // Exit early
+            } else {
+              throw new Error(paymentResult.message || "Không thể tạo yêu cầu thanh toán VNPay");
+            }
+          } catch (error) {
+            console.error("VNPay payment creation error:", error);
+            toast({
+              title: "Lỗi",
+              description: error instanceof Error ? error.message : "Không thể tạo yêu cầu thanh toán VNPay",
+              variant: "destructive"
+            });
+            // For VNPay payment errors, don't redirect - let user try again or choose different payment method
+            // Don't clear cart - order is created but payment failed
+            setIsProcessing(false);
+            return; // Exit early
+          }
+        } else {
+          // For non-online payment methods (cash, etc.), proceed as normal
+          console.log('Non-online payment method, proceeding with normal checkout flow');
+          
+          // Clear cart
+          clear();
+          
+          // Trigger order refresh for other pages
+          localStorage.setItem('orderCreated', Date.now().toString());
+          
+          // Dispatch custom event to refresh order list in same tab
+          window.dispatchEvent(new Event('orderCreated'));
+          
+          // Show success message based on payment method
+          if (mappedPaymentMethod === 'cash') {
+            // Cash payment: Order created, waiting for admin to confirm payment
+            toast({
+              title: "Đặt hàng thành công!",
+              description: `Mã đơn hàng: ${result.data.orderNumber}. Vui lòng chờ xác nhận thanh toán từ admin.`,
+            });
+          } else {
+            // Other payment methods
+            toast({
+              title: "Đặt hàng thành công!",
+              description: `Mã đơn hàng: ${result.data.orderNumber}`,
+            });
+          }
 
-        // Redirect to order confirmation page
-        setLocation(`/order-confirmation/${result.data._id}`);
+          // Redirect to order confirmation page
+          setLocation(`/order-confirmation/${result.data._id}`);
+        }
       } else {
         throw new Error(result.message || "Có lỗi xảy ra khi đặt hàng");
       }
@@ -253,7 +496,7 @@ export default function CheckoutPage() {
                   </Button>
                 </div>
               ) : (
-                <CouponInput
+                <CouponSelector
                   orderAmount={subtotal}
                   onCouponApplied={handleCouponApplied}
                   onCouponRemoved={handleCouponRemoved}

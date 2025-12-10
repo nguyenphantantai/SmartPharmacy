@@ -1,21 +1,25 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-export interface PrescriptionData {
-  id: string;
-  customerName: string;
-  phoneNumber: string;
-  note: string;
-  imageUrl: string;
-  createdAt: string;
-  status: 'Chờ tư vấn' | 'Đã tư vấn' | 'Đã từ chối';
-  rejectionReason?: string;
-}
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  createPrescription, 
+  getUserPrescriptions, 
+  getPrescriptionById as fetchPrescriptionByIdFromAPI,
+  updatePrescriptionStatus,
+  deletePrescription,
+  PrescriptionData,
+  CreatePrescriptionData
+} from '@/api/prescriptions';
 
 interface PrescriptionContextType {
   prescriptions: PrescriptionData[];
-  addPrescription: (prescription: Omit<PrescriptionData, 'id' | 'createdAt' | 'status'>) => string;
+  isLoading: boolean;
+  error: Error | null;
+  addPrescription: (prescription: CreatePrescriptionData) => Promise<string>;
   getPrescriptionById: (id: string) => PrescriptionData | undefined;
-  updatePrescriptionStatus: (id: string, status: PrescriptionData['status'], rejectionReason?: string) => void;
+  fetchPrescriptionById: (id: string) => Promise<PrescriptionData>;
+  updatePrescriptionStatus: (id: string, status: PrescriptionData['status'], rejectionReason?: string) => Promise<void>;
+  deletePrescription: (id: string) => Promise<void>;
+  refetchPrescriptions: () => void;
 }
 
 const PrescriptionContext = createContext<PrescriptionContextType | undefined>(undefined);
@@ -33,52 +37,124 @@ interface PrescriptionProviderProps {
 }
 
 export const PrescriptionProvider: React.FC<PrescriptionProviderProps> = ({ children }) => {
-  const [prescriptions, setPrescriptions] = useState<PrescriptionData[]>([]);
+  const queryClient = useQueryClient();
 
-  const generatePrescriptionId = (): string => {
-    const timestamp = Date.now().toString().slice(-6);
-    const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `QT-${timestamp}${random}`;
+  // Fetch prescriptions from API
+  const { 
+    data: prescriptionsData, 
+    isLoading, 
+    error, 
+    refetch: refetchPrescriptions 
+  } = useQuery({
+    queryKey: ['prescriptions'],
+    queryFn: () => getUserPrescriptions(1, 100), // Get first 100 prescriptions
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const prescriptions = prescriptionsData?.data || [];
+
+  // Create prescription mutation
+  const createPrescriptionMutation = useMutation({
+    mutationFn: createPrescription,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    },
+  });
+
+  // Update prescription status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status, rejectionReason }: { 
+      id: string; 
+      status: 'pending' | 'approved' | 'rejected' | 'saved'; 
+      rejectionReason?: string; 
+    }) => updatePrescriptionStatus(id, status, rejectionReason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    },
+  });
+
+  // Delete prescription mutation
+  const deletePrescriptionMutation = useMutation({
+    mutationFn: deletePrescription,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    },
+  });
+
+  const addPrescription = async (prescriptionData: CreatePrescriptionData): Promise<string> => {
+    try {
+      const newPrescription = await createPrescriptionMutation.mutateAsync(prescriptionData);
+      return newPrescription.id;
+    } catch (error) {
+      console.error('Error creating prescription:', error);
+      throw error;
+    }
   };
 
-  const addPrescription = (prescriptionData: Omit<PrescriptionData, 'id' | 'createdAt' | 'status'>): string => {
-    const id = generatePrescriptionId();
-    const newPrescription: PrescriptionData = {
-      ...prescriptionData,
-      id,
-      createdAt: new Date().toLocaleString('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: 'Chờ tư vấn'
-    };
-
-    setPrescriptions(prev => [newPrescription, ...prev]);
-    return id;
-  };
-
+  // Get prescription by ID - tries local cache first
   const getPrescriptionById = (id: string): PrescriptionData | undefined => {
     return prescriptions.find(p => p.id === id);
   };
 
-  const updatePrescriptionStatus = (id: string, status: PrescriptionData['status'], rejectionReason?: string) => {
-    setPrescriptions(prev => 
-      prev.map(p => 
-        p.id === id 
-          ? { ...p, status, rejectionReason }
-          : p
-      )
-    );
+  // Fetch prescription by ID from API
+  const fetchPrescriptionById = async (id: string): Promise<PrescriptionData> => {
+    const prescription = await fetchPrescriptionByIdFromAPI(id);
+    // Update cache
+    queryClient.setQueryData(['prescriptions'], (oldData: any) => {
+      if (!oldData) return oldData;
+      const existing = oldData.data.find((p: PrescriptionData) => p.id === id);
+      if (existing) {
+        // Update existing
+        return {
+          ...oldData,
+          data: oldData.data.map((p: PrescriptionData) => p.id === id ? prescription : p)
+        };
+      } else {
+        // Add new
+        return {
+          ...oldData,
+          data: [prescription, ...oldData.data]
+        };
+      }
+    });
+    return prescription;
+  };
+
+  const updatePrescriptionStatusHandler = async (
+    id: string, 
+    status: PrescriptionData['status'], 
+    rejectionReason?: string
+  ): Promise<void> => {
+    try {
+      const backendStatus = status === 'Chờ tư vấn' ? 'pending' :
+                           status === 'Đã tư vấn' ? 'approved' :
+                           status === 'Đã từ chối' ? 'rejected' : 'saved';
+      
+      await updateStatusMutation.mutateAsync({ id, status: backendStatus, rejectionReason });
+    } catch (error) {
+      console.error('Error updating prescription status:', error);
+      throw error;
+    }
+  };
+
+  const deletePrescriptionHandler = async (id: string): Promise<void> => {
+    try {
+      await deletePrescriptionMutation.mutateAsync(id);
+    } catch (error) {
+      console.error('Error deleting prescription:', error);
+      throw error;
+    }
   };
 
   const value: PrescriptionContextType = {
     prescriptions,
+    isLoading,
+    error: error as Error | null,
     addPrescription,
     getPrescriptionById,
-    updatePrescriptionStatus
+    updatePrescriptionStatus: updatePrescriptionStatusHandler,
+    deletePrescription: deletePrescriptionHandler,
+    refetchPrescriptions,
   };
 
   return (

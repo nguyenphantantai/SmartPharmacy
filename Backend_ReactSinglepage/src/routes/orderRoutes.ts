@@ -22,6 +22,7 @@ router.get('/most-recent', OrderController.getMostRecentOrder);
 router.get('/stats', OrderController.getUserOrderStats);
 router.get('/:id', OrderController.getOrderById);
 router.put('/:id/status', OrderController.updateOrderStatus);
+router.put('/:id/confirm-payment', OrderController.confirmPayment); // Admin: Confirm cash payment
 router.put('/:id', OrderController.updateOrder);
 router.put('/:id/link', OrderController.linkGuestOrderToUser);
 router.post('/:id/reorder', OrderController.reorderFromOrder);

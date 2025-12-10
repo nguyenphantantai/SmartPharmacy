@@ -36,17 +36,16 @@ export default function CouponInput({
 
     try {
       // Try promotion code first
-      const response = await apiRequest("/promotions/validate-code", {
-        method: "POST",
-        body: JSON.stringify({
-          code: couponCode.trim(),
-          orderAmount: orderAmount,
-        }),
+      const response = await apiRequest("POST", "/api/promotions/validate-code", {
+        code: couponCode.trim(),
+        orderAmount: orderAmount,
       });
 
-      if (response.success) {
-        const couponData = response.data.promotion || response.data;
-        const discountAmount = response.data.discountAmount;
+      const data = await response.json();
+      
+      if (data.success) {
+        const couponData = data.data.promotion || data.data;
+        const discountAmount = data.data.discountAmount;
         
         // Save to localStorage
         localStorage.setItem('applied_coupon', JSON.stringify({
@@ -66,17 +65,16 @@ export default function CouponInput({
 
     try {
       // Fallback to coupon validation
-      const response = await apiRequest("/coupons/validate", {
-        method: "POST",
-        body: JSON.stringify({
-          code: couponCode.trim(),
-          orderAmount: orderAmount,
-        }),
+      const response = await apiRequest("POST", "/api/coupons/validate", {
+        code: couponCode.trim(),
+        orderAmount: orderAmount,
       });
 
-      if (response.success) {
-        const couponData = response.data.coupon;
-        const discountAmount = response.data.discountAmount;
+      const data = await response.json();
+      
+      if (data.success) {
+        const couponData = data.data.coupon;
+        const discountAmount = data.data.discountAmount;
         
         // Save to localStorage
         localStorage.setItem('applied_coupon', JSON.stringify({

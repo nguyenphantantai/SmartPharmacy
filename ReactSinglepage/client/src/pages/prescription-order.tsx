@@ -1,8 +1,6 @@
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { usePrescription } from "@/contexts/PrescriptionContext";
@@ -17,7 +15,8 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Clock,
-  Truck
+  Truck,
+  Package
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
@@ -28,16 +27,19 @@ export default function PrescriptionOrder() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    prescriptionName: "",
-    hospitalName: "",
-    doctorName: "",
-    examinationDate: "",
-    notes: "",
-    customerName: "",
-    phoneNumber: "0942 808 839"
-  });
-  const [activeTab, setActiveTab] = useState<'order' | 'save'>('order');
+  const [isPrescriptionSaved, setIsPrescriptionSaved] = useState(false);
+  const [savedPrescriptionId, setSavedPrescriptionId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [extractedInfo, setExtractedInfo] = useState<{
+    customerName?: string;
+    doctorName?: string;
+    hospitalName?: string;
+    examinationDate?: string;
+    dateOfBirth?: string;
+    yearOfBirth?: string;
+    age?: string;
+    diagnosis?: string;
+  } | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -62,53 +64,94 @@ export default function PrescriptionOrder() {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSubmit = () => {
-    // Validate form
+  const handleCreatePrescription = async () => {
+    // Validate - only need image
     if (!selectedFile) {
       alert("Vui lòng tải lên hình ảnh đơn thuốc");
       return;
     }
 
-    if (!formData.customerName.trim()) {
-      alert("Vui lòng nhập họ và tên");
+    setIsProcessing(true);
+
+    try {
+      // Convert file to base64
+      const imageUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
+
+      // Add prescription to context (now calls API with only imageUrl - OCR will extract info)
+      const prescriptionId = await addPrescription({
+        imageUrl: imageUrl
+      });
+
+      console.log("Prescription created with ID:", prescriptionId);
+
+      // Fetch the created prescription to get extracted info
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/api/prescriptions/${prescriptionId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setExtractedInfo({
+              customerName: data.data.customerName,
+              doctorName: data.data.doctorName,
+              hospitalName: data.data.hospitalName,
+              examinationDate: data.data.examinationDate,
+              dateOfBirth: data.data.dateOfBirth,
+              yearOfBirth: data.data.yearOfBirth,
+              age: data.data.age,
+              diagnosis: data.data.diagnosis
+            });
+          }
+        }
+      } catch (fetchError) {
+        console.error("Error fetching prescription details:", fetchError);
+      }
+
+      // Update state to show analysis button
+      setIsPrescriptionSaved(true);
+      setSavedPrescriptionId(prescriptionId);
+
+      // Show success message
+      alert(`Đơn thuốc đã được tạo thành công!
+      
+Hệ thống đã tự động quét và trích xuất thông tin từ hình ảnh đơn thuốc của bạn.
+
+Bây giờ bạn có thể phân tích tự động để tìm thuốc phù hợp!`);
+    } catch (error: any) {
+      console.error("Error creating prescription:", error);
+      alert(`Có lỗi xảy ra khi tạo đơn thuốc: ${error.message || 'Vui lòng thử lại.'}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleAnalyzePrescription = () => {
+    if (!savedPrescriptionId) {
+      alert("Vui lòng tạo đơn thuốc trước khi phân tích");
       return;
     }
 
-    if (!formData.phoneNumber.trim()) {
-      alert("Vui lòng nhập số điện thoại");
-      return;
-    }
+    // Store prescription ID for analysis
+    localStorage.setItem('currentPrescriptionId', savedPrescriptionId);
+    localStorage.setItem('currentPrescriptionImage', previewUrl || '');
 
-    // Create image URL from file
-    const imageUrl = previewUrl || URL.createObjectURL(selectedFile);
-
-    // Add prescription to context
-    const prescriptionId = addPrescription({
-      customerName: formData.customerName,
-      phoneNumber: formData.phoneNumber,
-      note: formData.note,
-      imageUrl: imageUrl
-    });
-
-    console.log("Prescription submitted with ID:", prescriptionId);
-
-    // Store image URL for analysis
-    localStorage.setItem('currentPrescriptionImage', imageUrl);
-
-    // Redirect to analysis result page
+    // Redirect to analysis page
     setLocation("/dat-thuoc-theo-don/phan-tich");
   };
 
-
-  const handleSavePrescription = () => {
-    setLocation("/luu-don-thuoc");
+  const handleViewMyPrescriptions = () => {
+    setLocation("/account/don-thuoc-cua-toi");
   };
 
   return (
@@ -123,23 +166,10 @@ export default function PrescriptionOrder() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Form */}
           <div className="space-y-6">
-            {/* Action Buttons */}
-            <div className="flex space-x-4">
-              <Button 
-                onClick={() => setActiveTab('order')}
-                className={`flex-1 ${activeTab === 'order' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Đặt đơn thuốc
-              </Button>
-              <Button 
-                onClick={() => setActiveTab('save')}
-                variant="outline"
-                className={`flex-1 ${activeTab === 'save' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700 border'}`}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Lưu đơn thuốc
-              </Button>
+            {/* Action Bar */}
+            <div className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg flex items-center justify-center space-x-2">
+              <FileText className="w-5 h-5" />
+              <span className="text-lg font-medium">Tạo đơn thuốc</span>
             </div>
 
             {/* Process Steps */}
@@ -218,39 +248,71 @@ export default function PrescriptionOrder() {
               </CardContent>
             </Card>
 
-            {/* Notes Section */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Ghi chú</label>
-              <Textarea
-                placeholder="Vui lòng để lại thông tin ghi chú"
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                className="min-h-[100px]"
-              />
-            </div>
-
-            {/* Customer Information Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Họ và Tên</label>
-                <Input
-                  placeholder="Khách hàng"
-                  value={formData.customerName}
-                  onChange={(e) => handleInputChange('customerName', e.target.value)}
-                  className="mt-1"
-                />
+            {/* Extracted Information Display (after OCR) */}
+            {extractedInfo && isPrescriptionSaved && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
+                  Thông tin đã được trích xuất từ đơn thuốc
+                </h3>
+                
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Họ và tên bệnh nhân:</span>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {extractedInfo.customerName && extractedInfo.customerName !== 'NOT FOUND' && extractedInfo.customerName.trim() !== '' 
+                          ? extractedInfo.customerName 
+                          : 'Không có'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Bác sĩ:</span>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {extractedInfo.doctorName && extractedInfo.doctorName !== 'NOT FOUND' && extractedInfo.doctorName.trim() !== '' 
+                          ? extractedInfo.doctorName 
+                          : 'Không có'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Bệnh viện/phòng khám:</span>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {extractedInfo.hospitalName && extractedInfo.hospitalName !== 'NOT FOUND' && extractedInfo.hospitalName.trim() !== '' 
+                          ? extractedInfo.hospitalName 
+                          : 'Không có'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Ngày khám:</span>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {extractedInfo.examinationDate && extractedInfo.examinationDate !== 'Không có'
+                          ? new Date(extractedInfo.examinationDate).toLocaleDateString('vi-VN')
+                          : 'Không có'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-700">Năm sinh/ Tuổi:</span>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {extractedInfo.age 
+                          ? `${extractedInfo.age} tuổi`
+                          : extractedInfo.yearOfBirth 
+                          ? `Năm ${extractedInfo.yearOfBirth}`
+                          : extractedInfo.dateOfBirth && extractedInfo.dateOfBirth !== 'Không có'
+                          ? new Date(extractedInfo.dateOfBirth).getFullYear().toString()
+                          : 'Không có'}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-sm font-medium text-gray-700">Chẩn đoán bệnh:</span>
+                      <p className="text-sm text-gray-900 font-semibold">
+                        {extractedInfo.diagnosis && extractedInfo.diagnosis !== 'NOT FOUND' && extractedInfo.diagnosis.trim() !== '' 
+                          ? extractedInfo.diagnosis 
+                          : 'Không có'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700">Số điện thoại</label>
-                <Input
-                  placeholder="Nhập số điện thoại"
-                  value={formData.phoneNumber}
-                  onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-            </div>
+            )}
 
             {/* My Prescriptions Link */}
             <Button 
@@ -264,17 +326,115 @@ export default function PrescriptionOrder() {
 
             {/* Submit Buttons */}
             <div className="space-y-3">
-              <Button
-                onClick={handleSubmit}
-                className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 font-medium flex items-center justify-center space-x-2"
-              >
-                <CheckCircle className="w-5 h-5" />
-                <span>Phân tích tự động</span>
-              </Button>
-              
-              <p className="text-xs text-gray-500 text-center">
-                <strong>Phân tích tự động:</strong> Hệ thống sẽ tìm thuốc phù hợp và cho phép mua ngay
-              </p>
+              {!isPrescriptionSaved ? (
+                <>
+                  <Button
+                    onClick={handleCreatePrescription}
+                    disabled={isProcessing}
+                    className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Clock className="w-5 h-5 animate-spin" />
+                        <span>Đang xử lý và quét thông tin...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        <span>Tạo đơn thuốc</span>
+                      </>
+                    )}
+                  </Button>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    <strong>Bước 1:</strong> Tải lên hình ảnh đơn thuốc, hệ thống sẽ tự động quét và trích xuất thông tin
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center space-x-2 text-green-800 mb-3">
+                      <CheckCircle className="w-5 h-5" />
+                      <span className="font-medium">Đơn thuốc đã được tạo thành công!</span>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm text-green-700">
+                      <div className="flex justify-between">
+                        <span className="font-medium">Mã đơn:</span>
+                        <span className="font-mono">{savedPrescriptionId}</span>
+                      </div>
+                      {extractedInfo && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Tên khách hàng:</span>
+                            <span>
+                              {extractedInfo.customerName && extractedInfo.customerName !== 'NOT FOUND' && extractedInfo.customerName.trim() !== '' 
+                                ? extractedInfo.customerName 
+                                : 'Không có'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Bác sĩ:</span>
+                            <span>
+                              {extractedInfo.doctorName && extractedInfo.doctorName !== 'NOT FOUND' && extractedInfo.doctorName.trim() !== '' 
+                                ? extractedInfo.doctorName 
+                                : 'Không có'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Bệnh viện:</span>
+                            <span>
+                              {extractedInfo.hospitalName && extractedInfo.hospitalName !== 'NOT FOUND' && extractedInfo.hospitalName.trim() !== '' 
+                                ? extractedInfo.hospitalName 
+                                : 'Không có'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Ngày khám:</span>
+                            <span>
+                              {extractedInfo.examinationDate && extractedInfo.examinationDate !== 'Không có'
+                                ? new Date(extractedInfo.examinationDate).toLocaleDateString('vi-VN')
+                                : 'Không có'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Năm sinh/ Tuổi:</span>
+                            <span>
+                              {extractedInfo.age 
+                                ? `${extractedInfo.age} tuổi`
+                                : extractedInfo.yearOfBirth 
+                                ? `Năm ${extractedInfo.yearOfBirth}`
+                                : extractedInfo.dateOfBirth && extractedInfo.dateOfBirth !== 'Không có'
+                                ? new Date(extractedInfo.dateOfBirth).getFullYear().toString()
+                                : 'Không có'}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-medium">Chẩn đoán bệnh:</span>
+                            <span>
+                              {extractedInfo.diagnosis && extractedInfo.diagnosis !== 'NOT FOUND' && extractedInfo.diagnosis.trim() !== '' 
+                                ? extractedInfo.diagnosis 
+                                : 'Không có'}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleAnalyzePrescription}
+                    className="w-full bg-green-600 text-white py-3 rounded-md hover:bg-green-700 font-medium flex items-center justify-center space-x-2"
+                  >
+                    <Package className="w-5 h-5" />
+                    <span>Phân tích tự động</span>
+                  </Button>
+                  
+                  <p className="text-xs text-gray-500 text-center">
+                    <strong>Bước 2:</strong> Phân tích đơn thuốc để tìm thuốc phù hợp
+                  </p>
+                </>
+              )}
             </div>
           </div>
 

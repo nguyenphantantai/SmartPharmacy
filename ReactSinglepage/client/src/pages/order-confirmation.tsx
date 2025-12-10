@@ -175,6 +175,11 @@ export default function OrderConfirmationPage() {
                     {orderData.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chờ thanh toán'}
                   </span>
                 </div>
+                {orderData.paymentMethod === 'cash' && orderData.paymentStatus === 'pending' && (
+                  <div className="text-xs text-yellow-600 mt-1">
+                    ⚠️ Đơn hàng đã được tạo. Vui lòng chờ admin xác nhận thanh toán.
+                  </div>
+                )}
               </div>
             </div>
           </div>

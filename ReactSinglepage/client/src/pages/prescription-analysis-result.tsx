@@ -22,6 +22,8 @@ import { useLocation } from "wouter";
 import { PrescriptionAnalysisResult as AnalysisResult, analyzePrescriptionImage } from "@/services/prescriptionAnalysis";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/hooks/use-cart";
+import { getImageUrl } from "@/lib/imageUtils";
 
 export default function PrescriptionAnalysisResultPage() {
   const [, setLocation] = useLocation();
@@ -29,25 +31,69 @@ export default function PrescriptionAnalysisResultPage() {
   const [loading, setLoading] = useState(true);
   const [prescriptionImage, setPrescriptionImage] = useState<string>("");
   const { toast } = useToast();
+  const { addItem } = useCart();
 
   useEffect(() => {
     // Lấy hình ảnh đơn thuốc từ localStorage hoặc context
     const imageUrl = localStorage.getItem('currentPrescriptionImage') || "";
-    const prescriptionText = localStorage.getItem('currentPrescriptionText') || "";
+    const prescriptionId = localStorage.getItem('currentPrescriptionId') || "";
     setPrescriptionImage(imageUrl);
     
     const analyzePrescription = async () => {
       try {
-        // Use backend AI analysis if available
-        const response = await apiRequest('/consultation/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            prescriptionText: prescriptionText,
-            prescriptionImage: imageUrl
-          })
+        // Helper function to convert blob URL to base64
+        const blobToBase64 = async (blobUrl: string): Promise<string> => {
+          try {
+            const response = await fetch(blobUrl);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+          } catch (error) {
+            console.error('Error converting blob to base64:', error);
+            throw error;
+          }
+        };
+
+        // Always try to get image URL from prescription API if we have prescription ID
+        let finalImageUrl = imageUrl;
+        if (prescriptionId) {
+          try {
+            const presResponse = await apiRequest('GET', `/api/prescriptions/${prescriptionId}`);
+            const presData = await presResponse.json();
+            if (presData.success && presData.data?.imageUrl) {
+              finalImageUrl = presData.data.imageUrl;
+              setPrescriptionImage(finalImageUrl);
+            }
+          } catch (err) {
+            console.error('Error fetching prescription:', err);
+          }
+        }
+
+        // If imageUrl is a blob URL, convert it to base64
+        if (finalImageUrl && finalImageUrl.startsWith('blob:')) {
+          console.log('Converting blob URL to base64...');
+          try {
+            finalImageUrl = await blobToBase64(finalImageUrl);
+            console.log('✅ Converted blob URL to base64');
+          } catch (error) {
+            console.error('Failed to convert blob URL:', error);
+            toast({
+              title: "Lỗi",
+              description: "Không thể xử lý hình ảnh. Vui lòng thử lại.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+        }
+        
+        // Use backend AI analysis - backend will extract text from image if needed
+        const response = await apiRequest('POST', '/api/consultation/analyze', {
+          prescriptionImage: finalImageUrl
         });
 
         const data = await response.json();
@@ -78,7 +124,7 @@ export default function PrescriptionAnalysisResultPage() {
       }
     };
 
-    if (imageUrl || prescriptionText) {
+    if (imageUrl || prescriptionId) {
       analyzePrescription();
     } else {
       setLoading(false);
@@ -89,9 +135,47 @@ export default function PrescriptionAnalysisResultPage() {
     setLocation("/dat-thuoc-theo-don");
   };
 
-  const handleAddToCart = (medicineId: string) => {
-    // TODO: Implement add to cart functionality
-    console.log("Adding medicine to cart:", medicineId);
+  const handleAddToCart = (product: any) => {
+    try {
+      // Convert backend product format to frontend Product type
+      const productForCart = {
+        _id: product.productId || product._id || product.id,
+        id: product.productId || product._id || product.id,
+        name: product.productName || product.name,
+        price: String(product.price || 0),
+        originalPrice: String(product.originalPrice || product.price || 0),
+        unit: product.unit || 'đơn vị',
+        imageUrl: product.imageUrl || '/medicine-images/default-medicine.jpg',
+        description: product.description || '',
+        brand: product.brand || '',
+        inStock: product.inStock !== undefined ? product.inStock : true,
+        stockQuantity: product.stockQuantity || 0,
+        isPrescription: product.requiresPrescription || product.isPrescription || false,
+      };
+
+      addItem(productForCart as any, 1, true);
+      toast({
+        title: "Đã thêm vào giỏ hàng",
+        description: `${productForCart.name} đã được thêm vào giỏ hàng`,
+      });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thêm sản phẩm vào giỏ hàng",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddAllSuggestions = (suggestions: any[]) => {
+    suggestions.forEach(suggestion => {
+      handleAddToCart(suggestion);
+    });
+    toast({
+      title: "Đã thêm tất cả",
+      description: `Đã thêm ${suggestions.length} sản phẩm vào giỏ hàng`,
+    });
   };
 
   const handleRequestConsultation = () => {
@@ -228,25 +312,338 @@ export default function PrescriptionAnalysisResultPage() {
                 </CardContent>
               </Card>
 
-              {/* Found Medicines */}
-              {analysisResult.foundMedicines.length > 0 && (
+              {/* Thuốc có trong đơn - Medicines found in database */}
+              {analysisResult.prescriptionMedicines && analysisResult.prescriptionMedicines.filter(item => item.hasMatch).length > 0 && (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <CheckCircle className="w-6 h-6 text-green-600 mr-2" />
+                        <h2 className="text-lg font-semibold text-gray-900">Thuốc có trong đơn</h2>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      {analysisResult.prescriptionMedicines
+                        .filter(item => item.hasMatch && item.matchedProduct)
+                        .map((item, index) => (
+                          <div key={index} className="border border-green-200 bg-green-50 rounded-lg p-4">
+                            <div className="mb-3">
+                              <p className="font-medium text-gray-900 mb-1">
+                                Thuốc trong đơn: <span className="text-green-700">"{item.originalText}"</span>
+                              </p>
+                              {item.originalDosage && (
+                                <p className="text-sm text-gray-600">
+                                  Hàm lượng: {item.originalDosage}
+                                </p>
+                              )}
+                              <p className="text-sm text-green-700 mt-1">
+                                ✅ Đã tìm thấy thuốc khớp trong hệ thống
+                              </p>
+                            </div>
+                            
+                            {item.matchedProduct && item.matchedProduct.imageUrl && (
+                              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                                <div className="flex items-start space-x-4">
+                                  <img
+                                    src={getImageUrl(item.matchedProduct.imageUrl || '/medicine-images/default-medicine.jpg')}
+                                    alt={item.matchedProduct.productName || 'Medicine'}
+                                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = "/images/medicines/default.jpg";
+                                    }}
+                                  />
+                                  
+                                  <div className="flex-1">
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <h4 className="font-semibold text-gray-900 mb-1">
+                                          {item.matchedProduct.productName}
+                                        </h4>
+                                        {item.matchedProduct.dosage && (
+                                          <p className="text-sm text-gray-600 mb-1">
+                                            <span className="font-medium">Hàm lượng:</span> {item.matchedProduct.dosage}
+                                          </p>
+                                        )}
+                                        {item.matchedProduct.description && 
+                                         !/^\s*\d+(?:\.\d+)?\s*(?:mg|g|ml|l|mcg|iu|ui|%)(?:\s*[+\/]\s*\d+(?:\.\d+)?\s*(?:mg|g|ml|l|mcg|iu|ui|%)?)?\s*$/i.test(item.matchedProduct.description.trim()) && (
+                                          <p className="text-sm text-gray-500 mb-2">
+                                            {item.matchedProduct.description}
+                                          </p>
+                                        )}
+                                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                          {item.matchedProduct.brand && <span>Nhà sản xuất: {item.matchedProduct.brand}</span>}
+                                          <span>Đơn vị: {item.matchedProduct.unit}</span>
+                                          <span>Còn: {item.matchedProduct.stockQuantity} {item.matchedProduct.unit}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="text-right ml-4">
+                                        <div className="text-lg font-bold text-gray-900 mb-2">
+                                          {parseInt(item.matchedProduct.price || "0").toLocaleString('vi-VN')} ₫
+                                        </div>
+                                        {item.matchedProduct.originalPrice && parseInt(item.matchedProduct.originalPrice) > parseInt(item.matchedProduct.price || "0") && (
+                                          <div className="text-sm text-gray-400 line-through mb-1">
+                                            {parseInt(item.matchedProduct.originalPrice).toLocaleString('vi-VN')} ₫
+                                          </div>
+                                        )}
+                                        <div className="flex items-center space-x-2 mb-2">
+                                          <Badge className={
+                                            (item.matchedProduct.confidence || 0) > 0.8 ? "bg-green-100 text-green-800" :
+                                            (item.matchedProduct.confidence || 0) > 0.6 ? "bg-yellow-100 text-yellow-800" :
+                                            "bg-red-100 text-red-800"
+                                          }>
+                                            {Math.round((item.matchedProduct.confidence || 0) * 100)}% khớp
+                                          </Badge>
+                                        </div>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            if (item.matchedProduct) {
+                                              addItem({
+                                                id: item.matchedProduct.productId,
+                                                name: item.matchedProduct.productName,
+                                                price: parseInt(item.matchedProduct.price || "0"),
+                                                image: item.matchedProduct.imageUrl || '/medicine-images/default-medicine.jpg',
+                                                quantity: 1
+                                              });
+                                              toast({
+                                                title: "Đã thêm vào giỏ",
+                                                description: `${item.matchedProduct.productName} đã được thêm vào giỏ hàng`,
+                                              });
+                                            }
+                                          }}
+                                          className="w-full"
+                                        >
+                                          <ShoppingCart className="w-4 h-4 mr-2" />
+                                          Thêm vào giỏ
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Thuốc đề xuất - Suggested medicines (not found in database) */}
+              {analysisResult.prescriptionMedicines && analysisResult.prescriptionMedicines.filter(item => !item.hasMatch).length > 0 && (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center">
+                        <AlertCircle className="w-6 h-6 text-orange-600 mr-2" />
+                        <h2 className="text-lg font-semibold text-gray-900">Thuốc đề xuất</h2>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      {analysisResult.prescriptionMedicines
+                        .filter(item => !item.hasMatch)
+                        .map((item, index) => (
+                        <div key={index} className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+                          <div className="mb-3">
+                            <p className="font-medium text-gray-900 mb-1">
+                              Thuốc trong đơn: <span className="text-orange-700">"{item.originalText}"</span>
+                            </p>
+                            {item.originalDosage && (
+                              <p className="text-sm text-gray-600">
+                                Hàm lượng: {item.originalDosage}
+                              </p>
+                            )}
+                            {/* Hiển thị suggestionText nếu có */}
+                            {item.suggestionText && (
+                              <div className="mt-3 p-3 bg-white rounded-lg border border-orange-300">
+                                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                                  {item.suggestionText}
+                                </p>
+                              </div>
+                            )}
+                            {!item.suggestionText && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Không tìm thấy thuốc khớp chính xác. Dưới đây là các thuốc tương tự:
+                              </p>
+                            )}
+                          </div>
+                          
+                          {item.suggestions && item.suggestions.length > 0 ? (
+                            <>
+                              <div className="flex justify-end mb-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleAddAllSuggestions(item.suggestions)}
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                  <ShoppingCart className="w-4 h-4 mr-1" />
+                                  Thêm tất cả ({item.suggestions.length} thuốc)
+                                </Button>
+                              </div>
+                              
+                              <div className="space-y-3">
+                                {item.suggestions.map((suggestion, idx) => (
+                                  <div key={idx} className="bg-white rounded-lg p-4 border border-gray-200">
+                                    <div className="flex items-start space-x-4">
+                                      <img
+                                        src={getImageUrl(suggestion.imageUrl)}
+                                        alt={suggestion.productName}
+                                        className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = "/images/medicines/default.jpg";
+                                        }}
+                                      />
+                                      
+                                      <div className="flex-1">
+                                        <div className="flex items-start justify-between">
+                                          <div className="flex-1">
+                                            <h4 className="font-semibold text-gray-900 mb-1">
+                                              {suggestion.productName}
+                                            </h4>
+                                            {suggestion.dosage && (
+                                              <p className="text-sm text-gray-600 mb-1">
+                                                <span className="font-medium">Hàm lượng:</span> {suggestion.dosage}
+                                              </p>
+                                            )}
+                                            {/* Hiển thị công dụng (indication) rõ ràng nếu có */}
+                                            {suggestion.indication && (
+                                              <div className="mb-2">
+                                                <p className="text-sm font-medium text-gray-700 mb-1">Công dụng:</p>
+                                                <p className="text-sm text-gray-600 leading-relaxed">
+                                                  {suggestion.indication}
+                                                </p>
+                                              </div>
+                                            )}
+                                            {/* Hiển thị chống chỉ định nếu có */}
+                                            {suggestion.contraindication && (
+                                              <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded">
+                                                <p className="text-sm font-medium text-red-700 mb-1">⚠️ Chống chỉ định:</p>
+                                                <p className="text-sm text-red-600 leading-relaxed">
+                                                  {suggestion.contraindication}
+                                                </p>
+                                              </div>
+                                            )}
+                                            {/* Hiển thị description nếu có và khác với indication */}
+                                            {suggestion.description && 
+                                             suggestion.description !== suggestion.indication &&
+                                             // Không hiển thị description nếu nó chỉ là hàm lượng (chỉ chứa số và đơn vị)
+                                             !/^\s*\d+(?:\.\d+)?\s*(?:mg|g|ml|l|mcg|iu|ui|%)(?:\s*[+\/]\s*\d+(?:\.\d+)?\s*(?:mg|g|ml|l|mcg|iu|ui|%)?)?\s*$/i.test(suggestion.description.trim()) && (
+                                              <p className="text-sm text-gray-500 mb-2">
+                                                {suggestion.description}
+                                              </p>
+                                            )}
+                                            <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                              {suggestion.brand && <span>Nhà sản xuất: {suggestion.brand}</span>}
+                                              <span>Đơn vị: {suggestion.unit}</span>
+                                              <span>Còn: {suggestion.stockQuantity} {suggestion.unit}</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                              {suggestion.matchReason && (
+                                                <Badge variant="outline" className="text-xs">
+                                                  {suggestion.matchReason === 'same_name_different_dosage' 
+                                                    ? 'Cùng tên, khác hàm lượng'
+                                                    : suggestion.matchReason === 'same_indication_same_dosage'
+                                                    ? 'Cùng công dụng, cùng hàm lượng'
+                                                    : suggestion.matchReason === 'same_indication_different_dosage'
+                                                    ? 'Cùng công dụng, khác hàm lượng'
+                                                    : suggestion.matchReason === 'similar_name'
+                                                    ? 'Tên tương tự'
+                                                    : 'Đề xuất'}
+                                                </Badge>
+                                              )}
+                                              {suggestion.matchExplanation && (
+                                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                                  💡 {suggestion.matchExplanation}
+                                                </Badge>
+                                              )}
+                                              {suggestion.indication && (
+                                                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                                                  📋 Công dụng: {suggestion.indication.length > 80 ? suggestion.indication.substring(0, 80) + '...' : suggestion.indication}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="text-right ml-4">
+                                            <div className="text-lg font-bold text-gray-900 mb-2">
+                                              {parseInt(suggestion.price || "0").toLocaleString('vi-VN')} ₫
+                                            </div>
+                                            {suggestion.originalPrice && parseInt(suggestion.originalPrice) > parseInt(suggestion.price || "0") && (
+                                              <div className="text-sm text-gray-400 line-through mb-1">
+                                                {parseInt(suggestion.originalPrice).toLocaleString('vi-VN')} ₫
+                                              </div>
+                                            )}
+                                            <div className="flex items-center space-x-2 mb-2">
+                                              <Badge className={
+                                                (suggestion.confidence || 0) > 0.7 ? "bg-yellow-100 text-yellow-800" :
+                                                "bg-orange-100 text-orange-800"
+                                              }>
+                                                {Math.round((suggestion.confidence || 0) * 100)}% tương tự
+                                              </Badge>
+                                              {suggestion.requiresPrescription && (
+                                                <Badge className="bg-orange-100 text-orange-800">
+                                                  Cần đơn bác sĩ
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleAddToCart(suggestion)}
+                                              className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                            >
+                                              <ShoppingCart className="w-4 h-4 mr-1" />
+                                              Thêm vào giỏ
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-center py-4 text-gray-600">
+                              <p>Không tìm thấy thuốc tương tự trong hệ thống.</p>
+                              <p className="text-sm mt-2">Vui lòng liên hệ tư vấn viên để được hỗ trợ.</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Related Medicines (Thuốc có sẵn) - Medicines with related uses */}
+              {/* Ẩn phần này khi đã có kết quả phân tích thành công (có prescriptionMedicines) */}
+              {analysisResult.relatedMedicines && 
+               analysisResult.relatedMedicines.length > 0 && 
+               (!analysisResult.prescriptionMedicines || analysisResult.prescriptionMedicines.length === 0) && (
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-semibold text-gray-900">Thuốc có sẵn</h2>
                       <Badge className="bg-green-100 text-green-800">
-                        {analysisResult.foundMedicines.length} sản phẩm
+                        {analysisResult.relatedMedicines.length} sản phẩm
                       </Badge>
                     </div>
                     
                     <div className="space-y-4">
-                      {analysisResult.foundMedicines.map((item, index) => (
+                      {analysisResult.relatedMedicines.map((item, index) => (
                         <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                           <div className="flex items-start space-x-4">
                             <img
-                              src={item.medicine.imageUrl}
-                              alt={item.medicine.name}
-                              className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                              src={getImageUrl(item.imageUrl)}
+                              alt={item.productName}
+                              className="w-20 h-20 object-cover rounded-lg border border-gray-200"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = "/images/medicines/default.jpg";
@@ -255,105 +652,55 @@ export default function PrescriptionAnalysisResultPage() {
                             
                             <div className="flex-1">
                               <div className="flex items-start justify-between">
-                                <div>
+                                <div className="flex-1">
                                   <h3 className="font-semibold text-gray-900 mb-1">
-                                    {item.medicine.name}
+                                    {item.productName}
                                   </h3>
-                                  <p className="text-sm text-gray-600 mb-2">
-                                    {item.medicine.activeIngredient} - {item.medicine.dosage}
+                                  {item.dosage && (
+                                    <p className="text-sm text-gray-600 mb-1">
+                                      <span className="font-medium">Hàm lượng:</span> {item.dosage}
                                   </p>
-                                  <p className="text-sm text-gray-500 mb-2">
-                                    {item.medicine.description}
-                                  </p>
-                                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                                    <span>Nhà sản xuất: {item.medicine.manufacturer}</span>
-                                    <span>Còn: {item.medicine.stock} hộp</span>
+                                  )}
+                                  {item.description && 
+                                   // Không hiển thị description nếu nó chỉ là hàm lượng (chỉ chứa số và đơn vị)
+                                   // Pattern: số + đơn vị (mg, g, ml, etc.) + có thể có + hoặc / + số + đơn vị
+                                   !/^\s*\d+(?:\.\d+)?\s*(?:mg|g|ml|l|mcg|iu|ui|%)(?:\s*[+\/]\s*\d+(?:\.\d+)?\s*(?:mg|g|ml|l|mcg|iu|ui|%)?)?\s*$/i.test(item.description.trim()) && (
+                                    <p className="text-sm text-gray-500 mb-2">
+                                      {item.description}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                                    {item.brand && <span>Nhà sản xuất: {item.brand}</span>}
+                                    <span>Đơn vị: {item.unit}</span>
+                                    <span>Còn: {item.stockQuantity} {item.unit}</span>
                                   </div>
                                 </div>
                                 
-                                <div className="text-right">
+                                <div className="text-right ml-4">
                                   <div className="text-lg font-bold text-gray-900 mb-2">
-                                    {item.medicine.price.toLocaleString('vi-VN')} ₫
+                                    {parseInt(item.price || "0").toLocaleString('vi-VN')} ₫
                                   </div>
-                                  <div className="flex items-center space-x-2">
-                                    <Badge className={
-                                      item.confidence > 0.8 ? "bg-green-100 text-green-800" :
-                                      item.confidence > 0.6 ? "bg-yellow-100 text-yellow-800" :
-                                      "bg-red-100 text-red-800"
-                                    }>
-                                      {Math.round(item.confidence * 100)}% khớp
-                                    </Badge>
-                                    {item.medicine.requiresPrescription && (
-                                      <Badge className="bg-orange-100 text-orange-800">
-                                        Cần đơn bác sĩ
+                                  {item.originalPrice && parseInt(item.originalPrice) > parseInt(item.price || "0") && (
+                                    <div className="text-sm text-gray-400 line-through mb-1">
+                                      {parseInt(item.originalPrice).toLocaleString('vi-VN')} ₫
+                                    </div>
+                                  )}
+                                  {item.requiresPrescription && (
+                                    <Badge className="bg-orange-100 text-orange-800 mb-2">
+                                      Cần đơn bác sĩ
                                       </Badge>
                                     )}
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between mt-4">
-                                <div className="text-xs text-gray-500">
-                                  Tìm thấy từ: "{item.originalText}"
-                                </div>
-                                <div className="flex space-x-2">
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => handleAddToCart(item.medicine.id)}
+                                    onClick={() => handleAddToCart(item)}
                                     className="text-blue-600 border-blue-600 hover:bg-blue-50"
                                   >
                                     <ShoppingCart className="w-4 h-4 mr-1" />
                                     Thêm vào giỏ
                                   </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => window.open(`/medicine/${item.medicine.id}`, '_blank')}
-                                  >
-                                    <ExternalLink className="w-4 h-4 mr-1" />
-                                    Xem chi tiết
-                                  </Button>
                                 </div>
                               </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Not Found Medicines */}
-              {analysisResult.notFoundMedicines.length > 0 && (
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center mb-4">
-                      <AlertCircle className="w-6 h-6 text-orange-600 mr-2" />
-                      <h2 className="text-lg font-semibold text-gray-900">Thuốc cần tư vấn</h2>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {analysisResult.notFoundMedicines.map((item, index) => (
-                        <div key={index} className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-medium text-gray-900 mb-1">
-                                "{item.originalText}"
-                              </p>
-                              {item.suggestions.length > 0 && (
-                                <div>
-                                  <p className="text-sm text-gray-600 mb-2">Gợi ý thuốc tương tự:</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {item.suggestions.map((suggestion, idx) => (
-                                      <Badge key={idx} variant="outline" className="text-xs">
-                                        {suggestion}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -371,18 +718,26 @@ export default function PrescriptionAnalysisResultPage() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-gray-900 mb-4">Thao tác nhanh</h3>
                   <div className="space-y-3">
-                    {analysisResult.foundMedicines.length > 0 && (
+                    {analysisResult.prescriptionMedicines && analysisResult.prescriptionMedicines.filter(m => m.hasMatch).length > 0 && (
                       <Button 
                         className="w-full bg-green-600 hover:bg-green-700 text-white"
                         onClick={() => {
-                          // Add all found medicines to cart
-                          analysisResult.foundMedicines.forEach(item => {
-                            handleAddToCart(item.medicine.id);
+                          // Add all matched medicines from prescription to cart
+                          let addedCount = 0;
+                          analysisResult.prescriptionMedicines.forEach(item => {
+                            if (item.hasMatch && item.matchedProduct) {
+                              handleAddToCart(item.matchedProduct);
+                              addedCount++;
+                            }
+                          });
+                          toast({
+                            title: "Đã thêm tất cả",
+                            description: `Đã thêm ${addedCount} sản phẩm vào giỏ hàng`,
                           });
                         }}
                       >
                         <ShoppingCart className="w-4 h-4 mr-2" />
-                        Mua tất cả ({analysisResult.foundMedicines.length} thuốc)
+                        Thêm tất cả ({analysisResult.prescriptionMedicines.filter(m => m.hasMatch).length} thuốc)
                       </Button>
                     )}
                     

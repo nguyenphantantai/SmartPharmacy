@@ -4,13 +4,16 @@ import ProductCardWithQuantity from "./product-card-with-quantity";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_BASE } from "@/lib/utils";
 import { hasValidImage } from "@/lib/imageUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function TopSellingSection() {
+  const { isInitialized } = useAuth();
+  
   const { data: topSelling, isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products/new"],
     queryFn: async () => {
       console.log('🏆 Fetching top selling from:', `${API_BASE}/api/products/new`);
-      const response = await fetch(`${API_BASE}/products/new`);
+      const response = await fetch(`${API_BASE}/api/products/new`);
       console.log('📡 Top selling response status:', response.status);
       if (!response.ok) {
         throw new Error("Failed to fetch new products");
@@ -22,6 +25,7 @@ export default function TopSellingSection() {
       });
       return result.data || [];
     },
+    enabled: isInitialized, // Chỉ chạy khi AuthContext đã sẵn sàng
   });
   
   console.log('🏆 TopSellingSection state:', { isLoading, error: error?.message, productCount: topSelling?.length });

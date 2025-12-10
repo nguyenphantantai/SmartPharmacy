@@ -3,6 +3,7 @@ import { applyPromotions, fetchActivePromotions, validatePromotionCode } from '.
 import { validateCoupon } from '../api/coupons';
 import { getLoyaltyAccount } from '../api/loyalty';
 import { useFlashSaleCountdown } from '../hooks/useFlashSaleCountdown';
+import CouponSelector from './coupon-selector';
 
 type CartItem = { productId: string; quantity: number; price: number; categoryId?: string };
 
@@ -15,7 +16,6 @@ type Props = {
 export default function CheckoutSavings({ items, subtotal, onPricingChange }: Props) {
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [appliedRules, setAppliedRules] = useState<{ id: string; name: string; type: string; discount: number }[]>([]);
-  const [coupon, setCoupon] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [loyalty, setLoyalty] = useState<{ pointsBalance: number } | null>(null);
   const [usePoints, setUsePoints] = useState(0);
@@ -26,19 +26,113 @@ export default function CheckoutSavings({ items, subtotal, onPricingChange }: Pr
     fetchActivePromotions().then(setPromos).catch(() => {});
   }, []);
 
-  // Load applied coupon from localStorage on mount
+  // Load applied coupon from localStorage on mount and when items change
+  // Validate coupon with backend to ensure it's still valid
   useEffect(() => {
-    try {
-      const savedCoupon = localStorage.getItem('applied_coupon');
-      if (savedCoupon) {
+    const validateAndLoadCoupon = async () => {
+      try {
+        const savedCoupon = localStorage.getItem('applied_coupon');
+        if (!savedCoupon) {
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
+          return;
+        }
+
         const couponData = JSON.parse(savedCoupon);
-        setAppliedCoupon(couponData);
-        setCouponDiscount(couponData.discountAmount || 0);
+        const couponCode = couponData.code;
+
+        if (!couponCode) {
+          // No code, clear coupon
+          localStorage.removeItem('applied_coupon');
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
+          return;
+        }
+
+        // Validate coupon with backend to ensure it's still valid
+        try {
+          // Try promotion code validation first
+          const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/api/promotions/validate-code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              code: couponCode,
+              orderAmount: subtotal,
+            }),
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            // Coupon is still valid, update discount amount
+            const discountAmount = data.data.discountAmount;
+            setAppliedCoupon(couponData);
+            setCouponDiscount(discountAmount);
+            // Update localStorage with new discount amount
+            localStorage.setItem('applied_coupon', JSON.stringify({
+              ...couponData,
+              discountAmount: discountAmount,
+            }));
+          } else {
+            // Coupon is invalid or expired, remove it
+            console.log('Coupon validation failed:', data.message);
+            localStorage.removeItem('applied_coupon');
+            setAppliedCoupon(null);
+            setCouponDiscount(0);
+          }
+        } catch (promoError) {
+          // Try coupon validation as fallback
+          try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE || 'http://localhost:5000'}/api/coupons/validate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                code: couponCode,
+                orderAmount: subtotal,
+              }),
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+              // Coupon is still valid, update discount amount
+              const discountAmount = data.data.discountAmount;
+              setAppliedCoupon(couponData);
+              setCouponDiscount(discountAmount);
+              // Update localStorage with new discount amount
+              localStorage.setItem('applied_coupon', JSON.stringify({
+                ...couponData,
+                discountAmount: discountAmount,
+              }));
+            } else {
+              // Coupon is invalid or expired, remove it
+              console.log('Coupon validation failed:', data.message);
+              localStorage.removeItem('applied_coupon');
+              setAppliedCoupon(null);
+              setCouponDiscount(0);
+            }
+          } catch (couponError) {
+            // Both validations failed, remove coupon
+            console.error('Error validating coupon:', couponError);
+            localStorage.removeItem('applied_coupon');
+            setAppliedCoupon(null);
+            setCouponDiscount(0);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved coupon:', error);
+        localStorage.removeItem('applied_coupon');
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
       }
-    } catch (error) {
-      console.error('Error loading saved coupon:', error);
-    }
-  }, []);
+    };
+
+    validateAndLoadCoupon();
+  }, [items, subtotal]); // Re-check when items or subtotal change
 
   useEffect(() => {
     if (!items?.length) return;
@@ -56,54 +150,15 @@ export default function CheckoutSavings({ items, subtotal, onPricingChange }: Pr
   const flash = useMemo(() => promos.find(p => p.type === 'flash_sale'), [promos]);
   const { isActive, hh, mm, ss } = useFlashSaleCountdown(flash?.dailyStartTime, flash?.dailyEndTime);
 
-  async function onValidateCoupon() {
-    try {
-      // Try promotion code first
-      const orderAmount = subtotal - promoDiscount;
-      try {
-        const promoRes = await validatePromotionCode(coupon, orderAmount);
-        const discountAmount = promoRes.discountAmount || 0;
-        setCouponDiscount(discountAmount);
-        
-        // Save applied coupon to localStorage
-        const couponData = {
-          code: coupon,
-          name: promoRes.data?.promotion?.name || coupon,
-          discountAmount: discountAmount,
-          appliedAt: new Date().toISOString()
-        };
-        localStorage.setItem('applied_coupon', JSON.stringify(couponData));
-        setAppliedCoupon(couponData);
-        
-        onPricingChange?.({ subtotal, discountAmount: promoDiscount + discountAmount, finalTotal: subtotal - promoDiscount - discountAmount - usePoints * 10000, couponDiscount: discountAmount, pointsRedeem: usePoints * 10000 });
-        return;
-      } catch {}
+  const handleCouponApplied = (coupon: any, discountAmount: number) => {
+    setCouponDiscount(discountAmount);
+    setAppliedCoupon(coupon);
+    onPricingChange?.({ subtotal, discountAmount: promoDiscount + discountAmount, finalTotal: subtotal - promoDiscount - discountAmount - usePoints * 10000, couponDiscount: discountAmount, pointsRedeem: usePoints * 10000 });
+  };
 
-      // Fallback to coupon
-      const res = await validateCoupon(coupon, orderAmount);
-      const discountAmount = res.discountAmount || 0;
-      setCouponDiscount(discountAmount);
-      
-      // Save applied coupon to localStorage
-      const couponData = {
-        code: coupon,
-        name: res.data?.coupon?.name || coupon,
-        discountAmount: discountAmount,
-        appliedAt: new Date().toISOString()
-      };
-      localStorage.setItem('applied_coupon', JSON.stringify(couponData));
-      setAppliedCoupon(couponData);
-      
-      onPricingChange?.({ subtotal, discountAmount: promoDiscount + discountAmount, finalTotal: subtotal - promoDiscount - discountAmount - usePoints * 10000, couponDiscount: discountAmount, pointsRedeem: usePoints * 10000 });
-    } catch (e) {
-      setCouponDiscount(0);
-    }
-  }
-
-  const handleRemoveCoupon = () => {
+  const handleCouponRemoved = () => {
     setCouponDiscount(0);
     setAppliedCoupon(null);
-    localStorage.removeItem('applied_coupon');
     onPricingChange?.({ subtotal, discountAmount: promoDiscount, finalTotal: subtotal - promoDiscount - usePoints * 10000, couponDiscount: 0, pointsRedeem: usePoints * 10000 });
   };
 
@@ -137,21 +192,13 @@ export default function CheckoutSavings({ items, subtotal, onPricingChange }: Pr
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        {appliedCoupon ? (
-          <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded">
-            <span className="text-sm text-green-800">✓ {appliedCoupon.name} ({appliedCoupon.code})</span>
-            <span className="text-xs text-green-600">Đã giảm {couponDiscount.toLocaleString('vi-VN')}đ</span>
-            <button onClick={handleRemoveCoupon} className="text-red-500 hover:text-red-700 text-xs">✕</button>
-          </div>
-        ) : (
-          <>
-            <input value={coupon} onChange={e => setCoupon(e.target.value)} placeholder="Nhập mã Coupon"
-              className="border rounded px-2 py-1 text-sm w-40" />
-            <button onClick={onValidateCoupon} className="bg-blue-600 text-white text-sm px-3 py-1 rounded">Áp dụng</button>
-          </>
-        )}
-      </div>
+      <CouponSelector
+        orderAmount={subtotal - promoDiscount}
+        onCouponApplied={handleCouponApplied}
+        onCouponRemoved={handleCouponRemoved}
+        appliedCoupon={appliedCoupon}
+        discountAmount={couponDiscount}
+      />
 
       {loyalty && (
         <div className="flex items-center gap-2">

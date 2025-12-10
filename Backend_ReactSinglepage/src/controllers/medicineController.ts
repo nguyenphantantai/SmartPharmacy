@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Product, Category } from '../models/schema.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { MedicineSyncService } from '../services/medicineSyncService.js';
 
 export class MedicineController {
   // Get all medicines (mapped from products)
@@ -117,7 +118,7 @@ export class MedicineController {
         inStock: stock > 0,
         stockQuantity: stock || 0,
         isHot: false,
-        isNew: true, // Mark as new when created
+        isNewProduct: true, // Mark as new when created
         isPrescription: name.toLowerCase().includes('prescription') || 
                        genericName.toLowerCase().includes('prescription') ||
                        category.toLowerCase().includes('kê đơn'),
@@ -125,6 +126,14 @@ export class MedicineController {
       };
 
       const newProduct = await Product.create(productData);
+
+      // Sync với collection medicines nếu có
+      try {
+        await MedicineSyncService.syncAllMedicines();
+      } catch (syncError) {
+        console.error('Sync error after create:', syncError);
+        // Không throw error, chỉ log
+      }
 
       // Return medicine format
       const medicine = {
@@ -210,6 +219,14 @@ export class MedicineController {
 
       const updatedProduct = await Product.findByIdAndUpdate(id, updateData, { new: true });
 
+      // Sync với collection medicines nếu có
+      try {
+        await MedicineSyncService.syncAllMedicines();
+      } catch (syncError) {
+        console.error('Sync error after update:', syncError);
+        // Không throw error, chỉ log
+      }
+
       // Return medicine format
       const medicine = {
         _id: updatedProduct!._id,
@@ -255,6 +272,14 @@ export class MedicineController {
       }
 
       await Product.findByIdAndDelete(id);
+
+      // Sync với collection medicines nếu có
+      try {
+        await MedicineSyncService.syncAllMedicines();
+      } catch (syncError) {
+        console.error('Sync error after delete:', syncError);
+        // Không throw error, chỉ log
+      }
 
       res.json({
         success: true,

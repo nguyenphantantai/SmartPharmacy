@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 export interface FilterState {
   // Category filters
   selectedCategory: string | null;
+  selectedSubcategory: string | null;
   
   // Price filters
   minPrice: number | null;
@@ -24,6 +25,7 @@ interface FilterContextType {
 
 const defaultFilters: FilterState = {
   selectedCategory: null,
+  selectedSubcategory: null,
   minPrice: null,
   maxPrice: null,
   priceRange: null,
