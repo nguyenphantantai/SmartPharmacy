@@ -15,21 +15,6 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'fallback-jwt-secret-key-for-development-only',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   
-  // Cloudinary
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
-    apiKey: process.env.CLOUDINARY_API_KEY!,
-    apiSecret: process.env.CLOUDINARY_API_SECRET!,
-  },
-  
-  // Email
-  email: {
-    host: process.env.SMTP_HOST!,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    user: process.env.SMTP_USER!,
-    pass: process.env.SMTP_PASS!,
-  },
-  
   // Session
   sessionSecret: process.env.SESSION_SECRET || 'fallback-session-secret-key-for-development-only',
   
