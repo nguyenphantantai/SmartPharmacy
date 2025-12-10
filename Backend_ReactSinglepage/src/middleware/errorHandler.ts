@@ -12,14 +12,10 @@ export const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Fix trust proxy issue: validate IP from x-forwarded-for header
-  validate: {
-    trustProxy: false, // We'll handle IP extraction manually
-    xForwardedForHeader: false, // Disable automatic x-forwarded-for parsing
-  },
-  // Custom key generator to safely extract IP from headers
+  // Custom key generator to safely extract IP from headers (fixes trust proxy issue)
   keyGenerator: (req) => {
     // Get IP from x-forwarded-for header (first IP in the chain)
+    // This is the real client IP when behind a reverse proxy
     const forwardedFor = req.headers['x-forwarded-for'];
     if (forwardedFor) {
       const ips = String(forwardedFor).split(',');
@@ -44,11 +40,7 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Fix trust proxy issue: validate IP from x-forwarded-for header
-  validate: {
-    trustProxy: false,
-    xForwardedForHeader: false,
-  },
+  // Custom key generator to safely extract IP from headers (fixes trust proxy issue)
   keyGenerator: (req) => {
     const forwardedFor = req.headers['x-forwarded-for'];
     if (forwardedFor) {
