@@ -3,13 +3,19 @@ import qs from 'qs';
 
 // VNPay Sandbox Configuration
 // Reference: https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
+// IMPORTANT: Trim hash secret to avoid issues with whitespace
 const VNPAY_CONFIG = {
-  tmnCode: process.env.VNPAY_TMN_CODE || 'JQV2XIVU',
-  hashSecret: process.env.VNPAY_HASH_SECRET || 'UC3W9EZFGKNEG1F038WJ4W8WZ01OQ2A7',
+  tmnCode: (process.env.VNPAY_TMN_CODE || 'JQV2XIVU').trim(),
+  hashSecret: (process.env.VNPAY_HASH_SECRET || 'UC3W9EZFGKNEG1F038WJ4W8WZ01OQ2A7').trim(),
   url: process.env.VNPAY_URL || 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
   returnUrl: process.env.VNPAY_RETURN_URL || 'http://localhost:3000/payment-success',
   ipnUrl: process.env.VNPAY_IPN_URL || 'http://localhost:5000/api/payment/vnpay/callback',
 };
+
+// Validate hash secret format
+if (VNPAY_CONFIG.hashSecret.length !== 32) {
+  console.warn(`⚠️ WARNING: VNPay hash secret length is ${VNPAY_CONFIG.hashSecret.length}, expected 32 characters`);
+}
 
 export interface VnpayPaymentRequest {
   orderId: string;
@@ -150,21 +156,25 @@ export class VnpayService {
     // Note: qs.stringify will automatically skip undefined/null, but keep empty strings
     const signData = qs.stringify(dataToHash, { encode: false });
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log('VNPay sign data (before hash):', signData);
-      console.log('VNPay hashSecret:', VNPAY_CONFIG.hashSecret);
-      console.log('VNPay sorted data keys:', Object.keys(dataToHash).join(', '));
-    }
+    // Use hash secret from config (already trimmed)
+    const hashSecret = VNPAY_CONFIG.hashSecret;
+    
+    // Always log in production for debugging code=99 errors
+    console.log('🔐 VNPay Hash Calculation Debug:');
+    console.log('   Sign data (query string):', signData);
+    console.log('   Hash secret length:', hashSecret.length);
+    console.log('   Hash secret (first 10 chars):', hashSecret.substring(0, 10) + '...');
+    console.log('   Hash secret (last 10 chars):', '...' + hashSecret.substring(hashSecret.length - 10));
+    console.log('   Sorted data keys:', Object.keys(dataToHash).join(', '));
     
     // Create HMAC SHA512 hash (NOT SHA256! VNPay uses SHA512)
     // Following VNPay demo line 84-85: hmac.update(new Buffer(signData, 'utf-8'))
     // IMPORTANT: HMAC uses hashSecret as KEY, signData as DATA (NOT append hashSecret to signData!)
-    const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.hashSecret);
+    const hmac = crypto.createHmac('sha512', hashSecret);
     const secureHash = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log('VNPay secure hash:', secureHash);
-    }
+    console.log('   Calculated hash:', secureHash);
+    console.log('   Hash length:', secureHash.length, '(should be 128 for SHA512)');
     
     return secureHash;
   }
