@@ -459,7 +459,26 @@ export class PaymentController {
       
       // Get test data from query params or use defaults
       const testData = req.query;
-      const baseUrl = PaymentController.getBaseUrl(req, true);
+      
+      // Get base URL (protocol + host only, no path)
+      let baseUrl: string;
+      if (process.env.VNPAY_IPN_URL) {
+        // Extract base URL from IPN URL (remove path)
+        const ipnUrl = new URL(process.env.VNPAY_IPN_URL);
+        baseUrl = `${ipnUrl.protocol}//${ipnUrl.host}`;
+      } else {
+        // Build from request headers
+        let protocol = 'https';
+        if (req.headers['x-forwarded-proto']) {
+          protocol = String(req.headers['x-forwarded-proto']).split(',')[0].trim();
+        } else if (req.secure || (req as any).secure) {
+          protocol = 'https';
+        }
+        let host = req.headers['x-forwarded-host'] as string || req.headers.host || 'localhost:5000';
+        host = host.split(',')[0].trim();
+        baseUrl = `${protocol}://${host}`;
+      }
+      
       const callbackUrl = `${baseUrl}/api/payment/vnpay/callback`;
 
       // Create mock callback data
