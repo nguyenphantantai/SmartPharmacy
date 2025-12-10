@@ -12,6 +12,22 @@ export const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Fix trust proxy issue: validate IP from x-forwarded-for header
+  validate: {
+    trustProxy: false, // We'll handle IP extraction manually
+    xForwardedForHeader: false, // Disable automatic x-forwarded-for parsing
+  },
+  // Custom key generator to safely extract IP from headers
+  keyGenerator: (req) => {
+    // Get IP from x-forwarded-for header (first IP in the chain)
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      const ips = String(forwardedFor).split(',');
+      return ips[0].trim();
+    }
+    // Fallback to x-real-ip or req.ip
+    return req.headers['x-real-ip'] as string || req.ip || req.socket.remoteAddress || 'unknown';
+  },
   skip: (req) => {
     // Skip rate limiting for static files and images
     return req.path.startsWith('/medicine-images') || req.path.startsWith('/images');
@@ -28,6 +44,19 @@ export const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Fix trust proxy issue: validate IP from x-forwarded-for header
+  validate: {
+    trustProxy: false,
+    xForwardedForHeader: false,
+  },
+  keyGenerator: (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      const ips = String(forwardedFor).split(',');
+      return ips[0].trim();
+    }
+    return req.headers['x-real-ip'] as string || req.ip || req.socket.remoteAddress || 'unknown';
+  },
 });
 
 // API rate limiter
