@@ -410,14 +410,157 @@ export class PaymentController {
   }
 
   /**
+   * Test IPN endpoint accessibility
+   * GET /api/payment/vnpay/test-ipn
+   * This endpoint helps verify that IPN URL is accessible from VNPay servers
+   */
+  static async testIpnEndpoint(req: Request, res: Response) {
+    try {
+      const ipnUrl = process.env.VNPAY_IPN_URL || PaymentController.getBaseUrl(req, true);
+      
+      res.json({
+        success: true,
+        message: 'IPN endpoint is accessible',
+        ipnUrl: ipnUrl,
+        currentUrl: req.protocol + '://' + req.get('host') + req.originalUrl,
+        timestamp: new Date().toISOString(),
+        instructions: {
+          step1: 'IPN URL đã được cấu hình trong VNPay Merchant Portal',
+          step2: 'Để test IPN URL, bạn cần tạo một giao dịch test từ ứng dụng',
+          step3: 'VNPay sẽ tự động gọi IPN URL khi có giao dịch',
+          step4: 'Kiểm tra logs trên Render để xem VNPay có gọi callback không',
+          testUrl: ipnUrl,
+          postmanTest: {
+            method: 'GET',
+            url: ipnUrl,
+            description: 'Test IPN URL với Postman - sử dụng query params từ VNPay',
+          },
+        },
+      });
+    } catch (error: any) {
+      console.error('Test IPN endpoint error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to test IPN endpoint',
+      });
+    }
+  }
+
+  /**
+   * Test VNPay callback with sample data (for Postman testing)
+   * GET /api/payment/vnpay/test-callback
+   * 
+   * This endpoint generates test data with valid hash for Postman testing.
+   * It returns the test URL with all query params that you can copy to Postman.
+   */
+  static async testVnpayCallback(req: Request, res: Response) {
+    try {
+      console.log('🧪 ========== VNPay Test Callback Generator ==========');
+      
+      // Get test data from query params or use defaults
+      const testData = req.query;
+      const baseUrl = PaymentController.getBaseUrl(req, true);
+      const callbackUrl = `${baseUrl}/api/payment/vnpay/callback`;
+
+      // Create mock callback data
+      const mockData: any = {
+        vnp_TmnCode: (testData.vnp_TmnCode as string) || 'JQV2XIVU',
+        vnp_Amount: (testData.vnp_Amount as string) || '4000000',
+        vnp_BankCode: (testData.vnp_BankCode as string) || 'NCB',
+        vnp_BankTranNo: (testData.vnp_BankTranNo as string) || 'TEST' + Date.now(),
+        vnp_CardType: (testData.vnp_CardType as string) || 'ATM',
+        vnp_PayDate: (testData.vnp_PayDate as string) || new Date().toISOString().replace(/[-:T]/g, '').split('.')[0],
+        vnp_OrderInfo: (testData.vnp_OrderInfo as string) || 'Test payment',
+        vnp_TransactionNo: (testData.vnp_TransactionNo as string) || String(Date.now()),
+        vnp_ResponseCode: (testData.vnp_ResponseCode as string) || '00',
+        vnp_TransactionStatus: (testData.vnp_TransactionStatus as string) || '00',
+        vnp_TxnRef: (testData.vnp_TxnRef as string) || 'TEST' + Date.now(),
+      };
+
+      if (testData.vnp_ExtraData) {
+        mockData.vnp_ExtraData = testData.vnp_ExtraData as string;
+      }
+
+      // Calculate hash using VNPayService method
+      const dataToHash: Record<string, any> = {
+        vnp_TmnCode: mockData.vnp_TmnCode,
+        vnp_Amount: mockData.vnp_Amount,
+        vnp_OrderInfo: mockData.vnp_OrderInfo,
+        vnp_TransactionNo: mockData.vnp_TransactionNo,
+        vnp_ResponseCode: mockData.vnp_ResponseCode,
+        vnp_TransactionStatus: mockData.vnp_TransactionStatus,
+        vnp_TxnRef: mockData.vnp_TxnRef,
+        vnp_PayDate: mockData.vnp_PayDate,
+      };
+
+      if (mockData.vnp_BankCode) dataToHash.vnp_BankCode = mockData.vnp_BankCode;
+      if (mockData.vnp_BankTranNo) dataToHash.vnp_BankTranNo = mockData.vnp_BankTranNo;
+      if (mockData.vnp_CardType) dataToHash.vnp_CardType = mockData.vnp_CardType;
+      if (mockData.vnp_ExtraData) dataToHash.vnp_ExtraData = mockData.vnp_ExtraData;
+
+      // Use VNPayService to calculate hash
+      const hash = VnpayService.createSecureHash(dataToHash);
+      mockData.vnp_SecureHash = hash;
+
+      // Build query string for Postman
+      const queryParams = new URLSearchParams();
+      Object.keys(mockData).forEach(key => {
+        if (mockData[key]) {
+          queryParams.append(key, String(mockData[key]));
+        }
+      });
+      const testUrl = `${callbackUrl}?${queryParams.toString()}`;
+
+      res.json({
+        success: true,
+        message: 'Test callback data generated',
+        instructions: {
+          step1: 'Copy the testUrl below and paste it into Postman',
+          step2: 'Use GET method',
+          step3: 'Send the request',
+          step4: 'Check the response - should return { RspCode: "00", Message: "success" } or error details',
+        },
+        testUrl: testUrl,
+        callbackUrl: callbackUrl,
+        testData: mockData,
+        postmanCollection: {
+          method: 'GET',
+          url: callbackUrl,
+          params: mockData,
+        },
+        note: 'This generates a valid hash. In production, VNPay will call this URL automatically when payment is made.',
+      });
+    } catch (error: any) {
+      console.error('Test callback error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to generate test callback',
+        error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+    }
+  }
+
+  /**
    * Test VNPay credentials and environment configuration
    * GET /api/payment/vnpay/test-credentials
    */
   static async testVnpayCredentials(req: Request, res: Response) {
     try {
+      // Get hash secret info (masked for security)
+      const hashSecret = process.env.VNPAY_HASH_SECRET || '';
+      const hashSecretInfo = hashSecret 
+        ? {
+            isSet: true,
+            length: hashSecret.length,
+            first8: hashSecret.substring(0, 8),
+            last8: hashSecret.substring(hashSecret.length - 8),
+            matchesExpected: hashSecret.trim() === 'UC3W9EZFGKNEG1F038WJ4W8WZ01OQ2A7',
+          }
+        : { isSet: false };
+
       const envVars = {
         VNPAY_TMN_CODE: process.env.VNPAY_TMN_CODE || 'NOT SET',
-        VNPAY_HASH_SECRET: process.env.VNPAY_HASH_SECRET ? '***SET***' : 'NOT SET',
+        VNPAY_HASH_SECRET: hashSecretInfo,
         VNPAY_RETURN_URL: process.env.VNPAY_RETURN_URL || 'NOT SET',
         VNPAY_IPN_URL: process.env.VNPAY_IPN_URL || 'NOT SET',
         VNPAY_URL: process.env.VNPAY_URL || 'NOT SET',
@@ -659,14 +802,17 @@ export class PaymentController {
   /**
    * Handle VNPay callback (IPN)
    * GET /api/payment/vnpay/callback
+   * This endpoint is called by VNPay server to notify payment status
    */
   static async handleVnpayCallback(req: Request, res: Response) {
     try {
       console.log('📨 ========== VNPay IPN Callback Received ==========');
       console.log('📨 Request method:', req.method);
       console.log('📨 Request URL:', req.url);
+      console.log('📨 Full URL:', req.protocol + '://' + req.get('host') + req.originalUrl);
       console.log('📨 Request headers:', JSON.stringify(req.headers, null, 2));
       console.log('📨 Query params:', JSON.stringify(req.query, null, 2));
+      console.log('📨 Client IP:', req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress);
       
       const callbackData = req.query as any as VnpayCallbackData;
 
@@ -747,8 +893,11 @@ export class PaymentController {
       }
 
       // Return success to VNPay (VNPay expects JSON response)
+      // IMPORTANT: VNPay requires 200 status code and JSON response
       console.log('✅ Returning success response to VNPay');
-      return res.status(200).json({ RspCode: '00', Message: 'success' });
+      const response = { RspCode: '00', Message: 'success' };
+      console.log('📨 Response to VNPay:', response);
+      return res.status(200).json(response);
     } catch (error: any) {
       console.error('❌ VNPay callback error:', error);
       console.error('❌ Error stack:', error.stack);

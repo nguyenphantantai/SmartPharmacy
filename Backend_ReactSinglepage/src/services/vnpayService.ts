@@ -1,5 +1,4 @@
 import crypto from 'crypto';
-import qs from 'qs';
 
 // VNPay Sandbox Configuration
 // Reference: https://sandbox.vnpayment.vn/apis/docs/thanh-toan-pay/pay.html
@@ -12,9 +11,26 @@ const VNPAY_CONFIG = {
   ipnUrl: process.env.VNPAY_IPN_URL || 'http://localhost:5000/api/payment/vnpay/callback',
 };
 
-// Validate hash secret format
+// Validate hash secret format and log for debugging
 if (VNPAY_CONFIG.hashSecret.length !== 32) {
   console.warn(`⚠️ WARNING: VNPay hash secret length is ${VNPAY_CONFIG.hashSecret.length}, expected 32 characters`);
+} else {
+  // Log hash secret for verification (masked for security)
+  const maskedSecret = VNPAY_CONFIG.hashSecret.substring(0, 8) + '...' + VNPAY_CONFIG.hashSecret.substring(VNPAY_CONFIG.hashSecret.length - 8);
+  console.log(`✅ VNPay hash secret format OK: ${maskedSecret} (length: ${VNPAY_CONFIG.hashSecret.length})`);
+  
+  // Compare with expected default to detect if using wrong secret
+  const expectedDefault = 'UC3W9EZFGKNEG1F038WJ4W8WZ01OQ2A7';
+  if (VNPAY_CONFIG.hashSecret === expectedDefault) {
+    if (process.env.VNPAY_HASH_SECRET) {
+      console.warn('⚠️ WARNING: Hash secret matches default value!');
+      console.warn('⚠️ Please verify VNPAY_HASH_SECRET in Render environment variables matches the one from VNPay email.');
+      console.warn('⚠️ Expected format: 32 alphanumeric characters (no spaces, no special chars)');
+    } else {
+      console.warn('⚠️ WARNING: Using default hash secret from code!');
+      console.warn('⚠️ Please set VNPAY_HASH_SECRET in Render environment variables with the correct value from VNPay email.');
+    }
+  }
 }
 
 export interface VnpayPaymentRequest {
@@ -93,40 +109,38 @@ export class VnpayService {
 
   /**
    * Sort object by key alphabetically (VNPay requirement)
-   * Following VNPay official demo code EXACTLY (line 304-318)
-   * sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
+   * Following VNPay official demo code EXACTLY
+   * The demo code does: sorted[encodedKey] = encodeURIComponent(obj[originalKey]).replace(/%20/g, "+");
+   * But we need to map encoded keys back to original keys to access values correctly
    */
   private static sortObject(obj: Record<string, any>): Record<string, any> {
     const sorted: Record<string, any> = {};
-    const str: string[] = [];
+    const keyMap: Map<string, string> = new Map(); // Map encoded key -> original key
     
-    // Get all keys and encode them (exactly like VNPay demo line 308-311)
+    // Get all original keys and create mapping
+    const originalKeys: string[] = [];
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
-        str.push(encodeURIComponent(key));
+        originalKeys.push(key);
+        const encodedKey = encodeURIComponent(key);
+        keyMap.set(encodedKey, key);
       }
     }
     
-    // Sort encoded keys (exactly like VNPay demo line 313)
-    str.sort();
+    // Encode all keys and sort them
+    const encodedKeys = originalKeys.map(k => encodeURIComponent(k));
+    encodedKeys.sort();
     
-    // Build sorted object (exactly like VNPay demo line 314-316)
-    // sorted[str[key]] = encodeURIComponent(obj[str[key]]).replace(/%20/g, "+");
-    // IMPORTANT: obj[str[key]] uses encoded key to access original object
-    // This works because for VNPay keys: encodeURIComponent('vnp_Amount') === 'vnp_Amount'
-    for (let i = 0; i < str.length; i++) {
-      const encodedKey = str[i];
-      if (!encodedKey) continue;
+    // Build sorted object using sorted encoded keys
+    for (const encodedKey of encodedKeys) {
+      const originalKey = keyMap.get(encodedKey);
+      if (!originalKey) continue;
       
-      // Use obj[str[key]] directly like VNPay demo (line 315)
-      // For VNPay keys without special chars, encodedKey === originalKey
-      // So obj[encodedKey] works correctly
-      const originalValue = (obj as any)[encodedKey];
+      const originalValue = obj[originalKey];
       
-      // Encode value and replace %20 with + (exactly like VNPay demo line 315)
-      // IMPORTANT: Only include if value is not undefined/null/empty
-      // VNPay demo code includes all keys, but we should skip undefined to avoid issues
+      // Only include if value is not undefined/null/empty
       if (originalValue !== undefined && originalValue !== null && originalValue !== '') {
+        // Encode value and replace %20 with + (exactly like VNPay demo)
         sorted[encodedKey] = encodeURIComponent(String(originalValue)).replace(/%20/g, '+');
       }
     }
@@ -135,10 +149,29 @@ export class VnpayService {
   }
 
   /**
+   * Create query string from sorted object (without encoding, matching VNPay demo)
+   * VNPay demo uses: querystring.stringify(vnp_Params, { encode: false })
+   * But Node.js querystring doesn't support encode: false, so we build manually
+   */
+  private static createQueryString(sortedData: Record<string, any>): string {
+    const pairs: string[] = [];
+    for (const key in sortedData) {
+      if (sortedData.hasOwnProperty(key)) {
+        const value = sortedData[key];
+        if (value !== undefined && value !== null && value !== '') {
+          // Keys and values are already encoded in sortObject, just join them
+          pairs.push(`${key}=${value}`);
+        }
+      }
+    }
+    return pairs.join('&');
+  }
+
+  /**
    * Create secure hash for VNPay from already-sorted data
    * According to VNPay demo code:
    * 1. Data is already sorted (vnp_Params = sortObject(vnp_Params))
-   * 2. Create query string using qs.stringify with encode: false
+   * 2. Create query string using querystring.stringify with encode: false
    * 3. Create HMAC SHA512 hash
    */
   private static createSecureHashFromSorted(sortedData: Record<string, any>): string {
@@ -151,10 +184,10 @@ export class VnpayService {
       }
     }
     
-    // Create query string using qs.stringify with encode: false (exactly like VNPay demo line 82)
+    // Create query string (exactly like VNPay demo line 82)
     // let signData = querystring.stringify(vnp_Params, { encode: false });
-    // Note: qs.stringify will automatically skip undefined/null, but keep empty strings
-    const signData = qs.stringify(dataToHash, { encode: false });
+    // Since data is already sorted and encoded in sortObject, just create query string
+    const signData = this.createQueryString(dataToHash);
 
     // Use hash secret from config (already trimmed)
     const hashSecret = VNPAY_CONFIG.hashSecret;
@@ -182,7 +215,7 @@ export class VnpayService {
   /**
    * Create secure hash for VNPay (for callback verification - data may not be sorted)
    */
-  private static createSecureHash(data: Record<string, any>): string {
+  static createSecureHash(data: Record<string, any>): string {
     // Remove vnp_SecureHash and vnp_SecureHashType if present
     const dataToHash: Record<string, any> = {};
     for (const key in data) {
@@ -193,7 +226,7 @@ export class VnpayService {
     
     // Sort data before hashing
     const sortedData = this.sortObject(dataToHash);
-    const signData = qs.stringify(sortedData, { encode: false });
+    const signData = this.createQueryString(sortedData);
     
     const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.hashSecret);
     const secureHash = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
@@ -240,7 +273,7 @@ export class VnpayService {
 
     // Create secure hash using same method as createPaymentUrl
     const sortedData = this.sortObject(dataToVerify);
-    const signData = qs.stringify(sortedData, { encode: false });
+    const signData = this.createQueryString(sortedData);
     
     // Create HMAC SHA512 hash
     const hmac = crypto.createHmac('sha512', VNPAY_CONFIG.hashSecret);
@@ -375,10 +408,11 @@ export class VnpayService {
     // vnp_Params['vnp_SecureHash'] = signed;
     sortedPaymentData['vnp_SecureHash'] = secureHash;
 
-    // Build final query string using qs.stringify with encode: false (exactly like VNPay demo line 87)
+    // Build final query string (exactly like VNPay demo line 87)
     // vnpUrl += '?' + querystring.stringify(vnp_Params, { encode: false });
     // IMPORTANT: Do NOT sort again after adding hash - just stringify the sorted data with hash
-    const queryString = qs.stringify(sortedPaymentData, { encode: false });
+    // Since data is already sorted and encoded, just create query string
+    const queryString = this.createQueryString(sortedPaymentData);
     
     console.log('VNPay final URL query string (first 200 chars):', queryString.substring(0, 200));
 
@@ -410,15 +444,23 @@ export class VnpayService {
       console.log('      - IPN URL đã được detect/configure:', ipnUrl);
       if (!ipnUrl.includes('localhost')) {
         console.log('      - ✅ IPN URL là production URL (không phải localhost)');
-        console.log('      - ⚠️ QUAN TRỌNG: Đảm bảo IPN URL này đã được đăng ký trong VNPay Merchant Portal');
-        console.log('      - Kiểm tra tại: https://sandbox.vnpayment.vn/vnpaygw-sit-testing/ipn');
-        console.log('      - Terminal Code:', VNPAY_CONFIG.tmnCode);
-        console.log('      - IPN URL phải khớp:', ipnUrl);
+        console.log('      - ⚠️ QUAN TRỌNG: Theo email VNPay, bạn cần GỬI IPN URL cho VNPay!');
+        console.log('      - Bước 1: Đăng ký IPN URL trong VNPay Merchant Portal');
+        console.log('        + Đăng nhập: https://sandbox.vnpayment.vn/merchantv2/');
+        console.log('        + Vào: https://sandbox.vnpayment.vn/vnpaygw-sit-testing/ipn');
+        console.log('        + Terminal Code:', VNPAY_CONFIG.tmnCode);
+        console.log('        + IPN URL:', ipnUrl);
+        console.log('      - Bước 2: GỬI IPN URL cho VNPay support để họ kích hoạt');
+        console.log('        + Email: hotrovnpay@vnpay.vn');
+        console.log('        + Hotline: 1900 55 55 77');
+        console.log('        + Nội dung: "Xin chào, tôi cần kích hoạt IPN URL cho Terminal Code JQV2XIVU"');
+        console.log('        + IPN URL cần kích hoạt:', ipnUrl);
+        console.log('      - ⚠️ LƯU Ý: Chỉ đăng ký trong Merchant Portal CHƯA ĐỦ, cần gửi cho VNPay support!');
       } else {
         console.log('      - ⚠️ WARNING: IPN URL đang dùng localhost!');
         console.log('      - Khi deploy, phải set VNPAY_IPN_URL trong .env với URL production');
         console.log('      - Ví dụ: VNPAY_IPN_URL=https://yourdomain.com/api/payment/vnpay/callback');
-        console.log('      - Sau đó đăng ký IPN URL trong VNPay Merchant Portal');
+        console.log('      - Sau đó đăng ký và GỬI IPN URL cho VNPay support');
       }
       console.log('   2. Kiểm tra ReturnUrl có được chấp nhận không');
       console.log('      - ReturnUrl hiện tại:', returnUrl);
@@ -511,9 +553,9 @@ export class VnpayService {
     const secureHash = this.createSecureHash(queryData);
     queryData.vnp_SecureHash = secureHash;
 
-    // Build query string (encode: false like VNPay demo)
+    // Build query string (like VNPay demo)
     const sortedData = this.sortObject(queryData);
-    const queryString = qs.stringify(sortedData, { encode: false });
+    const queryString = this.createQueryString(sortedData);
 
     const queryUrl = `https://sandbox.vnpayment.vn/merchant_webapi/api/transaction?${queryString}`;
 
