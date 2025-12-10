@@ -17,7 +17,8 @@ router.post('/vnpay/callback', PaymentController.handleVnpayCallback); // Suppor
 router.get('/vnpay/status/:orderId', PaymentController.getVnpayPaymentStatus);
 router.get('/vnpay/test-credentials', PaymentController.testVnpayCredentials);
 router.get('/vnpay/test-ipn', PaymentController.testIpnEndpoint); // Test IPN endpoint accessibility
-router.post('/vnpay/test-callback', PaymentController.testVnpayCallback); // Test IPN callback with Postman
+router.get('/vnpay/test-callback', PaymentController.testVnpayCallback); // Test IPN callback with Postman (GET)
+router.post('/vnpay/test-callback', PaymentController.testVnpayCallback); // Test IPN callback with Postman (POST)
 
 export default router;
 
