@@ -149,11 +149,46 @@ export class PaymentController {
         });
       }
 
+      // Get return URL from request (auto-detect production URL)
+      let returnUrl: string;
+      let ipnUrl: string;
+      
+      try {
+        returnUrl = PaymentController.getBaseUrl(req, false);
+        ipnUrl = PaymentController.getBaseUrl(req, true);
+      } catch (urlError: any) {
+        console.error('Error getting base URL:', urlError);
+        // Fallback to environment variables
+        returnUrl = process.env.MOMO_REDIRECT_URL || 'http://localhost:3000/payment-success';
+        ipnUrl = process.env.MOMO_IPN_URL || 'http://localhost:5000/api/payment/momo/callback';
+        console.log('Using fallback URLs:', { returnUrl, ipnUrl });
+      }
+
       console.log('Creating MoMo payment request:', {
         orderId: order.orderNumber,
         amount: amount,
         orderInfo: orderInfo || `Thanh toán đơn hàng ${order.orderNumber}`,
+        returnUrl: returnUrl,
+        ipnUrl: ipnUrl,
+        requestHeaders: {
+          host: req.headers.host,
+          'x-forwarded-host': req.headers['x-forwarded-host'],
+          'x-forwarded-proto': req.headers['x-forwarded-proto'],
+        },
       });
+
+      // Log warning if using localhost in production
+      if (process.env.NODE_ENV === 'production' && returnUrl.includes('localhost')) {
+        console.error('❌ CRITICAL: MoMo ReturnUrl is using localhost in production!');
+        console.error('   Please set MOMO_REDIRECT_URL environment variable');
+        console.error('   Example: MOMO_REDIRECT_URL=https://yourdomain.com/payment-success');
+      }
+      
+      if (process.env.NODE_ENV === 'production' && ipnUrl.includes('localhost')) {
+        console.error('❌ CRITICAL: MoMo IPN URL is using localhost in production!');
+        console.error('   Please set MOMO_IPN_URL environment variable');
+        console.error('   Example: MOMO_IPN_URL=https://yourdomain.com/api/payment/momo/callback');
+      }
 
       // Create MoMo payment request
       const momoResponse = await MomoService.createPaymentRequest({
@@ -161,6 +196,8 @@ export class PaymentController {
         orderInfo: orderInfo || `Thanh toán đơn hàng ${order.orderNumber}`,
         amount: amount,
         extraData: orderId, // Store order ID in extraData for callback
+        redirectUrl: returnUrl, // Pass dynamic return URL
+        ipnUrl: ipnUrl, // Pass dynamic IPN URL
       });
 
       // Extract MoMo orderId from response (it's the same as requestId)

@@ -25,6 +25,7 @@ function getMatchExplanation(matchReason: string, confidence: number): string {
     'same_name_different_dosage': 'Cùng tên nhưng khác hàm lượng',
     'same_active_ingredient_same_dosage': 'Cùng hoạt chất và cùng hàm lượng',
     'same_active_ingredient_different_dosage': 'Cùng hoạt chất nhưng khác hàm lượng',
+    'same_group_therapeutic': 'Cùng nhóm điều trị',
     'same_indication_same_dosage': 'Cùng công dụng và cùng hàm lượng',
     'same_indication_different_dosage': 'Cùng công dụng nhưng khác hàm lượng',
     'similar_name': 'Tên thuốc tương tự',
@@ -33,6 +34,44 @@ function getMatchExplanation(matchReason: string, confidence: number): string {
   };
   
   return explanations[matchReason] || `Đề xuất dựa trên độ tương tự ${Math.round(confidence * 100)}%`;
+}
+
+// Helper function to check if a medicine is already in the prescription (foundMedicines)
+// So sánh theo tên (normalized) và hoạt chất để tránh trùng lặp
+function isMedicineAlreadyInPrescription(
+  medicine: any,
+  foundMedicines: any[]
+): boolean {
+  if (!medicine || foundMedicines.length === 0) return false;
+  
+  const medicineName = medicine.name || medicine.productName || '';
+  const medicineActiveIngredient = (medicine.activeIngredient || medicine.genericName || '').toLowerCase();
+  const normalizedMedicineName = normalizeForComparison(medicineName);
+  
+  return foundMedicines.some(found => {
+    const foundName = found.originalText || found.productName || '';
+    const normalizedFoundName = normalizeForComparison(foundName);
+    
+    // So sánh tên (normalized)
+    if (normalizedMedicineName === normalizedFoundName) {
+      return true;
+    }
+    
+    // So sánh hoạt chất nếu có
+    if (medicineActiveIngredient && medicineActiveIngredient.length > 3) {
+      const foundActiveIngredient = (found.activeIngredient || '').toLowerCase();
+      if (foundActiveIngredient && foundActiveIngredient.length > 3) {
+        // So sánh hoạt chất chính (từ đầu, trước dấu phẩy)
+        const mainMedicineActive = medicineActiveIngredient.split(/[,;]/)[0]?.trim();
+        const mainFoundActive = foundActiveIngredient.split(/[,;]/)[0]?.trim();
+        if (mainMedicineActive && mainFoundActive && mainMedicineActive === mainFoundActive) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  });
 }
 
 // Helper function to get contraindication from medicines collection
@@ -2359,12 +2398,28 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     
                     console.log(`📦 Found ${medicinesWithSameIndication.length} medicines with same indication/groupTherapeutic`);
                     
-                    // Kết hợp: ưu tiên thuốc cùng hoạt chất trước, sau đó mới đến cùng nhóm/công dụng
+                    // Kết hợp: ưu tiên thuốc cùng hoạt chất trước, sau đó mới đến cùng nhóm điều trị
+                    // CHỈ đề xuất thuốc cùng nhóm điều trị (groupTherapeutic) - không đề xuất Paracetamol cho Celecoxib
+                    const medicinesWithSameGroupTherapeutic = medicinesWithSameIndication.filter(m => {
+                      // Chỉ lấy thuốc cùng nhóm điều trị
+                      if (targetGroupTherapeutic && m.groupTherapeutic) {
+                        const targetGroupLower = targetGroupTherapeutic.toLowerCase();
+                        const medicineGroupLower = m.groupTherapeutic.toLowerCase();
+                        // So sánh nhóm điều trị (ví dụ: NSAID, Kháng sinh, Corticosteroid)
+                        return targetGroupLower === medicineGroupLower || 
+                               (targetGroupLower.includes('nsaid') && medicineGroupLower.includes('nsaid')) ||
+                               (targetGroupLower.includes('kháng viêm') && medicineGroupLower.includes('kháng viêm')) ||
+                               (targetGroupLower.includes('kháng sinh') && medicineGroupLower.includes('kháng sinh')) ||
+                               (targetGroupLower.includes('corticosteroid') && medicineGroupLower.includes('corticosteroid'));
+                      }
+                      return false; // Không đề xuất nếu không cùng nhóm điều trị
+                    });
+                    
                     const allMedicinesToCheck = [
                       ...medicinesWithSameActiveIngredient, // Ưu tiên 1: cùng hoạt chất
-                      ...medicinesWithSameIndication.filter(m => 
+                      ...medicinesWithSameGroupTherapeutic.filter(m => 
                         !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id))
-                      ) // Ưu tiên 2: cùng nhóm/công dụng (loại bỏ trùng với cùng hoạt chất)
+                      ) // Ưu tiên 2: cùng nhóm điều trị (loại bỏ trùng với cùng hoạt chất)
                     ];
                     
                     // Lọc và ưu tiên thuốc cùng hàm lượng
@@ -2387,6 +2442,12 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                       });
                       
                       if (product) {
+                        // Kiểm tra xem thuốc này đã có trong đơn (foundMedicines) chưa
+                        if (isMedicineAlreadyInPrescription(product, foundMedicines)) {
+                          console.log(`   ⚠️ Skipping medicine already in prescription: ${product.name}`);
+                          continue;
+                        }
+                        
                         const alreadyAdded = similarMedicines.some(m => String(m._id) === String(product._id));
                         if (!alreadyAdded) {
                           // Parse dosage từ product name
@@ -2407,12 +2468,26 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                               matchReason = 'same_active_ingredient_different_dosage';
                               confidence = 0.85;
                             }
-                          } else if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
-                            matchReason = 'same_indication_same_dosage';
-                            confidence = 0.85;
                           } else {
-                            matchReason = 'same_indication_different_dosage';
-                            confidence = 0.70;
+                            // Chỉ đề xuất nếu cùng nhóm điều trị
+                            const isSameGroupTherapeutic = targetGroupTherapeutic && medicine.groupTherapeutic && 
+                              (targetGroupTherapeutic.toLowerCase() === medicine.groupTherapeutic.toLowerCase() ||
+                               (targetGroupTherapeutic.toLowerCase().includes('nsaid') && medicine.groupTherapeutic.toLowerCase().includes('nsaid')) ||
+                               (targetGroupTherapeutic.toLowerCase().includes('kháng viêm') && medicine.groupTherapeutic.toLowerCase().includes('kháng viêm')));
+                            
+                            if (isSameGroupTherapeutic) {
+                              if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
+                                matchReason = 'same_group_therapeutic';
+                                confidence = 0.80;
+                              } else {
+                                matchReason = 'same_group_therapeutic';
+                                confidence = 0.75;
+                              }
+                            } else {
+                              // Không đề xuất nếu khác nhóm điều trị
+                              console.log(`   ⚠️ Skipping medicine with different groupTherapeutic: ${product.name} (${medicine.groupTherapeutic} vs ${targetGroupTherapeutic})`);
+                              continue;
+                            }
                           }
                           
                           // Lấy indication đầy đủ từ medicine (ưu tiên indication, sau đó description, uses, congDung)
@@ -2477,6 +2552,23 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                         }
                       } else {
                         // Nếu không tìm thấy product, tạo từ medicine data
+                        // Kiểm tra xem thuốc này đã có trong đơn (foundMedicines) chưa
+                        if (isMedicineAlreadyInPrescription(medicine, foundMedicines)) {
+                          console.log(`   ⚠️ Skipping medicine already in prescription: ${medicine.name}`);
+                          continue;
+                        }
+                        
+                        // Chỉ đề xuất nếu cùng nhóm điều trị
+                        const isSameGroupTherapeutic = targetGroupTherapeutic && medicine.groupTherapeutic && 
+                          (targetGroupTherapeutic.toLowerCase() === medicine.groupTherapeutic.toLowerCase() ||
+                           (targetGroupTherapeutic.toLowerCase().includes('nsaid') && medicine.groupTherapeutic.toLowerCase().includes('nsaid')) ||
+                           (targetGroupTherapeutic.toLowerCase().includes('kháng viêm') && medicine.groupTherapeutic.toLowerCase().includes('kháng viêm')));
+                        
+                        if (!isSameGroupTherapeutic) {
+                          console.log(`   ⚠️ Skipping medicine with different groupTherapeutic: ${medicine.name} (${medicine.groupTherapeutic} vs ${targetGroupTherapeutic})`);
+                          continue;
+                        }
+                        
                         const alreadyAdded = similarMedicines.some(m => 
                           String(m._id) === String(medicine._id) ||
                           (m.name && medicine.name && normalizeForComparison(m.name) === normalizeForComparison(medicine.name))
@@ -2676,6 +2768,12 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
 
                       // Thêm vào similarMedicines
                       for (const product of nsaidProducts) {
+                        // Kiểm tra xem thuốc này đã có trong đơn (foundMedicines) chưa
+                        if (isMedicineAlreadyInPrescription(product, foundMedicines)) {
+                          console.log(`   ⚠️ Skipping NSAID product already in prescription: ${product.name}`);
+                          continue;
+                        }
+                        
                         const alreadyAdded = similarMedicines.some(m => String(m._id) === String(product._id));
                         if (!alreadyAdded) {
                           // Tìm thông tin từ medicines collection nếu có
@@ -2709,12 +2807,15 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                               matchReason = 'same_active_ingredient_different_dosage';
                               confidence = 0.85;
                             }
-                          } else if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
-                            matchReason = 'same_indication_same_dosage';
-                            confidence = 0.85;
                           } else {
-                            matchReason = 'same_indication_different_dosage';
-                            confidence = 0.70;
+                            // Chỉ đề xuất nếu cùng nhóm điều trị (NSAID)
+                            if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
+                              matchReason = 'same_group_therapeutic';
+                              confidence = 0.80;
+                            } else {
+                              matchReason = 'same_group_therapeutic';
+                              confidence = 0.75;
+                            }
                           }
                           
                           // Lấy indication đầy đủ từ medicineInfo (ưu tiên indication, sau đó description, uses, congDung)
@@ -2787,6 +2888,12 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             }).limit(5);
             
             for (const product of fallbackProducts) {
+              // Kiểm tra xem thuốc này đã có trong đơn (foundMedicines) chưa
+              if (isMedicineAlreadyInPrescription(product, foundMedicines)) {
+                console.log(`   ⚠️ Skipping fallback product already in prescription: ${product.name}`);
+                continue;
+              }
+              
               const alreadyAdded = similarMedicines.some(m => String(m._id) === String(product._id));
               if (!alreadyAdded) {
                 similarMedicines.push({
@@ -2802,7 +2909,30 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
           if (similarMedicines.length > 0) {
             console.log(`📋 Similar medicines:`, similarMedicines.map(m => ({ name: m.name, price: m.price, imageUrl: m.imageUrl })));
             // Convert to suggestion format
-            const suggestions = await Promise.all(similarMedicines.map(async (med) => {
+            // Loại bỏ thuốc đã có trong đơn khỏi suggestions trước khi convert
+            const filteredSimilarMedicines = similarMedicines.filter(med => {
+              return !isMedicineAlreadyInPrescription(med, foundMedicines);
+            });
+            
+            if (filteredSimilarMedicines.length === 0) {
+              console.log(`⚠️ All similar medicines are already in prescription, skipping suggestions`);
+              // Vẫn thêm vào notFoundMedicines với empty suggestions
+              const medicineKeyForNotFound = normalizeForComparison(medicineNameOnly);
+              const alreadyInNotFound = notFoundMedicines.some(nfm => 
+                normalizeForComparison(nfm.originalText || '') === medicineKeyForNotFound
+              );
+              if (!alreadyInNotFound) {
+                notFoundMedicines.push({
+                  originalText: cleanOcrText(medicineNameOnly),
+                  originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
+                  suggestions: []
+                });
+              }
+            } else {
+              console.log(`📋 Filtered similar medicines (removed ${similarMedicines.length - filteredSimilarMedicines.length} duplicates):`, filteredSimilarMedicines.map(m => ({ name: m.name, price: m.price, imageUrl: m.imageUrl })));
+            }
+            
+            const suggestions = await Promise.all(filteredSimilarMedicines.map(async (med) => {
               // Normalize imageUrl
               let imageUrl = med.imageUrl || med.image || med.imagePath || '';
               if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/') && !imageUrl.startsWith('data:')) {
@@ -3039,8 +3169,13 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             }
             
             // Convert fallback suggestions to proper format
-            if (fallbackSuggestions.length > 0) {
-              const suggestions = await Promise.all(fallbackSuggestions.map(async (med) => {
+            // Loại bỏ thuốc đã có trong đơn khỏi fallback suggestions
+            const filteredFallbackSuggestions = fallbackSuggestions.filter(med => {
+              return !isMedicineAlreadyInPrescription(med, foundMedicines);
+            });
+            
+            if (filteredFallbackSuggestions.length > 0) {
+              const suggestions = await Promise.all(filteredFallbackSuggestions.map(async (med) => {
                 let imageUrl = med.imageUrl || med.image || med.imagePath || '';
                 if (imageUrl && !imageUrl.startsWith('http') && !imageUrl.startsWith('/') && !imageUrl.startsWith('data:')) {
                   imageUrl = `/medicine-images/${imageUrl}`;

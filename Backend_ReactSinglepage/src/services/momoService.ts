@@ -8,8 +8,9 @@ const MOMO_CONFIG = {
   accessKey: 'F8BBA842ECF85',
   secretKey: 'K951B6PE1waDMi640xX08PD3vg6EkVlz', // Fixed: 'l' not '1' at the end
   endpoint: 'https://test-payment.momo.vn/v2/gateway/api/create',
-  redirectUrl: 'http://localhost:3000/payment-success',
-  ipnUrl: 'http://localhost:5000/api/payment/momo/callback',
+  // Default URLs (will be overridden by parameters in createPaymentRequest)
+  redirectUrl: process.env.MOMO_REDIRECT_URL || 'http://localhost:3000/payment-success',
+  ipnUrl: process.env.MOMO_IPN_URL || 'http://localhost:5000/api/payment/momo/callback',
 };
 
 export interface MomoPaymentRequest {
@@ -17,6 +18,8 @@ export interface MomoPaymentRequest {
   orderInfo: string;
   amount: number;
   extraData?: string;
+  redirectUrl?: string; // Optional: if not provided, use default from config
+  ipnUrl?: string; // Optional: if not provided, use default from config
 }
 
 export interface MomoPaymentResponse {
@@ -122,6 +125,10 @@ export class MomoService {
   static async createPaymentRequest(
     request: MomoPaymentRequest
   ): Promise<MomoPaymentResponse> {
+    // Use provided URLs or fallback to config defaults
+    const redirectUrl = request.redirectUrl || MOMO_CONFIG.redirectUrl;
+    const ipnUrl = request.ipnUrl || MOMO_CONFIG.ipnUrl;
+    
     // Generate requestId: partnerCode + timestamp (as in MoMo.js example)
     const requestId = MOMO_CONFIG.partnerCode + Date.now().toString();
     // In MoMo.js example: orderId = requestId (they must be the same)
@@ -137,11 +144,11 @@ export class MomoService {
       "accessKey=" + MOMO_CONFIG.accessKey +
       "&amount=" + amount +
       "&extraData=" + extraData +
-      "&ipnUrl=" + MOMO_CONFIG.ipnUrl +
+      "&ipnUrl=" + ipnUrl +
       "&orderId=" + orderId +
       "&orderInfo=" + request.orderInfo +
       "&partnerCode=" + MOMO_CONFIG.partnerCode +
-      "&redirectUrl=" + MOMO_CONFIG.redirectUrl +
+      "&redirectUrl=" + redirectUrl +
       "&requestId=" + requestId +
       "&requestType=" + requestType;
 
@@ -166,8 +173,8 @@ export class MomoService {
       amount: amount,
       orderId: orderId,
       orderInfo: request.orderInfo,
-      redirectUrl: MOMO_CONFIG.redirectUrl,
-      ipnUrl: MOMO_CONFIG.ipnUrl,
+      redirectUrl: redirectUrl,
+      ipnUrl: ipnUrl,
       extraData: extraData,
       requestType: requestType,
       signature: signature,
