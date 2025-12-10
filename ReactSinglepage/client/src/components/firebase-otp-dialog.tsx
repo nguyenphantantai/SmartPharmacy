@@ -122,18 +122,35 @@ export default function FirebaseOTPDialog({
     // Format phone number for Firebase - ensure E.164
     let formattedPhone = phoneNumber.trim();
 
-    // Remove all spaces
-    formattedPhone = formattedPhone.replace(/\s+/g, '');
+    // Remove all spaces and special characters except +
+    formattedPhone = formattedPhone.replace(/[\s\-\(\)]/g, '');
+
+    // Validate Vietnamese phone number format before formatting
+    // VN phone: 10 digits starting with 0, or 9 digits after +84
+    const vnPhonePattern = /^(0|\+84)[3|5|7|8|9][0-9]{8}$/;
+    const cleanPhone = formattedPhone.startsWith('+') 
+      ? formattedPhone.replace('+84', '0') 
+      : formattedPhone;
+    
+    if (!vnPhonePattern.test(cleanPhone)) {
+      throw new Error('Số điện thoại Việt Nam không hợp lệ. Vui lòng nhập số 10 chữ số bắt đầu bằng 0 (VD: 0987654321)');
+    }
 
     // If already starts with +, keep as is
     if (formattedPhone.startsWith('+')) {
-      // nothing
+      // Validate it's +84 format
+      if (!formattedPhone.startsWith('+84') || formattedPhone.length !== 12) {
+        throw new Error('Số điện thoại không hợp lệ. Vui lòng nhập số 10 chữ số bắt đầu bằng 0');
+      }
     } else if (formattedPhone.startsWith('0')) {
-      // VN local: 0xxxxxxxxx -> +84xxxxxxxxx
+      // VN local: 0xxxxxxxxx -> +84xxxxxxxxx (remove leading 0, add +84)
+      if (formattedPhone.length !== 10) {
+        throw new Error('Số điện thoại Việt Nam phải có 10 chữ số (VD: 0987654321)');
+      }
       formattedPhone = `+84${formattedPhone.slice(1)}`;
-    } else if (/^[0-9]{9,11}$/.test(formattedPhone)) {
-      // digits only without leading 0/+ , assume VN
-      formattedPhone = `+84${formattedPhone}`;
+    } else {
+      // Invalid format
+      throw new Error('Số điện thoại không hợp lệ. Vui lòng nhập số 10 chữ số bắt đầu bằng 0');
     }
       
     console.log('📱 Original phone:', phoneNumber);
