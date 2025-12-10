@@ -182,6 +182,13 @@ export default function FirebaseOTPDialog({
       });
       
     } catch (error: any) {
+      console.error('❌ Full error:', {
+        code: error.code,
+        message: error.message,
+        serverResponse: error.serverResponse, // ← Quan trọng
+        customData: error.customData,
+        stack: error.stack
+      });
       console.error('❌ Error initializing Firebase OTP:', error);
       console.error('❌ Error code:', error.code);
       console.error('❌ Error message:', error.message);
@@ -203,7 +210,7 @@ export default function FirebaseOTPDialog({
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = "Số điện thoại không hợp lệ";
       } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = "Quá nhiều yêu cầu. Vui lòng thử lại sau";
+        errorMessage = "Quá nhiều yêu cầu gửi OTP. Vui lòng chờ 5-10 phút rồi thử lại, hoặc thử với số điện thoại khác";
       } else if (error.code === 'auth/quota-exceeded') {
         errorMessage = "Đã vượt quá giới hạn gửi SMS. Vui lòng thử lại sau";
       } else if (error.code === 'auth/internal-error-encountered') {

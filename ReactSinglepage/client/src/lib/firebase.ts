@@ -48,7 +48,8 @@ export const initializeRecaptcha = (elementId: string = 'recaptcha-container') =
   const recaptchaVerifier = new RecaptchaVerifier(auth, elementId, {
     size: 'invisible',
     callback: (response: any) => {
-      console.log('✅ reCAPTCHA solved');
+      console.log('✅ reCAPTCHA verified');
+      console.log('✅ reCAPTCHA response:', response);
     },
     'expired-callback': () => {
       console.log('⏰ reCAPTCHA expired');
