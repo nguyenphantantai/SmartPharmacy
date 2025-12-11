@@ -41,7 +41,7 @@ export class CartController {
       if (!product.inStock || product.stockQuantity < quantity) {
         return res.status(400).json({
           success: false,
-          message: 'Product is out of stock',
+          message: 'Sản phẩm này đã hết hàng, đang bổ sung thêm hàng',
         });
       }
 

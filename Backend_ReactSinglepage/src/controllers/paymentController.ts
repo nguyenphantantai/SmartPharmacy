@@ -292,12 +292,21 @@ export class PaymentController {
       // resultCode = 0: Success - Auto confirm payment and order for online payments
       // resultCode != 0: Failed - Cancel order and mark payment as failed
       if (callbackData.resultCode === 0) {
+        // Check if order was already confirmed (to avoid double processing)
+        const wasAlreadyPaid = order.paymentStatus === 'paid';
+        
         // For online payments (momo/zalopay), auto-confirm payment and order
         order.paymentStatus = 'paid';
         order.status = 'confirmed';
         await order.save();
 
         console.log(`Order ${order.orderNumber} payment confirmed via MoMo - Auto confirmed payment and order`);
+        
+        // Reduce product stock if order was just confirmed (not already paid)
+        if (!wasAlreadyPaid) {
+          const { OrderController } = await import('./orderController');
+          await OrderController.reduceProductStock(order._id);
+        }
       } else {
         // Payment failed or expired - Cancel order and mark payment as failed
         order.paymentStatus = 'failed';
@@ -392,11 +401,18 @@ export class PaymentController {
         
         if (resultCodeNum === 0) {
           // Payment successful
+          const wasAlreadyPaid = order.paymentStatus === 'paid';
           if (order.paymentStatus !== 'paid') {
             order.paymentStatus = 'paid';
             order.status = 'confirmed';
             await order.save();
             console.log(`Order ${order.orderNumber} payment confirmed via resultCode=0 - Auto confirmed payment and order`);
+            
+            // Reduce product stock if order was just confirmed (not already paid)
+            if (!wasAlreadyPaid) {
+              const { OrderController } = await import('./orderController');
+              await OrderController.reduceProductStock(order._id);
+            }
           }
           return res.json({
             success: true,
@@ -463,11 +479,18 @@ export class PaymentController {
         // For online payments (momo/zalopay), auto-confirm payment and order if successful
         if (momoStatus.resultCode === 0) {
           // Payment successful - confirm payment and order
+          const wasAlreadyPaid = order.paymentStatus === 'paid';
           if (order.paymentStatus !== 'paid') {
             order.paymentStatus = 'paid';
             order.status = 'confirmed';
             await order.save();
             console.log(`✅ Order ${order.orderNumber} payment confirmed via MoMo query - Auto confirmed payment and order`);
+            
+            // Reduce product stock if order was just confirmed (not already paid)
+            if (!wasAlreadyPaid) {
+              const { OrderController } = await import('./orderController');
+              await OrderController.reduceProductStock(order._id);
+            }
           }
         } else {
           // Payment failed or expired - Cancel order and mark payment as failed
@@ -1061,6 +1084,9 @@ export class PaymentController {
       // vnp_ResponseCode = '00': Success
       // vnp_TransactionStatus = '00': Success
       if (callbackData.vnp_ResponseCode === '00' && callbackData.vnp_TransactionStatus === '00') {
+        // Check if order was already confirmed (to avoid double processing)
+        const wasAlreadyPaid = order.paymentStatus === 'paid';
+        
         // For online payments (vnpay), auto-confirm payment and order
         order.paymentStatus = 'paid';
         order.status = 'confirmed';
@@ -1071,6 +1097,12 @@ export class PaymentController {
         await order.save();
 
         console.log(`Order ${order.orderNumber} payment confirmed via VNPay - Auto confirmed payment and order`);
+        
+        // Reduce product stock if order was just confirmed (not already paid)
+        if (!wasAlreadyPaid) {
+          const { OrderController } = await import('./orderController');
+          await OrderController.reduceProductStock(order._id);
+        }
       } else {
         order.paymentStatus = 'failed';
         await order.save();
@@ -1136,11 +1168,18 @@ export class PaymentController {
       // If vnp_ResponseCode is provided and is '00', confirm payment immediately
       // This handles the case when user is redirected from VNPay with vnp_ResponseCode=00
       if (vnp_ResponseCode === '00') {
+        const wasAlreadyPaid = order.paymentStatus === 'paid';
         if (order.paymentStatus !== 'paid') {
           order.paymentStatus = 'paid';
           order.status = 'confirmed';
           await order.save();
           console.log(`Order ${order.orderNumber} payment confirmed via vnp_ResponseCode=00 - Auto confirmed payment and order`);
+          
+          // Reduce product stock if order was just confirmed (not already paid)
+          if (!wasAlreadyPaid) {
+            const { OrderController } = await import('./orderController');
+            await OrderController.reduceProductStock(order._id);
+          }
         }
         return res.json({
           success: true,
@@ -1173,6 +1212,7 @@ export class PaymentController {
         // Update order if payment is confirmed
         // For online payments (vnpay), auto-confirm payment and order
         if (vnpayStatus.vnp_ResponseCode === '00' && vnpayStatus.vnp_TransactionStatus === '00') {
+          const wasAlreadyPaid = order.paymentStatus === 'paid';
           order.paymentStatus = 'paid';
           order.status = 'confirmed';
           if (!order.vnpayTransactionNo && vnpayStatus.vnp_TransactionNo) {
@@ -1180,6 +1220,12 @@ export class PaymentController {
           }
           await order.save();
           console.log(`Order ${order.orderNumber} payment confirmed via VNPay query - Auto confirmed payment and order`);
+          
+          // Reduce product stock if order was just confirmed (not already paid)
+          if (!wasAlreadyPaid) {
+            const { OrderController } = await import('./orderController');
+            await OrderController.reduceProductStock(order._id);
+          }
         }
 
         return res.json({

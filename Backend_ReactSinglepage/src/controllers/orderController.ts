@@ -62,6 +62,61 @@ async function findProductById(productId: string) {
 }
 
 export class OrderController {
+  /**
+   * Helper function to reduce product stock when order is confirmed
+   * Only reduces stock once per order (checks if order was already paid before)
+   */
+  static async reduceProductStock(orderId: mongoose.Types.ObjectId): Promise<void> {
+    try {
+      const order = await Order.findById(orderId);
+      if (!order) {
+        console.error(`Order not found for stock reduction: ${orderId}`);
+        return;
+      }
+
+      // Only reduce stock if order is confirmed and paid
+      // Check if order was already processed (to avoid double reduction)
+      if (order.paymentStatus !== 'paid' || order.status !== 'confirmed') {
+        console.log(`Order ${order.orderNumber} not confirmed/paid yet, skipping stock reduction`);
+        return;
+      }
+
+      // Get all order items
+      const orderItems = await OrderItem.find({ orderId: order._id });
+      
+      if (orderItems.length === 0) {
+        console.log(`No items found for order ${order.orderNumber}`);
+        return;
+      }
+
+      console.log(`Reducing stock for order ${order.orderNumber} with ${orderItems.length} items`);
+
+      // Reduce stock for each product
+      for (const item of orderItems) {
+        const product = await Product.findById(item.productId);
+        if (!product) {
+          console.error(`Product not found: ${item.productId}`);
+          continue;
+        }
+
+        const oldStock = product.stockQuantity || 0;
+        const quantityToReduce = item.quantity || 1;
+        const newStock = Math.max(0, oldStock - quantityToReduce);
+
+        product.stockQuantity = newStock;
+        product.inStock = newStock > 0;
+        await product.save();
+
+        console.log(`Product ${product.name} (${product._id}): Stock reduced from ${oldStock} to ${newStock} (quantity: ${quantityToReduce})`);
+      }
+
+      console.log(`✅ Stock reduction completed for order ${order.orderNumber}`);
+    } catch (error) {
+      console.error('Error reducing product stock:', error);
+      // Don't throw error - stock reduction failure shouldn't break order confirmation
+    }
+  }
+
   // Get user's order history (authenticated)
   static async getUserOrders(req: AuthenticatedRequest, res: Response) {
     try {
@@ -237,6 +292,22 @@ export class OrderController {
         if (!product) {
           return res.status(400).json({ success: false, message: `Product ${item.productId} not found` });
         }
+        
+        // Check stock availability
+        if (!product.inStock || product.stockQuantity === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Sản phẩm "${product.name}" đã hết hàng, đang bổ sung thêm hàng` 
+          });
+        }
+        
+        if (product.stockQuantity < item.quantity) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Sản phẩm "${product.name}" đã hết hàng, đang bổ sung thêm hàng. Số lượng còn lại: ${product.stockQuantity} ${product.unit}` 
+          });
+        }
+        
         enrichedItems.push({
           productId: String(product._id),
           quantity: item.quantity,
@@ -536,6 +607,22 @@ export class OrderController {
         if (!product) {
           return res.status(400).json({ success: false, message: `Product ${item.productId} not found` });
         }
+        
+        // Check stock availability
+        if (!product.inStock || product.stockQuantity === 0) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Sản phẩm "${product.name}" đã hết hàng, đang bổ sung thêm hàng` 
+          });
+        }
+        
+        if (product.stockQuantity < item.quantity) {
+          return res.status(400).json({ 
+            success: false, 
+            message: `Sản phẩm "${product.name}" đã hết hàng, đang bổ sung thêm hàng. Số lượng còn lại: ${product.stockQuantity} ${product.unit}` 
+          });
+        }
+        
         validItems.push({ orderId: null, productId: product._id, quantity: item.quantity, price: product.price });
         evalItems.push({ productId: String(product._id), quantity: item.quantity, price: product.price, categoryId: String(product.categoryId) });
       }
@@ -932,11 +1019,17 @@ export class OrderController {
       }
       
       // Confirm payment and update order status
+      const wasAlreadyPaid = order.paymentStatus === 'paid';
       order.paymentStatus = 'paid';
       order.status = 'confirmed';
       await order.save();
       
       console.log(`Order ${order.orderNumber} payment confirmed by admin/pharmacist`);
+      
+      // Reduce product stock if order was just confirmed (not already paid)
+      if (!wasAlreadyPaid) {
+        await OrderController.reduceProductStock(order._id);
+      }
       
       res.json({
         success: true,

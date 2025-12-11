@@ -102,19 +102,68 @@ export default function ProductDetailPage() {
   };
 
   const handleQuantityChange = (delta: number) => {
+    if (!product) return;
+    const newQuantity = quantity + delta;
+    // Don't allow quantity to exceed stock
+    if (product.stockQuantity !== undefined && newQuantity > product.stockQuantity) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
     setQuantity((prev) => Math.max(1, prev + delta));
   };
 
   const handleBuyNow = () => {
-    if (product) {
-      setIsPopupOpen(true);
+    if (!product) return;
+    
+    // Check stock availability
+    if (product.stockQuantity !== undefined && product.stockQuantity === 0) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsPopupOpen(true);
   };
 
   const handleAddToCart = () => {
-    if (product) {
-      addItem(product, quantity, true);
+    if (!product) return;
+    
+    // Check stock availability
+    if (product.stockQuantity !== undefined && product.stockQuantity === 0) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
     }
+    
+    if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    addItem(product, quantity, true);
   };
 
   // Create array of images (main image + potentially more)
@@ -241,6 +290,29 @@ export default function ProductDetailPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Giá đã bao gồm thuế. Phí vận chuyển và các chi phí khác (nếu có) sẽ được thể hiện khi đặt hàng.
               </p>
+              {/* Stock Quantity */}
+              <div className="mb-4">
+                {product.stockQuantity !== undefined && (
+                  <div className="flex items-center gap-2">
+                    {product.stockQuantity === 0 ? (
+                      <Badge className="bg-red-100 text-red-800 border-red-300">
+                        <Package className="h-3 w-3 mr-1" />
+                        Hết hàng
+                      </Badge>
+                    ) : product.stockQuantity <= 10 ? (
+                      <Badge className="bg-orange-100 text-orange-800 border-orange-300">
+                        <Package className="h-3 w-3 mr-1" />
+                        Còn {product.stockQuantity} {product.unit}
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-green-100 text-green-800 border-green-300">
+                        <Package className="h-3 w-3 mr-1" />
+                        Còn {product.stockQuantity} {product.unit}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Product Classification */}
