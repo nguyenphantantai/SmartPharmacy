@@ -1270,12 +1270,12 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
     return "Tôi không tìm thấy thuốc phù hợp với triệu chứng của bạn. Vui lòng liên hệ dược sĩ để được tư vấn chi tiết.";
   }
   
-  let response = `💊 **Dựa trên triệu chứng của bạn, tôi gợi ý các thuốc sau:**\n\n`;
-  response += "⚠️ Lưu ý: Đây chỉ là gợi ý tham khảo. Vui lòng tham khảo ý kiến dược sĩ trước khi sử dụng.\n\n";
+  let response = `💊 **Dựa trên yêu cầu của bạn, tôi gợi ý một số thuốc sau:**\n\n`;
+  response += "⚠️ Đây chỉ là tư vấn tham khảo. Vui lòng hỏi dược sĩ trước khi dùng.\n\n";
   
-  // Enrich medicine information
+  // Enrich medicine information - Limit to 5 medicines max
   const enrichedMedicines = await Promise.all(
-    medicines.slice(0, 8).map(med => enrichMedicineInfo(med))
+    medicines.slice(0, 5).map(med => enrichMedicineInfo(med))
   );
   
   enrichedMedicines.forEach((medicine, index) => {
@@ -1286,52 +1286,39 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
       response += `   💰 Giá: ${medicine.price.toLocaleString('vi-VN')}đ\n`;
     }
     
-    // Hàm lượng
-    if (medicine.strength) {
-      response += `   💊 Hàm lượng: ${medicine.strength}\n`;
-    } else {
-      // Try to extract from name
-      const strength = extractStrengthFromName(medicine.name);
-      if (strength) {
-        response += `   💊 Hàm lượng: ${strength}\n`;
-      }
-    }
-    
-    // Đơn vị
-    if (medicine.unit) {
-      response += `   📦 Đơn vị: ${medicine.unit}\n`;
-    }
-    
-    // Công dụng / Chỉ định
+    // Tác dụng (Công dụng) - QUAN TRỌNG: Phải là mô tả công dụng, không phải hàm lượng
     if (medicine.indication) {
       const shortIndication = medicine.indication.length > 150 
         ? medicine.indication.substring(0, 150) + '...' 
         : medicine.indication;
-      response += `   📋 Công dụng: ${shortIndication}\n`;
+      response += `   💊 Tác dụng: ${shortIndication}\n`;
     } else if (medicine.description) {
       const shortDesc = medicine.description.length > 150 
         ? medicine.description.substring(0, 150) + '...' 
         : medicine.description;
-      response += `   📋 Công dụng: ${shortDesc}\n`;
+      response += `   💊 Tác dụng: ${shortDesc}\n`;
     }
     
-    // Chỉ định (nếu có thông tin chi tiết hơn)
-    if (medicine.indication && medicine.indication !== medicine.description) {
-      // Already shown above
+    // Quy cách (Đơn vị)
+    if (medicine.unit) {
+      response += `   📦 Quy cách: ${medicine.unit}\n`;
     }
     
-    // Dị ứng thuốc / Chống chỉ định
-    if (medicine.contraindication) {
-      const shortContra = medicine.contraindication.length > 100 
-        ? medicine.contraindication.substring(0, 100) + '...' 
-        : medicine.contraindication;
-      response += `   ⚠️ Chống chỉ định: ${shortContra}\n`;
+    // Hàm lượng (nếu có, hiển thị riêng)
+    if (medicine.strength) {
+      response += `   📏 Hàm lượng: ${medicine.strength}\n`;
+    } else {
+      // Try to extract from name
+      const strength = extractStrengthFromName(medicine.name);
+      if (strength) {
+        response += `   📏 Hàm lượng: ${strength}\n`;
+      }
     }
     
     response += '\n';
   });
   
-  response += "Bạn có muốn biết thêm thông tin chi tiết về thuốc nào không? Hoặc tôi có thể tìm thêm các thuốc khác.";
+  response += "Bạn đang bị ho, nghẹt mũi hay đau họng không? Tôi có thể chọn ra thuốc phù hợp nhất cho triệu chứng cụ thể của bạn.";
   
   return response;
 }
