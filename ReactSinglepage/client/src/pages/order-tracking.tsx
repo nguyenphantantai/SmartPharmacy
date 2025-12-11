@@ -474,14 +474,14 @@ export default function OrderTrackingPage() {
                         </div>
                       </div>
                       
-                      {selectedOrder.discountAmount && selectedOrder.discountAmount > 0 ? (
+                      {selectedOrder.discountAmount && selectedOrder.discountAmount > 0 && (
                         <div className="p-3 bg-green-50 rounded-lg">
                           <p className="text-sm text-green-800">
                             <strong>Mã giảm giá:</strong> {selectedOrder.couponCode} 
                             <span className="ml-2">(-{format(selectedOrder.discountAmount)} ₫)</span>
                           </p>
                         </div>
-                      ) : null}
+                      )}
 
                       <div>
                         <p className="text-muted-foreground text-sm mb-2">Địa chỉ giao hàng:</p>
