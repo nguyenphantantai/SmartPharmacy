@@ -389,8 +389,10 @@ export class VnpayService {
       hashAlgorithm: 'SHA512 (auto-detected by VNPay)',
     });
 
-    // Add extraData if provided (must be base64 encoded)
-    if (request.extraData) {
+    // VNPay email phản hồi: “VNPAY không hỗ trợ tham số vnp_ExtraData”
+    // Chỉ gửi vnp_ExtraData khi được bật rõ ràng qua biến môi trường
+    // Mặc định: KHÔNG gửi vnp_ExtraData để tránh code=99
+    if (process.env.VNPAY_INCLUDE_EXTRA_DATA === 'true' && request.extraData) {
       paymentData.vnp_ExtraData = Buffer.from(request.extraData).toString('base64');
     }
 
