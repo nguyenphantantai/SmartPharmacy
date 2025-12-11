@@ -202,6 +202,7 @@ function Router() {
       <Route path="/checkout" component={CheckoutPage} />
       <Route path="/order-confirmation/:id" component={OrderConfirmationPage} />
       <Route path="/track-order" component={OrderTrackingPage} />
+      <Route path="/order-tracking" component={OrderTrackingPage} /> {/* alias to avoid 404 from links */}
       <Route path="/payment-success" component={PaymentSuccessPage} />
       <Route path="/search" component={SearchResultsPage} />
       <Route path="/product/:id" component={ProductDetailPage} />
