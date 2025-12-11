@@ -27,11 +27,11 @@ const symptomToMedicines: { [key: string]: { keywords: string[]; medicineNames: 
   },
   'cảm cúm': {
     keywords: ['cảm cúm', 'cảm', 'cúm', 'sốt', 'đau đầu', 'nhức đầu'],
-    medicineNames: ['Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol']
+    medicineNames: ['Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol', 'Terpin Codein', 'Terpin-codein', 'Coldacmin']
   },
   'cảm': {
     keywords: ['cảm', 'cảm lạnh', 'cảm thông thường'],
-    medicineNames: ['Paracetamol', 'Decolgen', 'Tiffy', 'Panadol']
+    medicineNames: ['Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol', 'Terpin Codein', 'Terpin-codein', 'Coldacmin', 'Loratadine', 'Cetirizine']
   },
   'sốt': {
     keywords: ['sốt', 'nóng sốt', 'sốt cao'],
@@ -184,6 +184,34 @@ const commonMedicineInfo: { [key: string]: { indication: string; description: st
   'Decolgen': {
     indication: 'Điều trị triệu chứng cảm cúm: hạ sốt, giảm đau, giảm nghẹt mũi, sổ mũi',
     description: 'Decolgen là thuốc kết hợp dùng để điều trị các triệu chứng cảm cúm như sốt, đau đầu, nghẹt mũi, sổ mũi.'
+  },
+  'Tiffy': {
+    indication: 'Giảm nghẹt mũi, sổ mũi, đau đầu do cảm lạnh',
+    description: 'Tiffy là thuốc kết hợp dùng để điều trị các triệu chứng cảm lạnh như nghẹt mũi, sổ mũi, đau đầu.'
+  },
+  'Panadol': {
+    indication: 'Giảm đau, hạ sốt, giảm mệt mỏi',
+    description: 'Panadol là thuốc giảm đau, hạ sốt phổ biến, dùng để điều trị đau đầu, đau cơ, sốt và mệt mỏi.'
+  },
+  'Efferalgan': {
+    indication: 'Hạ sốt, giảm đau nhẹ đến vừa',
+    description: 'Efferalgan là thuốc giảm đau, hạ sốt, dùng để điều trị các cơn đau nhẹ đến vừa và hạ sốt.'
+  },
+  'Acetylcysteine': {
+    indication: 'Giúp tiêu đờm (chỉ dùng nếu có ho đờm)',
+    description: 'Acetylcysteine là thuốc long đờm, dùng để điều trị ho có đờm, giúp làm loãng đờm và dễ khạc ra.'
+  },
+  'Terpin Codein': {
+    indication: 'Giảm ho khan, ho do kích thích',
+    description: 'Terpin Codein là thuốc giảm ho, dùng để điều trị ho khan, ho do kích thích.'
+  },
+  'Terpin-codein': {
+    indication: 'Giảm ho khan, ho do kích thích',
+    description: 'Terpin Codein là thuốc giảm ho, dùng để điều trị ho khan, ho do kích thích.'
+  },
+  'Coldacmin': {
+    indication: 'Điều trị triệu chứng cảm cúm: hạ sốt, giảm đau, giảm nghẹt mũi',
+    description: 'Coldacmin là thuốc kết hợp dùng để điều trị các triệu chứng cảm cúm.'
   },
   'Clorpheniramin': {
     indication: 'Điều trị các triệu chứng dị ứng: mề đay, ngứa, viêm mũi dị ứng, phát ban',
@@ -379,24 +407,29 @@ async function getUserPurchaseHistory(userId: string): Promise<any[]> {
 }
 
 // Semantic search - find medicines by meaning, not exact keywords
+// QUAN TRỌNG: Chỉ tìm thuốc từ medicineNames mapping để đảm bảo chính xác
 async function semanticSearch(query: string): Promise<any[]> {
   try {
     const lowerQuery = query.toLowerCase();
     const foundMedicines: string[] = [];
-    const searchKeywords: string[] = [];
+    const matchedSymptoms: string[] = [];
     
     // Check symptom mapping for specific medicines
+    // Ưu tiên match chính xác symptom trước
     for (const [symptom, data] of Object.entries(symptomToMedicines)) {
       // Check if query contains any keyword
       const hasKeyword = data.keywords.some(keyword => lowerQuery.includes(keyword));
       
       if (hasKeyword || lowerQuery.includes(symptom)) {
         foundMedicines.push(...data.medicineNames);
-        searchKeywords.push(...data.keywords);
+        matchedSymptoms.push(symptom);
       }
     }
     
     if (foundMedicines.length === 0) return [];
+    
+    // Remove duplicates from medicine names
+    const uniqueMedicineNames = [...new Set(foundMedicines)];
     
     const db = mongoose.connection.db;
     if (!db) return [];
@@ -404,26 +437,18 @@ async function semanticSearch(query: string): Promise<any[]> {
     const productsCollection = db.collection('products');
     const medicinesCollection = db.collection('medicines');
     
-    // Search for specific medicine names
-    const medicineNameRegex = foundMedicines.map(name => ({
+    // QUAN TRỌNG: Chỉ search theo medicineNames, KHÔNG search bằng keywords
+    // Điều này đảm bảo chỉ tìm đúng thuốc được mapping, không tìm thuốc không liên quan
+    const medicineNameRegex = uniqueMedicineNames.map(name => ({
       $or: [
         { name: { $regex: name, $options: 'i' } },
-        { brand: { $regex: name, $options: 'i' } },
-        { description: { $regex: name, $options: 'i' } }
+        { brand: { $regex: name, $options: 'i' } }
       ]
     }));
     
-    // Also search by keywords for broader results
-    const keywordRegex = searchKeywords.map(keyword => ({
-      $or: [
-        { name: { $regex: keyword, $options: 'i' } },
-        { description: { $regex: keyword, $options: 'i' } }
-      ]
-    }));
-    
-    // Search in products collection
+    // Search in products collection - CHỈ search theo medicineNames
     let products = await productsCollection.find({
-      $or: [...medicineNameRegex, ...keywordRegex],
+      $or: medicineNameRegex,
       inStock: true,
       stockQuantity: { $gt: 0 }
     })
@@ -433,7 +458,7 @@ async function semanticSearch(query: string): Promise<any[]> {
     // If not enough results, search in medicines collection
     if (products.length < 3) {
       const medicines = await medicinesCollection.find({
-        $or: [...medicineNameRegex, ...keywordRegex]
+        $or: medicineNameRegex
       })
       .limit(10 - products.length)
       .toArray();
@@ -447,22 +472,50 @@ async function semanticSearch(query: string): Promise<any[]> {
         inStock: true,
         stockQuantity: med.stockQuantity || 0,
         unit: med.unit || 'đơn vị',
-        imageUrl: med.imageUrl || ''
+        imageUrl: med.imageUrl || '',
+        indication: med.indication || ''
       }));
       
       products = [...products, ...convertedMedicines];
     }
     
+    // Filter out irrelevant medicines based on matched symptoms
+    // Ví dụ: Nếu chỉ hỏi "cảm" (không có "ho đờm"), loại bỏ Acetylcysteine
+    const filteredProducts = products.filter(product => {
+      const productNameLower = (product.name || '').toLowerCase();
+      
+      // Nếu hỏi "cảm" nhưng không có "ho đờm" hoặc "ho có đờm", loại bỏ thuốc long đờm
+      if (matchedSymptoms.includes('cảm') && !lowerQuery.includes('ho đờm') && !lowerQuery.includes('ho có đờm') && !lowerQuery.includes('long đờm')) {
+        if (productNameLower.includes('acetylcysteine') || 
+            productNameLower.includes('bromhexin') || 
+            productNameLower.includes('ambroxol') ||
+            productNameLower.includes('mucosolvan')) {
+          return false; // Loại bỏ thuốc long đờm khi không có ho đờm
+        }
+      }
+      
+      // Loại bỏ Probiotics khi hỏi về cảm
+      if (matchedSymptoms.includes('cảm') || matchedSymptoms.includes('cảm cúm')) {
+        if (productNameLower.includes('probiotic') || 
+            productNameLower.includes('men vi sinh') ||
+            productNameLower.includes('lactobacillus')) {
+          return false; // Loại bỏ Probiotics khi hỏi về cảm
+        }
+      }
+      
+      return true;
+    });
+    
     // Remove duplicates and prioritize exact matches
     const uniqueProducts = new Map();
-    for (const product of products) {
+    for (const product of filteredProducts) {
       const key = product.name?.toLowerCase() || '';
       if (!uniqueProducts.has(key)) {
         uniqueProducts.set(key, product);
       }
     }
     
-    return Array.from(uniqueProducts.values()).slice(0, 10);
+    return Array.from(uniqueProducts.values()).slice(0, 5); // Limit to 5 medicines
   } catch (error) {
     console.error('Error in semantic search:', error);
     return [];
@@ -1236,22 +1289,58 @@ async function enrichMedicineInfo(medicine: any): Promise<any> {
       ]
     });
     
-    if (medicineInfo) {
-      return {
-        ...medicine,
-        indication: medicineInfo.indication || medicine.indication || medicine.description || '',
-        contraindication: medicineInfo.contraindication || medicine.contraindication || '',
-        strength: medicineInfo.strength || medicine.strength || extractStrengthFromName(medicine.name),
-        unit: medicineInfo.unit || medicine.unit || 'đơn vị'
-      };
+    // Get indication - QUAN TRỌNG: Phải là mô tả công dụng, không phải hàm lượng
+    let indication = '';
+    if (medicineInfo?.indication) {
+      indication = medicineInfo.indication;
+    } else if (medicine.indication) {
+      indication = medicine.indication;
+    } else if (medicineInfo?.description) {
+      indication = medicineInfo.description;
+    } else if (medicine.description) {
+      indication = medicine.description;
+    } else {
+      // Fallback to commonMedicineInfo
+      const commonInfo = commonMedicineInfo[baseName] || commonMedicineInfo[medicine.name];
+      if (commonInfo) {
+        indication = commonInfo.indication || commonInfo.description || '';
+      }
     }
     
-    // Extract strength from name if not found
-    if (!medicine.strength) {
-      medicine.strength = extractStrengthFromName(medicine.name);
+    // QUAN TRỌNG: Nếu indication chỉ là hàm lượng (chứa "mg" hoặc "g" và không có mô tả), 
+    // thì lấy từ commonMedicineInfo hoặc tạo mô tả mặc định
+    if (indication && /^\d+(\s*[+\/]\s*\d+)?\s*(mg|g|ml|%)/i.test(indication.trim()) && indication.length < 50) {
+      // Có thể là hàm lượng, không phải công dụng
+      const commonInfo = commonMedicineInfo[baseName] || commonMedicineInfo[medicine.name];
+      if (commonInfo) {
+        indication = commonInfo.indication || commonInfo.description || '';
+      } else {
+        // Tạo mô tả mặc định dựa trên tên thuốc
+        if (baseName.toLowerCase().includes('paracetamol') || medicine.name.toLowerCase().includes('paracetamol')) {
+          indication = 'Hạ sốt, giảm đau nhẹ đến vừa';
+        } else if (baseName.toLowerCase().includes('panadol') || medicine.name.toLowerCase().includes('panadol')) {
+          indication = 'Giảm đau, hạ sốt, giảm mệt mỏi';
+        } else if (baseName.toLowerCase().includes('efferalgan') || medicine.name.toLowerCase().includes('efferalgan')) {
+          indication = 'Hạ sốt, giảm đau nhẹ đến vừa';
+        } else if (baseName.toLowerCase().includes('decolgen') || medicine.name.toLowerCase().includes('decolgen')) {
+          indication = 'Điều trị triệu chứng cảm cúm: hạ sốt, giảm đau, giảm nghẹt mũi, sổ mũi';
+        } else if (baseName.toLowerCase().includes('tiffy') || medicine.name.toLowerCase().includes('tiffy')) {
+          indication = 'Giảm nghẹt mũi, sổ mũi, đau đầu do cảm';
+        } else if (baseName.toLowerCase().includes('acetylcysteine') || medicine.name.toLowerCase().includes('acetylcysteine')) {
+          indication = 'Giúp tiêu đờm (chỉ dùng nếu có ho đờm)';
+        } else {
+          indication = 'Thông tin đang được cập nhật. Vui lòng liên hệ dược sĩ.';
+        }
+      }
     }
     
-    return medicine;
+    return {
+      ...medicine,
+      indication: indication || 'Thông tin đang được cập nhật. Vui lòng liên hệ dược sĩ.',
+      contraindication: medicineInfo?.contraindication || medicine.contraindication || '',
+      strength: medicineInfo?.strength || medicine.strength || extractStrengthFromName(medicine.name),
+      unit: medicineInfo?.unit || medicine.unit || 'đơn vị'
+    };
   } catch (error) {
     console.error('Error enriching medicine info:', error);
     return medicine;
@@ -1287,16 +1376,38 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
     }
     
     // Tác dụng (Công dụng) - QUAN TRỌNG: Phải là mô tả công dụng, không phải hàm lượng
-    if (medicine.indication) {
-      const shortIndication = medicine.indication.length > 150 
-        ? medicine.indication.substring(0, 150) + '...' 
-        : medicine.indication;
+    let indication = medicine.indication || medicine.description || '';
+    
+    // Kiểm tra xem indication có phải là hàm lượng không (chỉ chứa số và đơn vị, không có mô tả)
+    const isOnlyStrength = indication && /^\d+(\s*[+\/]\s*\d+)?\s*(mg|g|ml|%)/i.test(indication.trim()) && indication.length < 50;
+    
+    if (indication && !isOnlyStrength) {
+      const shortIndication = indication.length > 150 
+        ? indication.substring(0, 150) + '...' 
+        : indication;
       response += `   💊 Tác dụng: ${shortIndication}\n`;
-    } else if (medicine.description) {
-      const shortDesc = medicine.description.length > 150 
-        ? medicine.description.substring(0, 150) + '...' 
-        : medicine.description;
-      response += `   💊 Tác dụng: ${shortDesc}\n`;
+    } else {
+      // Nếu indication là hàm lượng hoặc rỗng, tạo mô tả mặc định
+      const baseName = medicine.name.replace(/\d+\s*(mg|g|ml|%|viên|hộp)/gi, '').trim().split('_')[0].split(' ')[0].toLowerCase();
+      let defaultIndication = '';
+      
+      if (baseName.includes('paracetamol')) {
+        defaultIndication = 'Hạ sốt, giảm đau nhẹ đến vừa';
+      } else if (baseName.includes('panadol')) {
+        defaultIndication = 'Giảm đau, hạ sốt, giảm mệt mỏi';
+      } else if (baseName.includes('efferalgan')) {
+        defaultIndication = 'Hạ sốt, giảm đau nhẹ đến vừa';
+      } else if (baseName.includes('decolgen')) {
+        defaultIndication = 'Điều trị triệu chứng cảm cúm: hạ sốt, giảm đau, giảm nghẹt mũi, sổ mũi';
+      } else if (baseName.includes('tiffy')) {
+        defaultIndication = 'Giảm nghẹt mũi, sổ mũi, đau đầu do cảm';
+      } else if (baseName.includes('acetylcysteine')) {
+        defaultIndication = 'Giúp tiêu đờm (chỉ dùng nếu có ho đờm)';
+      } else {
+        defaultIndication = 'Thông tin đang được cập nhật. Vui lòng liên hệ dược sĩ.';
+      }
+      
+      response += `   💊 Tác dụng: ${defaultIndication}\n`;
     }
     
     // Quy cách (Đơn vị)
