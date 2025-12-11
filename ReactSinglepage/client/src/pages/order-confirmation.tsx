@@ -113,6 +113,12 @@ export default function OrderConfirmationPage() {
     return statuses[status] || status;
   };
 
+  const resolveImageUrl = (url?: string) => {
+    if (!url || url === "") return "/medicine-images/default-medicine.jpg";
+    if (url.startsWith("http") || url.startsWith("data:")) return url;
+    return url.startsWith("/") ? url : `/medicine-images/${url}`;
+  };
+
   return (
     <div className="bg-background min-h-screen flex flex-col">
       <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
@@ -188,22 +194,36 @@ export default function OrderConfirmationPage() {
         <div className="bg-card rounded-2xl border p-8 mb-8">
           <h3 className="text-lg font-semibold mb-4">Sản phẩm đã đặt</h3>
           <div className="space-y-4">
-            {orderData.items.map((item: any, index: number) => (
-              <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
-                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <Package className="h-8 w-8 text-gray-400" />
+            {orderData.items.map((item: any, index: number) => {
+              const productName = item.productId?.name || item.productName || "Sản phẩm";
+              const imageUrl = resolveImageUrl(item.productId?.imageUrl || item.imageUrl);
+              return (
+                <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
+                  <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                    <img
+                      src={imageUrl}
+                      alt={productName}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium">{productName}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Số lượng: {item.quantity} | Đơn giá: {format(item.price)} ₫
+                    </p>
+                    {item.productId?.unit && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Đơn vị: {item.productId.unit}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">{format(item.price * item.quantity)} ₫</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-medium">{item.productId?.name || 'Sản phẩm'}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Số lượng: {item.quantity} | Đơn giá: {format(item.price)} ₫
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">{format(item.price * item.quantity)} ₫</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
