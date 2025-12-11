@@ -113,10 +113,11 @@ export default function OrderConfirmationPage() {
     return statuses[status] || status;
   };
 
-  const resolveImageUrl = (url?: string) => {
-    if (!url || url === "") return "/medicine-images/default-medicine.jpg";
-    if (url.startsWith("http") || url.startsWith("data:")) return url;
-    return url.startsWith("/") ? url : `/medicine-images/${url}`;
+  const resolveImageUrl = (...urls: (string | undefined)[]) => {
+    const candidate = urls.find((u) => u && u !== "");
+    if (!candidate) return "/medicine-images/default-medicine.jpg";
+    if (candidate.startsWith("http") || candidate.startsWith("data:")) return candidate;
+    return candidate.startsWith("/") ? candidate : `/medicine-images/${candidate}`;
   };
 
   return (
@@ -195,8 +196,15 @@ export default function OrderConfirmationPage() {
           <h3 className="text-lg font-semibold mb-4">Sản phẩm đã đặt</h3>
           <div className="space-y-4">
             {orderData.items.map((item: any, index: number) => {
-              const productName = item.productId?.name || item.productName || "Sản phẩm";
-              const imageUrl = resolveImageUrl(item.productId?.imageUrl || item.imageUrl);
+              const product = item.productId || {};
+              const productName = product?.name || item.productName || "Sản phẩm";
+              const imageUrl = resolveImageUrl(
+                product?.imageUrl,
+                product?.image,
+                product?.imagePath,
+                Array.isArray(product?.images) ? product.images[0] : undefined,
+                item.imageUrl
+              );
               return (
                 <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
                   <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
