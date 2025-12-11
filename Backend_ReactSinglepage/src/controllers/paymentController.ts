@@ -1024,8 +1024,28 @@ export class PaymentController {
       const { orderId } = req.params;
       const { vnp_ResponseCode } = req.query; // Get vnp_ResponseCode from query params if available
 
-      // Try to find order by orderNumber first
+      // Try to find order by orderNumber first (exact match)
       let order = await Order.findOne({ orderNumber: orderId });
+      
+      // If not found, try sanitized comparison (VNPay returns orderNumber without hyphens)
+      if (!order) {
+        const sanitizedOrderId = orderId.replace(/[^A-Za-z0-9]/g, '');
+        console.log(`🔍 Order not found by exact match, trying sanitized: ${sanitizedOrderId}`);
+        
+        // Find orders and compare sanitized versions
+        const allOrders = await Order.find({
+          paymentMethod: 'vnpay',
+        }).limit(100);
+        
+        for (const o of allOrders) {
+          const sanitizedOrderNumber = o.orderNumber.replace(/[^A-Za-z0-9]/g, '');
+          if (sanitizedOrderNumber === sanitizedOrderId) {
+            order = o;
+            console.log(`✅ Order found by sanitized comparison: ${o.orderNumber}`);
+            break;
+          }
+        }
+      }
       
       if (!order) {
         return res.status(404).json({
