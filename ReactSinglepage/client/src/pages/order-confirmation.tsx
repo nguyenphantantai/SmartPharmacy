@@ -5,8 +5,7 @@ import { useState, useEffect } from "react";
 import { Link, useRoute } from "wouter";
 import { CheckCircle, Package, Truck, CreditCard } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-
-const API_BASE = 'http://localhost:5000';
+import { API_BASE } from "@/lib/utils";
 
 export default function OrderConfirmationPage() {
   const [searchQuery, setSearchQuery] = useState("");
