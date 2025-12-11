@@ -129,21 +129,7 @@ export default function OrderTrackingPage() {
     // Only fetch if user is authenticated
     if (isAuthenticated) {
       fetchUserOrders();
-
-      // Auto-refresh every 30 seconds
-      const interval = setInterval(fetchUserOrders, 30000);
-
-      // Listen for focus events to refresh when user comes back to tab
-      const handleFocus = () => {
-        fetchUserOrders();
-      };
-
-      window.addEventListener('focus', handleFocus);
-
-      return () => {
-        clearInterval(interval);
-        window.removeEventListener('focus', handleFocus);
-      };
+      // Removed auto-refresh - only fetch on initial load or manual refresh
     } else {
       setLoadingUserOrders(false);
     }

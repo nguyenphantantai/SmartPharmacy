@@ -290,7 +290,7 @@ export class PaymentController {
 
       // Update order payment status based on resultCode
       // resultCode = 0: Success - Auto confirm payment and order for online payments
-      // resultCode != 0: Failed
+      // resultCode != 0: Failed - Cancel order and mark payment as failed
       if (callbackData.resultCode === 0) {
         // For online payments (momo/zalopay), auto-confirm payment and order
         order.paymentStatus = 'paid';
@@ -299,11 +299,13 @@ export class PaymentController {
 
         console.log(`Order ${order.orderNumber} payment confirmed via MoMo - Auto confirmed payment and order`);
       } else {
+        // Payment failed or expired - Cancel order and mark payment as failed
         order.paymentStatus = 'failed';
+        order.status = 'cancelled';
         await order.save();
 
         console.log(
-          `Order ${order.orderNumber} payment failed via MoMo: ${callbackData.message}`
+          `Order ${order.orderNumber} payment failed via MoMo (resultCode: ${callbackData.resultCode}): ${callbackData.message} - Order cancelled`
         );
       }
 
@@ -383,24 +385,48 @@ export class PaymentController {
         });
       }
 
-      // If resultCode is provided and is 0, confirm payment immediately
-      // This handles the case when user is redirected from MoMo with resultCode=0
-      if (resultCode === '0' || resultCode === 0) {
-        if (order.paymentStatus !== 'paid') {
-          order.paymentStatus = 'paid';
-          order.status = 'confirmed';
-          await order.save();
-          console.log(`Order ${order.orderNumber} payment confirmed via resultCode=0 - Auto confirmed payment and order`);
+      // If resultCode is provided, handle payment status immediately
+      // This handles the case when user is redirected from MoMo
+      if (resultCode !== undefined && resultCode !== null) {
+        const resultCodeNum = typeof resultCode === 'string' ? parseInt(resultCode) : resultCode;
+        
+        if (resultCodeNum === 0) {
+          // Payment successful
+          if (order.paymentStatus !== 'paid') {
+            order.paymentStatus = 'paid';
+            order.status = 'confirmed';
+            await order.save();
+            console.log(`Order ${order.orderNumber} payment confirmed via resultCode=0 - Auto confirmed payment and order`);
+          }
+          return res.json({
+            success: true,
+            data: {
+              orderId: order.orderNumber,
+              orderDbId: order._id.toString(),
+              paymentStatus: order.paymentStatus,
+              orderStatus: order.status,
+            },
+          });
+        } else {
+          // Payment failed or expired - Cancel order
+          // Only cancel if order is still pending (not already cancelled or confirmed)
+          if (order.status === 'pending' && order.paymentStatus !== 'paid') {
+            order.paymentStatus = 'failed';
+            order.status = 'cancelled';
+            await order.save();
+            console.log(`Order ${order.orderNumber} payment failed via resultCode=${resultCodeNum} - Order cancelled`);
+          }
+          return res.json({
+            success: true,
+            data: {
+              orderId: order.orderNumber,
+              orderDbId: order._id.toString(),
+              paymentStatus: order.paymentStatus,
+              orderStatus: order.status,
+              message: 'Payment failed or expired. Order has been cancelled. Please create a new order.',
+            },
+          });
         }
-        return res.json({
-          success: true,
-          data: {
-            orderId: order.orderNumber,
-            orderDbId: order._id.toString(),
-            paymentStatus: order.paymentStatus,
-            orderStatus: order.status,
-          },
-        });
       }
 
       // If payment is already confirmed, return status
@@ -419,18 +445,39 @@ export class PaymentController {
       // Query MoMo for latest status
       try {
         const requestId = Date.now().toString();
+        // Use momoOrderId if available, otherwise use orderNumber
+        const queryOrderId = order.momoOrderId || order.orderNumber;
         const momoStatus = await MomoService.queryPaymentStatus(
-          order.orderNumber,
+          queryOrderId,
           requestId
         );
 
-        // Update order if payment is confirmed
-        // For online payments (momo/zalopay), auto-confirm payment and order
+        console.log(`MoMo query result for order ${order.orderNumber}:`, {
+          resultCode: momoStatus.resultCode,
+          message: momoStatus.message,
+          orderId: momoStatus.orderId,
+          amount: momoStatus.amount
+        });
+
+        // Update order based on payment status
+        // For online payments (momo/zalopay), auto-confirm payment and order if successful
         if (momoStatus.resultCode === 0) {
-          order.paymentStatus = 'paid';
-          order.status = 'confirmed';
-          await order.save();
-          console.log(`Order ${order.orderNumber} payment confirmed via MoMo query - Auto confirmed payment and order`);
+          // Payment successful - confirm payment and order
+          if (order.paymentStatus !== 'paid') {
+            order.paymentStatus = 'paid';
+            order.status = 'confirmed';
+            await order.save();
+            console.log(`✅ Order ${order.orderNumber} payment confirmed via MoMo query - Auto confirmed payment and order`);
+          }
+        } else {
+          // Payment failed or expired - Cancel order and mark payment as failed
+          // Only cancel if order is still pending (not already cancelled or confirmed)
+          if (order.status === 'pending' && order.paymentStatus !== 'paid') {
+            order.paymentStatus = 'failed';
+            order.status = 'cancelled';
+            await order.save();
+            console.log(`❌ Order ${order.orderNumber} payment failed via MoMo query (resultCode: ${momoStatus.resultCode}): ${momoStatus.message || 'Payment failed or expired'} - Order cancelled`);
+          }
         }
 
         return res.json({
@@ -444,6 +491,18 @@ export class PaymentController {
           },
         });
       } catch (queryError: any) {
+        // If query fails, check if order is still pending after validity period (15 minutes)
+        // If order is pending and created more than 15 minutes ago, cancel it
+        const orderAge = Date.now() - new Date(order.createdAt).getTime();
+        const validityPeriod = 15 * 60 * 1000; // 15 minutes in milliseconds
+        
+        if (order.status === 'pending' && order.paymentStatus !== 'paid' && orderAge > validityPeriod) {
+          order.paymentStatus = 'failed';
+          order.status = 'cancelled';
+          await order.save();
+          console.log(`Order ${order.orderNumber} expired (${Math.round(orderAge / 60000)} minutes old) - Order cancelled due to payment timeout`);
+        }
+        
         // If query fails, still return current order status
         console.error('MoMo query error, returning current order status:', queryError);
         return res.json({
