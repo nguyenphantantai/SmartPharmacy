@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { X, Minus, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { X, Minus, Plus, Package } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -70,12 +71,50 @@ export default function ProductSelectionPopup({
   const discountPercent = originalPrice > 0 ? Math.round((discount / originalPrice) * 100) : 0;
 
   const handleAddToCart = () => {
+    // Check stock availability
+    if (product.stockQuantity !== undefined && product.stockQuantity === 0) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log('🛒 Adding to cart:', { product: product.name, quantity });
     addItem(product, quantity, true); // Show notification
     onClose();
   };
 
   const handleBuyNow = () => {
+    // Check stock availability
+    if (product.stockQuantity !== undefined && product.stockQuantity === 0) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     console.log('⚡ Buying now:', { product: product.name, quantity });
     // Clear cart and add only this product
     addItem(product, quantity, false); // Don't show notification for buy now
@@ -84,9 +123,22 @@ export default function ProductSelectionPopup({
   };
 
   const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1) {
-      setQuantity(newQuantity);
+    if (newQuantity < 1) {
+      setQuantity(1);
+      return;
     }
+    
+    // Check stock availability
+    if (product.stockQuantity !== undefined && newQuantity > product.stockQuantity) {
+      toast({
+        title: "Thông báo",
+        description: "Sản phẩm này đã hết hàng, đang bổ sung thêm hàng",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setQuantity(newQuantity);
   };
 
   const popupContent = (
@@ -169,9 +221,30 @@ export default function ProductSelectionPopup({
                   {formatPrice(product.price)} ₫/{product.unit}
                 </span>
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 mb-2">
                 Tích lũy từ {Math.round(currentPrice / 100)} P-Xu vàng
               </div>
+              {/* Stock Quantity */}
+              {product.stockQuantity !== undefined && (
+                <div className="mt-2">
+                  {product.stockQuantity === 0 ? (
+                    <Badge className="bg-red-100 text-red-800 border-red-300">
+                      <Package className="h-3 w-3 mr-1" />
+                      Hết hàng
+                    </Badge>
+                  ) : product.stockQuantity <= 10 ? (
+                    <Badge className="bg-orange-100 text-orange-800 border-orange-300">
+                      <Package className="h-3 w-3 mr-1" />
+                      Còn {product.stockQuantity} {product.unit}
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-800 border-green-300">
+                      <Package className="h-3 w-3 mr-1" />
+                      Còn {product.stockQuantity} {product.unit}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Quantity Selector */}
@@ -200,6 +273,7 @@ export default function ProductSelectionPopup({
                   variant="outline"
                   size="sm"
                   onClick={() => handleQuantityChange(quantity + 1)}
+                  disabled={product.stockQuantity !== undefined && quantity >= product.stockQuantity}
                   className="h-8 w-8 p-0 border-gray-300 hover:bg-gray-50"
                 >
                   <Plus className="h-4 w-4" />

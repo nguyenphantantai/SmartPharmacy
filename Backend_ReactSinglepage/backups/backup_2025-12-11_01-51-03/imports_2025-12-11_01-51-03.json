@@ -1,0 +1,43 @@
+[
+  {
+    "_id": "68c84becfce48add8202d4e2",
+    "importNumber": "IMP-20241201-0001",
+    "supplierId": "68c84beafce48add8202d4ca",
+    "supplierName": "Công ty TNHH Dược phẩm Traphaco",
+    "items": [
+      {
+        "productId": "68c84beafce48add8202d4c1",
+        "productName": "Paracetamol 500mg",
+        "quantity": 100,
+        "unitPrice": 20000,
+        "totalPrice": 2000000,
+        "batchNumber": "IMP-2024-001",
+        "expirationDate": "2026-09-15T17:25:00.974Z",
+        "manufacturingDate": "2025-09-15T17:25:00.974Z",
+        "receivedQuantity": 100,
+        "status": "completed"
+      },
+      {
+        "productId": "68c84beafce48add8202d4c2",
+        "productName": "Vitamin C 1000mg",
+        "quantity": 50,
+        "unitPrice": 140000,
+        "totalPrice": 7000000,
+        "batchNumber": "IMP-2024-002",
+        "expirationDate": "2027-09-15T17:25:00.974Z",
+        "manufacturingDate": "2025-09-15T17:25:00.974Z",
+        "receivedQuantity": 50,
+        "status": "completed"
+      }
+    ],
+    "totalQuantity": 150,
+    "totalAmount": 9000000,
+    "status": "completed",
+    "notes": "Nhập kho từ nhà cung cấp uy tín",
+    "receivedBy": "68c84bebfce48add8202d4dc",
+    "receivedAt": "2025-09-15T17:25:00.974Z",
+    "createdAt": "2025-09-15T17:25:00.978Z",
+    "updatedAt": "2025-09-15T17:25:00.978Z",
+    "__v": 0
+  }
+]

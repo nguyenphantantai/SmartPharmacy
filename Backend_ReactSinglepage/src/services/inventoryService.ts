@@ -1,4 +1,4 @@
-import { Import, Export, StockMovement, Product, Supplier } from '../models/schema.js';
+import { Import, Export, StockMovement, Product, ProductBatch, Supplier } from '../models/schema.js';
 import { IImportItem, IExportItem } from '../models/schema.js';
 
 export interface CreateImportData {
@@ -35,6 +35,80 @@ export interface StockAdjustmentData {
 }
 
 export class InventoryService {
+  /**
+   * Calculate total stock from all batches for a product
+   */
+  static async calculateTotalStockFromBatches(productId: string): Promise<number> {
+    const batches = await ProductBatch.find({ 
+      productId,
+      remainingQuantity: { $gt: 0 } // Only count batches with remaining stock
+    });
+    
+    const totalStock = batches.reduce((sum, batch) => sum + batch.remainingQuantity, 0);
+    return totalStock;
+  }
+
+  /**
+   * Update product stockQuantity from batches
+   */
+  static async updateProductStockFromBatches(productId: string): Promise<void> {
+    const totalStock = await this.calculateTotalStockFromBatches(productId);
+    
+    await Product.findByIdAndUpdate(productId, {
+      stockQuantity: totalStock,
+      inStock: totalStock > 0,
+    });
+  }
+
+  /**
+   * Reduce stock from batches using FEFO (First Expired First Out)
+   * Returns the batches that were used
+   */
+  static async reduceStockFromBatches(
+    productId: string, 
+    quantity: number
+  ): Promise<{ batchId: string; batchNumber: string; quantity: number }[]> {
+    // Get batches sorted by expiration date (FEFO) - earliest expiration first
+    const batches = await ProductBatch.find({
+      productId,
+      remainingQuantity: { $gt: 0 }
+    }).sort({ expirationDate: 1, createdAt: 1 }); // FEFO: sort by expiration date, then by creation date
+
+    if (batches.length === 0) {
+      throw new Error(`No available batches for product ${productId}`);
+    }
+
+    let remainingQuantity = quantity;
+    const usedBatches: { batchId: string; batchNumber: string; quantity: number }[] = [];
+
+    // Reduce from batches in FEFO order
+    for (const batch of batches) {
+      if (remainingQuantity <= 0) break;
+
+      const quantityToTake = Math.min(remainingQuantity, batch.remainingQuantity);
+      batch.remainingQuantity -= quantityToTake;
+      await batch.save();
+
+      usedBatches.push({
+        batchId: String(batch._id),
+        batchNumber: batch.batchNumber,
+        quantity: quantityToTake,
+      });
+
+      remainingQuantity -= quantityToTake;
+      console.log(`Reduced ${quantityToTake} from batch ${batch.batchNumber} (remaining: ${batch.remainingQuantity})`);
+    }
+
+    if (remainingQuantity > 0) {
+      throw new Error(`Insufficient stock. Requested: ${quantity}, Available: ${quantity - remainingQuantity}`);
+    }
+
+    // Update product total stock
+    await this.updateProductStockFromBatches(productId);
+
+    return usedBatches;
+  }
+
   /**
    * Generate unique import number
    */
@@ -187,17 +261,34 @@ export class InventoryService {
         throw new Error('Import is not in pending status');
       }
 
-      // Update product stock and create stock movements
+      // Update product stock and create batch records
       for (const item of importRecord.items) {
         const product = await Product.findById(item.productId);
         if (!product) continue;
 
-        const previousStock = product.stockQuantity;
-        const newStock = previousStock + item.quantity;
+        // Create ProductBatch record for this lot
+        const batch = await ProductBatch.create({
+          productId: item.productId,
+          batchNumber: item.batchNumber,
+          expirationDate: item.expirationDate,
+          manufacturingDate: item.manufacturingDate,
+          quantity: item.quantity,
+          remainingQuantity: item.quantity, // Initially, all quantity is remaining
+          importId: importId,
+          importNumber: importRecord.importNumber,
+        });
 
-        // Update product stock
+        console.log(`✅ Created batch ${batch.batchNumber} for product ${product.name}: ${item.quantity} ${product.unit}`);
+
+        // Calculate total stock from all batches
+        const totalStock = await this.calculateTotalStockFromBatches(String(item.productId));
+        const previousStock = product.stockQuantity || 0;
+
+        // Update product stock (sum of all batches)
         await Product.findByIdAndUpdate(item.productId, {
-          $inc: { stockQuantity: item.quantity },
+          stockQuantity: totalStock,
+          inStock: totalStock > 0,
+          // Keep latest batch info for reference (but actual stock comes from batches)
           batchNumber: item.batchNumber,
           expirationDate: item.expirationDate,
           manufacturingDate: item.manufacturingDate,
@@ -210,7 +301,7 @@ export class InventoryService {
           movementType: 'import',
           quantity: item.quantity,
           previousStock,
-          newStock,
+          newStock: totalStock,
           referenceType: 'import',
           referenceId: importId,
           referenceNumber: importRecord.importNumber,

@@ -970,6 +970,70 @@ const exportSchema = new Schema<IExport>({
   timestamps: true,
 });
 
+// Product Batch Schema (Quản lý từng lô hàng)
+export interface IProductBatch extends Document {
+  productId: mongoose.Types.ObjectId;
+  batchNumber: string;
+  expirationDate: Date;
+  manufacturingDate?: Date;
+  quantity: number; // Số lượng ban đầu của lô
+  remainingQuantity: number; // Số lượng còn lại sau khi bán
+  importId: mongoose.Types.ObjectId; // Link đến phiếu nhập
+  importNumber: string; // Số phiếu nhập để dễ tra cứu
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const productBatchSchema = new Schema<IProductBatch>({
+  productId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+    index: true,
+  },
+  batchNumber: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  expirationDate: {
+    type: Date,
+    required: true,
+    index: true, // Index để sort theo FEFO
+  },
+  manufacturingDate: {
+    type: Date,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  remainingQuantity: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  importId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Import',
+    required: true,
+  },
+  importNumber: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+}, {
+  timestamps: true,
+});
+
+// Indexes for better performance
+productBatchSchema.index({ productId: 1, expirationDate: 1 }); // For FEFO sorting
+productBatchSchema.index({ productId: 1, createdAt: 1 }); // For FIFO sorting
+productBatchSchema.index({ batchNumber: 1 });
+productBatchSchema.index({ importId: 1 });
+
 // Stock Movement Schema (Lịch sử tồn kho)
 export interface IStockMovement extends Document {
   productId: mongoose.Types.ObjectId;
@@ -1473,6 +1537,7 @@ export const Invoice = mongoose.model<IInvoice>('Invoice', invoiceSchema);
 export const Import = mongoose.model<IImport>('Import', importSchema);
 export const Export = mongoose.model<IExport>('Export', exportSchema);
 export const StockMovement = mongoose.model<IStockMovement>('StockMovement', stockMovementSchema);
+export const ProductBatch = mongoose.model<IProductBatch>('ProductBatch', productBatchSchema);
 export const Coupon = mongoose.model<ICoupon>('Coupon', couponSchema);
 export const CouponUsage = mongoose.model<ICouponUsage>('CouponUsage', couponUsageSchema);
 export const SavedPrescription = mongoose.model<ISavedPrescription>('SavedPrescription', savedPrescriptionSchema);

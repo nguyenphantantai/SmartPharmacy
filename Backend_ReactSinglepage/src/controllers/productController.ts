@@ -5,6 +5,7 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 import fs from 'fs';
 import path from 'path';
 import { SupabaseStorageService } from '../services/supabaseService.js';
+import { InventoryService } from '../services/inventoryService.js';
 
 export function toProductDto(p: any) {
   return {

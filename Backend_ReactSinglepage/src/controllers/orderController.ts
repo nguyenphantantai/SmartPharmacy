@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Order, OrderItem, Product, User, LoyaltyAccount, LoyaltyTransaction } from '../models/schema';
+import { InventoryService } from '../services/inventoryService';
 import { evaluatePromotions } from '../services/pricingService';
 import { AuthenticatedRequest } from '../middleware/auth';
 import jwt from 'jsonwebtoken';
@@ -91,7 +92,7 @@ export class OrderController {
 
       console.log(`Reducing stock for order ${order.orderNumber} with ${orderItems.length} items`);
 
-      // Reduce stock for each product
+      // Reduce stock for each product using batch system (FEFO)
       for (const item of orderItems) {
         const product = await Product.findById(item.productId);
         if (!product) {
@@ -99,15 +100,22 @@ export class OrderController {
           continue;
         }
 
-        const oldStock = product.stockQuantity || 0;
         const quantityToReduce = item.quantity || 1;
-        const newStock = Math.max(0, oldStock - quantityToReduce);
+        
+        try {
+          // Reduce stock from batches using FEFO (First Expired First Out)
+          const usedBatches = await InventoryService.reduceStockFromBatches(
+            String(item.productId),
+            quantityToReduce
+          );
 
-        product.stockQuantity = newStock;
-        product.inStock = newStock > 0;
-        await product.save();
-
-        console.log(`Product ${product.name} (${product._id}): Stock reduced from ${oldStock} to ${newStock} (quantity: ${quantityToReduce})`);
+          console.log(`Product ${product.name} (${product._id}): Reduced ${quantityToReduce} from batches:`, 
+            usedBatches.map(b => `${b.batchNumber}(${b.quantity})`).join(', '));
+        } catch (error: any) {
+          console.error(`Error reducing stock for product ${product.name}:`, error.message);
+          // Log error but continue with other items
+          // Stock reduction failure shouldn't break order confirmation
+        }
       }
 
       console.log(`✅ Stock reduction completed for order ${order.orderNumber}`);
