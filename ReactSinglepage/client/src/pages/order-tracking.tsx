@@ -474,14 +474,14 @@ export default function OrderTrackingPage() {
                         </div>
                       </div>
                       
-                      {selectedOrder.discountAmount && selectedOrder.discountAmount > 0 && (
+                      {selectedOrder.discountAmount && selectedOrder.discountAmount > 0 ? (
                         <div className="p-3 bg-green-50 rounded-lg">
                           <p className="text-sm text-green-800">
                             <strong>Mã giảm giá:</strong> {selectedOrder.couponCode} 
                             <span className="ml-2">(-{format(selectedOrder.discountAmount)} ₫)</span>
                           </p>
                         </div>
-                      )}
+                      ) : null}
 
                       <div>
                         <p className="text-muted-foreground text-sm mb-2">Địa chỉ giao hàng:</p>
@@ -555,6 +555,32 @@ export default function OrderTrackingPage() {
                             </div>
                           );
                         })}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Action Buttons */}
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex gap-3">
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => {
+                            setLocation(`/order-confirmation/${selectedOrder._id}`);
+                          }}
+                        >
+                          Xem chi tiết
+                        </Button>
+                        <Button 
+                          className="flex-1"
+                          onClick={() => {
+                            setReorderOrderId(selectedOrder._id);
+                            setReorderDialogOpen(true);
+                          }}
+                        >
+                          Đặt lại
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

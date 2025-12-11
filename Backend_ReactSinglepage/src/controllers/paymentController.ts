@@ -356,6 +356,26 @@ export class PaymentController {
         }
       }
       
+      // If still not found, try to find by orderNumber with sanitized comparison (for cases where orderNumber has hyphens)
+      if (!order) {
+        const sanitizedOrderId = orderId.replace(/[^A-Za-z0-9]/g, '');
+        console.log(`🔍 Order not found by exact match, trying sanitized: ${sanitizedOrderId}`);
+        
+        // Find orders and compare sanitized versions
+        const allOrders = await Order.find({
+          paymentMethod: 'momo',
+        }).limit(100);
+        
+        for (const o of allOrders) {
+          const sanitizedOrderNumber = o.orderNumber.replace(/[^A-Za-z0-9]/g, '');
+          if (sanitizedOrderNumber === sanitizedOrderId) {
+            order = o;
+            console.log(`✅ Order found by sanitized comparison: ${o.orderNumber}`);
+            break;
+          }
+        }
+      }
+      
       if (!order) {
         return res.status(404).json({
           success: false,
