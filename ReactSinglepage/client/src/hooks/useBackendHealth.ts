@@ -11,9 +11,12 @@ export function useBackendHealth() {
       }
       return await response.json();
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-    staleTime: 30 * 1000, // 30 giây
-    refetchInterval: 60 * 1000, // Kiểm tra lại mỗi phút
+    retry: 2, // Giảm số lần retry
+    retryDelay: (attemptIndex) => Math.min(5000 * 2 ** attemptIndex, 30000), // Tăng delay giữa các retry
+    staleTime: 5 * 60 * 1000, // 5 phút - tăng staleTime
+    refetchInterval: 5 * 60 * 1000, // Kiểm tra lại mỗi 5 phút thay vì 1 phút
+    refetchOnWindowFocus: false, // Không refetch khi focus window
+    refetchOnMount: false, // Không refetch khi mount lại
+    refetchOnReconnect: true, // Chỉ refetch khi reconnect
   });
 }

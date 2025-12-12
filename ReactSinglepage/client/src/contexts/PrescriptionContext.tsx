@@ -48,7 +48,12 @@ export const PrescriptionProvider: React.FC<PrescriptionProviderProps> = ({ chil
   } = useQuery({
     queryKey: ['prescriptions'],
     queryFn: () => getUserPrescriptions(1, 100), // Get first 100 prescriptions
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - tăng staleTime
+    refetchOnWindowFocus: false, // Không refetch khi focus window
+    refetchOnMount: false, // Không refetch khi mount lại (chỉ fetch lần đầu)
+    refetchOnReconnect: true, // Chỉ refetch khi reconnect
+    retry: 1, // Chỉ retry 1 lần khi lỗi
+    retryDelay: 5000, // Delay 5 giây trước khi retry
   });
 
   const prescriptions = prescriptionsData?.data || [];

@@ -7,6 +7,14 @@ async function throwIfResNotOk(res: Response) {
     const error = new Error(`${res.status}: ${text}`);
     (error as any).status = res.status;
     (error as any).responseText = text;
+    
+    // Đặc biệt xử lý 429 (Too Many Requests) - không throw ngay để tránh retry liên tục
+    if (res.status === 429) {
+      console.warn('⚠️ Rate limit exceeded (429). Please wait before retrying.');
+      // Đợi ít nhất 10 giây trước khi retry
+      await new Promise(resolve => setTimeout(resolve, 10000));
+    }
+    
     throw error;
   }
 }
@@ -80,13 +88,34 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: true, // Tự động refetch khi user quay lại tab
-      staleTime: 30 * 1000, // 30 giây - giảm từ 5 phút để dữ liệu được refresh nhanh hơn
-      retry: 3, // Thử lại 3 lần khi fail
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+      refetchOnWindowFocus: false, // Tắt refetch khi focus để tránh gọi API quá nhiều
+      staleTime: 5 * 60 * 1000, // 5 phút - tăng staleTime để giảm số lần refetch
+      retry: (failureCount, error: any) => {
+        // Không retry khi gặp lỗi 429 (Too Many Requests)
+        if (error?.status === 429) {
+          return false;
+        }
+        // Chỉ retry tối đa 2 lần cho các lỗi khác
+        return failureCount < 2;
+      },
+      retryDelay: (attemptIndex, error: any) => {
+        // Nếu là lỗi 429, đợi lâu hơn (30 giây)
+        if (error?.status === 429) {
+          return 30000;
+        }
+        // Exponential backoff cho các lỗi khác
+        return Math.min(5000 * 2 ** attemptIndex, 30000);
+      },
     },
     mutations: {
-      retry: 1, // Thử lại 1 lần cho mutations
+      retry: (failureCount, error: any) => {
+        // Không retry khi gặp lỗi 429
+        if (error?.status === 429) {
+          return false;
+        }
+        // Chỉ retry 1 lần cho mutations
+        return failureCount < 1;
+      },
     },
   },
 });
