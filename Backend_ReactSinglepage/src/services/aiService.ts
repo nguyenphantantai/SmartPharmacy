@@ -305,6 +305,36 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `Người dùng đã đề cập: ${context.symptoms.join(', ')}\n`;
       contextInfo += `Yêu cầu gốc: "${(context as any).userQuery || userMessage}"\n`;
       
+      // Add specific symptom analysis instruction
+      contextInfo += `\n⚠️⚠️⚠️ PHÂN TÍCH TRIỆU CHỨNG:\n`;
+      contextInfo += `Bạn PHẢI phân tích ĐÚNG triệu chứng và gợi ý thuốc PHÙ HỢP:\n`;
+      
+      const symptoms = context.symptoms;
+      if (symptoms.includes('nghẹt mũi') || symptoms.includes('sổ mũi')) {
+        contextInfo += `- Triệu chứng: Nghẹt mũi/Sổ mũi → Ưu tiên thuốc: Natri Clorid 0.9%, Xịt mũi muối biển, Otrivin, Naphazoline\n`;
+        contextInfo += `- KHÔNG gợi ý Paracetamol nếu chỉ có nghẹt mũi (trừ khi có sốt/đau đầu kèm theo)\n`;
+      }
+      if (symptoms.includes('nhức đầu') || symptoms.includes('đau đầu')) {
+        contextInfo += `- Triệu chứng: Đau đầu → Ưu tiên thuốc: Paracetamol, Ibuprofen\n`;
+        contextInfo += `- KHÔNG gợi ý Decolgen, Tiffy nếu chỉ đau đầu đơn thuần (trừ khi có nghẹt mũi/sổ mũi kèm theo)\n`;
+      }
+      if (symptoms.includes('cảm cúm') || symptoms.includes('cảm')) {
+        contextInfo += `- Triệu chứng: Cảm cúm (nhiều triệu chứng) → Gợi ý combo: Paracetamol + Decolgen/Tiffy\n`;
+      }
+      if (symptoms.includes('ho')) {
+        contextInfo += `- Triệu chứng: Ho → Ưu tiên thuốc: Terpin Codein (ho khan), Bromhexin/Acetylcysteine (ho đờm)\n`;
+        contextInfo += `- KHÔNG gợi ý Paracetamol nếu chỉ có ho (trừ khi có sốt kèm theo)\n`;
+      }
+      if (symptoms.includes('sốt')) {
+        contextInfo += `- Triệu chứng: Sốt → Ưu tiên thuốc: Paracetamol, Panadol, Efferalgan\n`;
+      }
+      if (symptoms.includes('đau họng')) {
+        contextInfo += `- Triệu chứng: Đau họng → Ưu tiên thuốc: Strepsils, Betadine, Lysopaine\n`;
+        contextInfo += `- KHÔNG gợi ý Paracetamol nếu chỉ có đau họng (trừ khi có sốt kèm theo)\n`;
+      }
+      
+      contextInfo += `\n⚠️ QUAN TRỌNG: Mỗi triệu chứng khác nhau PHẢI có danh sách thuốc khác nhau. KHÔNG được dùng cùng một danh sách thuốc cho mọi triệu chứng.\n`;
+      
       // If this is a follow-up answer, add explicit instruction
       if ((context as any).isFollowUpAnswer) {
         contextInfo += `\n⚠️⚠️⚠️ QUAN TRỌNG CỰC KỲ: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn.\n`;

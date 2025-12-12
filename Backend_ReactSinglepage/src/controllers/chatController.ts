@@ -518,6 +518,50 @@ async function semanticSearch(query: string): Promise<any[]> {
     const filteredProducts = products.filter(product => {
       const productNameLower = (product.name || '').toLowerCase();
       
+      // Nếu CHỈ hỏi "nghẹt mũi" hoặc "sổ mũi" (không có sốt, đau đầu)
+      if ((matchedSymptoms.includes('nghẹt mũi') || matchedSymptoms.includes('sổ mũi')) && 
+          !matchedSymptoms.includes('sốt') && 
+          !matchedSymptoms.includes('đau đầu') && 
+          !matchedSymptoms.includes('nhức đầu') &&
+          !matchedSymptoms.includes('cảm') &&
+          !matchedSymptoms.includes('cảm cúm')) {
+        // Chỉ giữ thuốc xịt mũi, loại bỏ Paracetamol
+        const nasalMedicines = ['natri clorid', 'xịt mũi', 'otrivin', 'naphazoline', 'rhinocort', 'muối biển'];
+        const isNasalMedicine = nasalMedicines.some(med => productNameLower.includes(med));
+        if (!isNasalMedicine && (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan'))) {
+          return false; // Loại bỏ Paracetamol nếu chỉ có nghẹt mũi
+        }
+      }
+      
+      // Nếu CHỈ hỏi "đau đầu" hoặc "nhức đầu" (không có nghẹt mũi, sốt)
+      if ((matchedSymptoms.includes('nhức đầu') || matchedSymptoms.includes('đau đầu')) && 
+          !matchedSymptoms.includes('nghẹt mũi') && 
+          !matchedSymptoms.includes('sổ mũi') &&
+          !matchedSymptoms.includes('cảm') &&
+          !matchedSymptoms.includes('cảm cúm')) {
+        // Ưu tiên Paracetamol, Ibuprofen, loại bỏ Decolgen, Tiffy
+        const headacheMedicines = ['paracetamol', 'panadol', 'efferalgan', 'hapacol', 'ibuprofen'];
+        const isHeadacheMedicine = headacheMedicines.some(med => productNameLower.includes(med));
+        if (!isHeadacheMedicine && (productNameLower.includes('decolgen') || productNameLower.includes('tiffy') || productNameLower.includes('coldacmin'))) {
+          return false; // Loại bỏ Decolgen/Tiffy nếu chỉ có đau đầu
+        }
+      }
+      
+      // Nếu CHỈ hỏi "ho" (không có sốt, đau đầu)
+      if (matchedSymptoms.includes('ho') && 
+          !matchedSymptoms.includes('sốt') && 
+          !matchedSymptoms.includes('đau đầu') &&
+          !matchedSymptoms.includes('nhức đầu') &&
+          !matchedSymptoms.includes('cảm') &&
+          !matchedSymptoms.includes('cảm cúm')) {
+        // Ưu tiên thuốc ho, loại bỏ Paracetamol
+        const coughMedicines = ['terpin', 'bromhexin', 'acetylcysteine', 'ambroxol', 'prospan', 'eugica', 'mucosolvan'];
+        const isCoughMedicine = coughMedicines.some(med => productNameLower.includes(med));
+        if (!isCoughMedicine && (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan'))) {
+          return false; // Loại bỏ Paracetamol nếu chỉ có ho
+        }
+      }
+      
       // Nếu hỏi "cảm" hoặc "cảm cúm"
       if (matchedSymptoms.includes('cảm') || matchedSymptoms.includes('cảm cúm')) {
         // Loại bỏ Probiotics - KHÔNG liên quan đến cảm
