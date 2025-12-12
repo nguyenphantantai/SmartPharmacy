@@ -3,6 +3,15 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../config/index.js';
 
+export interface MedicationInfo {
+  name: string; // Tên thuốc
+  dosage?: string; // Liều lượng (ví dụ: "200mg", "500mg")
+  quantity?: string; // Số lượng (ví dụ: "10 viên", "20 viên", "02 tuýp")
+  unit?: string; // Đơn vị (ví dụ: "viên", "tuýp", "chai")
+  instructions?: string; // Cách dùng (ví dụ: "Uống: SÁNG 1 Viên", "Dùng ngoài")
+  frequency?: string; // Tần suất (ví dụ: "Sáng 1 viên, Chiều 1 viên")
+}
+
 export interface ExtractedPrescriptionInfo {
   customerName?: string;
   phoneNumber?: string;
@@ -14,6 +23,9 @@ export interface ExtractedPrescriptionInfo {
   age?: string; // Tuổi
   diagnosis?: string;
   notes?: string;
+  medications?: MedicationInfo[]; // Danh sách thuốc
+  insuranceNumber?: string; // Mã số bảo hiểm y tế
+  address?: string; // Địa chỉ
   rawText: string;
 }
 
@@ -502,7 +514,8 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
     /BỆNH\s*VIỆN\s+ĐKKV\s+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s+\d+\s+[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]|\s|$|Địa|Dia|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|toa|mp|phát|sang)/i,
     // Pattern 10: "Tên đơn vị: TTYT KHU VỰC BÌNH PHÚ (CƠ SỞ PHÚ CƯỜNG)" or "Tên đơn vi:" (OCR error - missing "ị") - NEW pattern for new prescription type (printed form)
     // Improved: Capture full name including parentheses and multiple words - don't stop too early
-    /Tên\s*đơn\s*vi[ị]?[:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s()]+?)(?:\s+(?:AS|Dia|Địa|Dia\s+chỉ|Địa\s+chỉ|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|toa|mp|\d{7,})|$)/i,
+    // FIXED: Use non-greedy match with proper stop condition to capture full name including parentheses
+    /Tên\s*đơn\s*vi[ị]?[:\s]+(.+?)(?:\s+(?:AS|Dia|Địa|Dia\s+chỉ|Địa\s+chỉ|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|toa|mp|\d{7,})|$)/i,
     // Pattern 11: "SỞ Y TẾ TP.HCM - BỆNH VIỆN MẮT" (format for eye hospital) - NEW pattern for eye hospital format
     /(?:SỞ\s*Y\s*TẾ\s+[^-]+-\s*)?BỆNH\s*VIỆN\s+MẮT/i,
     // Pattern 12: "BỆNH VIỆN MẮT" (standalone, format for eye hospital) - NEW pattern for eye hospital format
@@ -1654,7 +1667,8 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
     /(?:Chẩn\s*đoán|Chan\s*doan|Chân\s*đoán|Chin\s*đoán|Chẩn\s*doan|Chan\s*đoán)[:\s]+(.+?)(?:\s*(?:\d+\s*\)\s*[A-Z]|\d+\s*\)\s*SIMETHICON|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI|Thuốc|Thuoc|Cận\s*lâm\s*sàng|Can\s*lam\s*sang|Mạch|Mach|Huyết\s*áp|Huyet\s*ap|Thân\s*nhiệt|Than\s*nhiet|Ghi\s*chú|Ghi\s*chu|Lời|Loi|Ngày|Ngay|BS|Bac\s*si|Bác\s*sĩ)|$)/i,
     // Pattern 0e: "Chẩn đoán: M13 - Các viêm khớp khác ; (M47) thoái hóa cột sống; (S60) Tổn thương nông..." (format with parentheses for ICD codes) - NEW pattern
     // Improved: Capture full diagnosis including multiple ICD codes in parentheses
-    /(?:Chẩn\s*đoán|Chan\s*doan|Chân\s*đoán|Chin\s*đoán|Chẩn\s*doan|Chan\s*đoán)[:\s]+([A-Z]\d{1,3}(?:\s*[-–]\s*)?[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–;()]+(?:;\s*\([A-Z]\d{1,3}\)\s*[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–;()]+)*)(?:\s*(?:Thuốc|Thuoc|Điều|Dieu|Trị|Tri|Cận|Can|Mạch|Mach|Huyết|Huyet|Thân|Than|Ghi|Lời|Loi|Ngày|Ngay|BS|Bac\s*si|Bác\s*sĩ|\d+\s*\)\s*[A-Z]|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI)|$)/i,
+    // FIXED: Use non-greedy match with proper stop condition to capture full diagnosis until "Thuốc điều trị"
+    /(?:Chẩn\s*đoán|Chan\s*doan|Chân\s*đoán|Chin\s*đoán|Chẩn\s*doan|Chan\s*đoán)[:\s]+(.+?)(?:\s*(?:Thuốc\s*điều\s*trị|Thuoc\s*dieu\s*tri|Thuốc|Thuoc|Điều|Dieu|Trị|Tri|Cận|Can|Mạch|Mach|Huyết|Huyet|Thân|Than|Ghi|Lời|Loi|Ngày|Ngay|BS|Bac\s*si|Bác\s*sĩ|\d+\s*\)\s*[A-Z]|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI)|$)/i,
     // Pattern 1: "Chẩn đoán: Cảm sốt nhẹ" (simple diagnosis without ICD code) - prioritize this for BỆNH VIỆN ĐA KHOA TỈNH format
     // Stop at medication list (1/ Paracetamol, 2/ Calci, etc.) or vital signs
     /Chẩn\s*đoán[:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]+?)(?:\s*(?:Mạch|Huyết\s*áp|Thân\s*nhiệt|Nhịp\s*thở|Ghi\s*chú|Lời|Ngày|BS|Bác\s*sĩ|\d+\s*\/\s*[A-Z]|Paracetamol|Calci|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Acepron|AGI-CALCI)|$)/i,
@@ -1673,7 +1687,8 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
     /Chẩn\s*đoán\s+(.+?)(?:\s*(?:Cận\s*lâm\s*sàng|Mạch|Huyết\s*áp|Thân\s*nhiệt|Ghi\s*chú|Lời|Ngày|BS|Bác\s*sĩ|\d+\s*\)\s*[A-Z]|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI)|$)/i,
     // Pattern 5: "Chẩn đoán" with ICD code pattern (H00, K21, I10, M13, etc.) - more flexible, allow semicolon and parentheses
     // Improved: Capture full diagnosis including parentheses and multiple ICD codes separated by semicolons
-    /(?:Chẩn\s*đoán|Chan\s*doan|Chân\s*đoán)[:\s]*([A-Z]\d{1,3}(?:\s*[-–]\s*)?[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–;()]+(?:;\s*\(?[A-Z]\d{1,3}\)?\s*[-–]?\s*[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–;()]+)*)(?:\s*(?:Thuốc|Thuoc|Điều|Dieu|Trị|Tri|Cận|Can|Mạch|Mach|Huyết|Huyet|Thân|Than|Ghi|Lời|Loi|Ngày|Ngay|BS|Bác|Bac|\d+\s*\)\s*[A-Z]|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI)|$)/i,
+    // FIXED: Now properly captures full diagnosis like "M13 - Các viêm khớp khác ; (M47) thoái hóa cột sống; (S60) Tổn thương nông..."
+    /(?:Chẩn\s*đoán|Chan\s*doan|Chân\s*đoán)[:\s]*([A-Z]\d{1,3}(?:\s*[-–]\s*)?[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–;()]+(?:;\s*\([A-Z]\d{1,3}\)\s*[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–;()]+)*)(?:\s*(?:Thuốc|Thuoc|Điều|Dieu|Trị|Tri|Cận|Can|Mạch|Mach|Huyết|Huyet|Thân|Than|Ghi|Lời|Loi|Ngày|Ngay|BS|Bác|Bac|\d+\s*\)\s*[A-Z]|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI)|$)/i,
     // Pattern 6: "Chin đoán:" (OCR error - missing dấu) with multiple ICD codes - NEW format for new prescription type
     // Capture all diagnoses with ICD codes until medication list or clear stop words
     /(?:Chẩn\s*đoán|Chan\s*doan|Chân\s*đoán|Chin\s*đoán)[:\s]*([A-Z]\d{2,3}(?:\s*[-–]\s*)?[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–,;]+(?:[;]\s*[A-Z]\d{2,3}(?:\s*[-–]\s*)?[A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s\-–,;]+)*)(?:\s*(?:Thuốc|Thuoc|Điều|Dieu|Trị|Tri|Cận|Can|Mạch|Mach|Huyết|Huyet|Thân|Than|Ghi|Lời|Loi|Ngày|Ngay|BS|Bác|Bac|\d+\s*\)\s*[A-Z]|SIMETHICON|MALTAGIT|PARACETAMOL|CALCI|VITAMIN|TOBRAMYCIN|AGICLARI|MEDSOLU|KACERIN|PANACTOL|Paracetamol|Acepron|AGI-CALCI|Acetyl|Amoxicilin|Paracetamol|Attapulgit)|$)/i,
@@ -2168,25 +2183,50 @@ async function extractInfoWithGemini(ocrText: string, imagePath?: string): Promi
 Hãy trích xuất và trả về JSON với các trường sau (chỉ trả về JSON, không có text khác):
 {
   "customerName": "Tên đầy đủ của bệnh nhân (viết hoa, có dấu đầy đủ)",
+  "phoneNumber": "Số điện thoại (nếu có, ví dụ: 0365887517)",
   "doctorName": "Tên đầy đủ của bác sĩ (có dấu đầy đủ)",
   "hospitalName": "Tên đầy đủ của bệnh viện/phòng khám (viết hoa, có dấu đầy đủ)",
   "examinationDate": "Ngày khám (format: YYYY-MM-DD)",
   "dateOfBirth": "Ngày sinh đầy đủ (format: YYYY-MM-DD, ví dụ: 1980-01-01)",
   "yearOfBirth": "Năm sinh (chỉ năm, ví dụ: 1980)",
-  "diagnosis": "Chẩn đoán đầy đủ (có dấu đầy đủ)"
+  "diagnosis": "Chẩn đoán đầy đủ (có dấu đầy đủ, bao gồm tất cả ICD codes và mô tả)",
+  "insuranceNumber": "Mã số bảo hiểm y tế (nếu có, ví dụ: DN4828222085030)",
+  "address": "Địa chỉ thường trú/tạm trú (nếu có)",
+  "medications": [
+    {
+      "name": "Tên thuốc (có dấu đầy đủ, ví dụ: Celecoxib)",
+      "dosage": "Liều lượng (ví dụ: 200mg, 500mg, 1%/20g)",
+      "quantity": "Số lượng (ví dụ: 10 viên, 20 viên, 02 tuýp)",
+      "unit": "Đơn vị (ví dụ: viên, tuýp, chai)",
+      "instructions": "Cách dùng đầy đủ (ví dụ: Uống: SÁNG 1 Viên, Dùng ngoài: Lời dan)",
+      "frequency": "Tần suất (ví dụ: Sáng 1 viên, Chiều 1 viên)"
+    }
+  ]
 }
 
-Lưu ý CỰC KỲ QUAN TRỌNG về Ngày sinh/Năm sinh:
-- Tìm kiếm KỸ LƯỠNG phần "Ngày sinh:" hoặc "Năm sinh:" trong ảnh
-- Ngày sinh có thể ở dạng: "01/01/1980", "01-01-1980", "01.01.1980", hoặc chỉ "1980"
-- Ngày sinh có thể nằm ngay sau "Ngày sinh:" hoặc ở dòng khác gần đó
-- Nếu chỉ có năm sinh (ví dụ: "1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
-- Nếu có đầy đủ ngày tháng năm (ví dụ: "01/01/1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
-- PHẢI TÌM KỸ - ngày sinh có thể bị OCR miss nhưng vẫn có thể thấy trong ảnh
-- Nếu không tìm thấy ngày sinh trong ảnh, để null
-- Tên phải có dấu tiếng Việt đầy đủ và chính xác
-- Chẩn đoán phải đầy đủ, không bị cắt ngắn
-- Ngày tháng phải đúng format YYYY-MM-DD`;
+Lưu ý CỰC KỲ QUAN TRỌNG:
+1. Ngày sinh/Năm sinh:
+   - Tìm kiếm KỸ LƯỠNG phần "Ngày sinh:" hoặc "Năm sinh:" trong ảnh
+   - Ngày sinh có thể ở dạng: "01/01/1980", "01-01-1980", "01.01.1980", hoặc chỉ "1980"
+   - Nếu chỉ có năm sinh (ví dụ: "1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
+   - Nếu có đầy đủ ngày tháng năm (ví dụ: "01/01/1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
+   - PHẢI TÌM KỸ - ngày sinh có thể bị OCR miss nhưng vẫn có thể thấy trong ảnh
+
+2. Thuốc (medications):
+   - Tìm kiếm phần "Thuốc điều trị:" hoặc "Thuốc:" trong ảnh
+   - Mỗi thuốc thường có format: "1) Tên thuốc (tên gốc) Liều lượng SL: Số lượng Đơn vị Cách dùng: Hướng dẫn"
+   - Trích xuất TẤT CẢ thuốc trong đơn, không bỏ sót
+   - Tên thuốc: lấy cả tên thương mại và tên gốc nếu có (ví dụ: "Celecoxib (Celecoxib)")
+   - Liều lượng: lấy đầy đủ (ví dụ: "200mg", "500mg", "1%/20g")
+   - Số lượng: lấy cả số và đơn vị (ví dụ: "10 viên", "20 viên", "02 tuýp")
+   - Cách dùng: lấy đầy đủ hướng dẫn (ví dụ: "Uống: SÁNG 1 Viên", "Dùng ngoài: Lời dan")
+   - Tần suất: rút gọn từ cách dùng (ví dụ: "Sáng 1 viên, Chiều 1 viên")
+
+3. Thông tin khác:
+   - Tên phải có dấu tiếng Việt đầy đủ và chính xác
+   - Chẩn đoán phải đầy đủ, không bị cắt ngắn, bao gồm tất cả ICD codes trong ngoặc đơn
+   - Ngày tháng phải đúng format YYYY-MM-DD
+   - Nếu không tìm thấy thông tin nào, để null hoặc mảng rỗng []`;
 
       parts = [
         {
@@ -2209,23 +2249,49 @@ ${ocrText}
 Hãy trích xuất và trả về JSON với các trường sau (chỉ trả về JSON, không có text khác):
 {
   "customerName": "Tên đầy đủ của bệnh nhân (viết hoa, có dấu đầy đủ)",
+  "phoneNumber": "Số điện thoại (nếu có, ví dụ: 0365887517)",
   "doctorName": "Tên đầy đủ của bác sĩ (có dấu đầy đủ)",
   "hospitalName": "Tên đầy đủ của bệnh viện/phòng khám (viết hoa, có dấu đầy đủ)",
   "examinationDate": "Ngày khám (format: YYYY-MM-DD)",
   "dateOfBirth": "Ngày sinh đầy đủ (format: YYYY-MM-DD, ví dụ: 1980-01-01)",
   "yearOfBirth": "Năm sinh (chỉ năm, ví dụ: 1980)",
-  "diagnosis": "Chẩn đoán đầy đủ (có dấu đầy đủ)"
+  "diagnosis": "Chẩn đoán đầy đủ (có dấu đầy đủ, bao gồm tất cả ICD codes và mô tả)",
+  "insuranceNumber": "Mã số bảo hiểm y tế (nếu có, ví dụ: DN4828222085030)",
+  "address": "Địa chỉ thường trú/tạm trú (nếu có)",
+  "medications": [
+    {
+      "name": "Tên thuốc (có dấu đầy đủ, ví dụ: Celecoxib)",
+      "dosage": "Liều lượng (ví dụ: 200mg, 500mg, 1%/20g)",
+      "quantity": "Số lượng (ví dụ: 10 viên, 20 viên, 02 tuýp)",
+      "unit": "Đơn vị (ví dụ: viên, tuýp, chai)",
+      "instructions": "Cách dùng đầy đủ (ví dụ: Uống: SÁNG 1 Viên, Dùng ngoài: Lời dan)",
+      "frequency": "Tần suất (ví dụ: Sáng 1 viên, Chiều 1 viên)"
+    }
+  ]
 }
 
-Lưu ý QUAN TRỌNG về Ngày sinh/Năm sinh:
-- Tìm kiếm kỹ lưỡng phần "Ngày sinh:" hoặc "Năm sinh:" trong văn bản
-- Ngày sinh có thể ở dạng: "01/01/1980", "01-01-1980", "01.01.1980", hoặc chỉ "1980"
-- Nếu chỉ có năm sinh (ví dụ: "1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
-- Nếu có đầy đủ ngày tháng năm (ví dụ: "01/01/1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
-- Nếu không tìm thấy ngày sinh trong OCR text, để null
-- Tên phải có dấu tiếng Việt đầy đủ và chính xác
-- Chẩn đoán phải đầy đủ, không bị cắt ngắn
-- Ngày tháng phải đúng format YYYY-MM-DD`;
+Lưu ý QUAN TRỌNG:
+1. Ngày sinh/Năm sinh:
+   - Tìm kiếm kỹ lưỡng phần "Ngày sinh:" hoặc "Năm sinh:" trong văn bản
+   - Ngày sinh có thể ở dạng: "01/01/1980", "01-01-1980", "01.01.1980", hoặc chỉ "1980"
+   - Nếu chỉ có năm sinh (ví dụ: "1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
+   - Nếu có đầy đủ ngày tháng năm (ví dụ: "01/01/1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
+
+2. Thuốc (medications):
+   - Tìm kiếm phần "Thuốc điều trị:" hoặc "Thuốc:" trong văn bản OCR
+   - Mỗi thuốc thường có format: "1) Tên thuốc (tên gốc) Liều lượng SL: Số lượng Đơn vị Cách dùng: Hướng dẫn"
+   - Trích xuất TẤT CẢ thuốc trong đơn, không bỏ sót
+   - Tên thuốc: lấy cả tên thương mại và tên gốc nếu có (ví dụ: "Celecoxib (Celecoxib)")
+   - Liều lượng: lấy đầy đủ (ví dụ: "200mg", "500mg", "1%/20g")
+   - Số lượng: lấy cả số và đơn vị (ví dụ: "10 viên", "20 viên", "02 tuýp")
+   - Cách dùng: lấy đầy đủ hướng dẫn (ví dụ: "Uống: SÁNG 1 Viên", "Dùng ngoài: Lời dan")
+   - Tần suất: rút gọn từ cách dùng (ví dụ: "Sáng 1 viên, Chiều 1 viên")
+
+3. Thông tin khác:
+   - Tên phải có dấu tiếng Việt đầy đủ và chính xác
+   - Chẩn đoán phải đầy đủ, không bị cắt ngắn, bao gồm tất cả ICD codes trong ngoặc đơn
+   - Ngày tháng phải đúng format YYYY-MM-DD
+   - Nếu không tìm thấy thông tin nào, để null hoặc mảng rỗng []`;
 
       parts = [{ text: prompt }];
     }
@@ -2320,6 +2386,7 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
       
       // Merge Gemini results (prioritize Gemini if available and more complete)
       if (geminiInfo) {
+        // Merge basic info (prioritize Gemini if more complete)
         if (geminiInfo.customerName && geminiInfo.customerName.length > (extractedInfo.customerName?.length || 0)) {
           extractedInfo.customerName = geminiInfo.customerName;
           console.log('✅ Using Gemini-extracted customer name:', extractedInfo.customerName);
@@ -2331,6 +2398,29 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
         if (geminiInfo.hospitalName && geminiInfo.hospitalName.length > (extractedInfo.hospitalName?.length || 0)) {
           extractedInfo.hospitalName = geminiInfo.hospitalName;
           console.log('✅ Using Gemini-extracted hospital name:', extractedInfo.hospitalName);
+        }
+        
+        // Merge additional personal info (Gemini is more accurate for these)
+        if (geminiInfo.phoneNumber) {
+          extractedInfo.phoneNumber = geminiInfo.phoneNumber;
+          console.log('✅ Using Gemini-extracted phone number:', extractedInfo.phoneNumber);
+        }
+        if (geminiInfo.insuranceNumber) {
+          extractedInfo.insuranceNumber = geminiInfo.insuranceNumber;
+          console.log('✅ Using Gemini-extracted insurance number:', extractedInfo.insuranceNumber);
+        }
+        if (geminiInfo.address) {
+          extractedInfo.address = geminiInfo.address;
+          console.log('✅ Using Gemini-extracted address:', extractedInfo.address);
+        }
+        
+        // Merge medications (Gemini is much better at extracting structured medication data)
+        if (geminiInfo.medications && Array.isArray(geminiInfo.medications) && geminiInfo.medications.length > 0) {
+          extractedInfo.medications = geminiInfo.medications;
+          console.log(`✅ Using Gemini-extracted medications (${geminiInfo.medications.length} medications)`);
+          geminiInfo.medications.forEach((med: MedicationInfo, index: number) => {
+            console.log(`   ${index + 1}. ${med.name}${med.dosage ? ` - ${med.dosage}` : ''}${med.quantity ? ` (${med.quantity})` : ''}`);
+          });
         }
         if (geminiInfo.diagnosis && geminiInfo.diagnosis.length > (extractedInfo.diagnosis?.length || 0)) {
           extractedInfo.diagnosis = geminiInfo.diagnosis;
@@ -2397,6 +2487,7 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
   
   // Merge Gemini results (prioritize Gemini if available and more complete)
   if (geminiInfo) {
+    // Merge basic info (prioritize Gemini if more complete)
     if (geminiInfo.customerName && geminiInfo.customerName.length > (extractedInfo.customerName?.length || 0)) {
       extractedInfo.customerName = geminiInfo.customerName;
       console.log('✅ Using Gemini-extracted customer name:', extractedInfo.customerName);
@@ -2409,6 +2500,30 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
       extractedInfo.hospitalName = geminiInfo.hospitalName;
       console.log('✅ Using Gemini-extracted hospital name:', extractedInfo.hospitalName);
     }
+    
+    // Merge additional personal info (Gemini is more accurate for these)
+    if (geminiInfo.phoneNumber) {
+      extractedInfo.phoneNumber = geminiInfo.phoneNumber;
+      console.log('✅ Using Gemini-extracted phone number:', extractedInfo.phoneNumber);
+    }
+    if (geminiInfo.insuranceNumber) {
+      extractedInfo.insuranceNumber = geminiInfo.insuranceNumber;
+      console.log('✅ Using Gemini-extracted insurance number:', extractedInfo.insuranceNumber);
+    }
+    if (geminiInfo.address) {
+      extractedInfo.address = geminiInfo.address;
+      console.log('✅ Using Gemini-extracted address:', extractedInfo.address);
+    }
+    
+    // Merge medications (Gemini is much better at extracting structured medication data)
+    if (geminiInfo.medications && Array.isArray(geminiInfo.medications) && geminiInfo.medications.length > 0) {
+      extractedInfo.medications = geminiInfo.medications;
+      console.log(`✅ Using Gemini-extracted medications (${geminiInfo.medications.length} medications)`);
+      geminiInfo.medications.forEach((med: MedicationInfo, index: number) => {
+        console.log(`   ${index + 1}. ${med.name}${med.dosage ? ` - ${med.dosage}` : ''}${med.quantity ? ` (${med.quantity})` : ''}`);
+      });
+    }
+    
     if (geminiInfo.diagnosis && geminiInfo.diagnosis.length > (extractedInfo.diagnosis?.length || 0)) {
       extractedInfo.diagnosis = geminiInfo.diagnosis;
       console.log('✅ Using Gemini-extracted diagnosis:', extractedInfo.diagnosis);

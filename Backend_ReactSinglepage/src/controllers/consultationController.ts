@@ -2196,8 +2196,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             // Nếu không tìm thấy trong medicines collection, thử hardcoded mapping cho các thuốc phổ biến
             if (!targetMedicine || (!targetGroupTherapeutic && !targetIndication)) {
               
-              // Mapping các thuốc NSAID phổ biến
-              const nsaidMedicines = ['celecoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'indomethacin', 'piroxicam', 'ketoprofen'];
+              // Mapping các thuốc NSAID phổ biến (bao gồm cả COX-2 inhibitors như Celecoxib và Etoricoxib)
+              const nsaidMedicines = ['celecoxib', 'etoricoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'indomethacin', 'piroxicam', 'ketoprofen', 'rofecoxib', 'valdecoxib'];
               const isNSAID = nsaidMedicines.some(name => medicineNameLower.includes(name));
               
               if (isNSAID) {
@@ -2398,6 +2398,50 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     
                     console.log(`📦 Found ${medicinesWithSameIndication.length} medicines with same indication/groupTherapeutic`);
                     
+                    // Tìm trực tiếp trong Products collection để tìm các thuốc như Etoricoxib
+                    // ngay cả khi không có trong medicines collection hoặc không có groupTherapeutic
+                    let additionalProductsFromDB: any[] = [];
+                    if (targetGroupTherapeutic && targetGroupTherapeutic.toLowerCase().includes('nsaid')) {
+                      console.log(`🔍 Searching directly in Products collection for NSAID medicines (including Etoricoxib)...`);
+                      
+                      // Tìm các thuốc NSAID phổ biến trong Products collection
+                      // Ưu tiên các thuốc COX-2 inhibitors như Etoricoxib, Celecoxib vì chúng tương tự nhau
+                      const nsaidProductNames = ['etoricoxib', 'celecoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'indomethacin', 'piroxicam', 'ketoprofen'];
+                      for (const nsaidName of nsaidProductNames) {
+                        // Bỏ qua nếu đã tìm thấy trong medicines collection
+                        const alreadyFound = medicinesWithSameIndication.some(m => 
+                          (m.name || '').toLowerCase().includes(nsaidName) ||
+                          (m.genericName || '').toLowerCase().includes(nsaidName)
+                        );
+                        
+                        // Bỏ qua nếu đã có trong foundMedicines (đã match chính xác)
+                        const alreadyInPrescription = foundMedicines.some(fm => 
+                          (fm.productName || '').toLowerCase().includes(nsaidName)
+                        );
+                        
+                        if (!alreadyFound && !alreadyInPrescription) {
+                          const products = await Product.find({
+                            name: { $regex: nsaidName, $options: 'i' },
+                            inStock: true,
+                            stockQuantity: { $gt: 0 }
+                          }).limit(3);
+                          
+                          for (const product of products) {
+                            // Kiểm tra xem đã có trong foundMedicines chưa
+                            if (!isMedicineAlreadyInPrescription(product, foundMedicines)) {
+                              additionalProductsFromDB.push({
+                                product: product,
+                                groupTherapeutic: 'NSAID',
+                                indication: 'Giảm đau, kháng viêm',
+                                isFromProducts: true // Đánh dấu là tìm từ Products collection
+                              });
+                            }
+                          }
+                        }
+                      }
+                      console.log(`📦 Found ${additionalProductsFromDB.length} additional NSAID products from Products collection`);
+                    }
+                    
                     // Kết hợp: ưu tiên thuốc cùng hoạt chất trước, sau đó mới đến cùng nhóm điều trị
                     // CHỈ đề xuất thuốc cùng nhóm điều trị (groupTherapeutic) - không đề xuất Paracetamol cho Celecoxib
                     const medicinesWithSameGroupTherapeutic = medicinesWithSameIndication.filter(m => {
@@ -2426,6 +2470,50 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     const normalizedInputDosage = extractedDosage ? normalizeDosageForComparison(extractedDosage) : null;
                     const medicinesWithSameDosage: any[] = [];
                     const medicinesDifferentDosage: any[] = [];
+                    
+                    // Xử lý các products tìm được trực tiếp từ Products collection (như Etoricoxib)
+                    for (const additionalProductData of additionalProductsFromDB) {
+                      const product = additionalProductData.product;
+                      const alreadyAdded = similarMedicines.some(m => String(m._id) === String(product._id));
+                      
+                      if (!alreadyAdded) {
+                        // Parse dosage từ product name
+                        const productParsed = parseMedicineName(product.name);
+                        const normalizedProductDosage = productParsed.dosage ? normalizeDosageForComparison(productParsed.dosage) : null;
+                        
+                        // Xác định matchReason và confidence
+                        let matchReason = 'same_group_therapeutic';
+                        let confidence = 0.75; // Cùng nhóm điều trị nhưng khác hoạt chất
+                        
+                        if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
+                          confidence = 0.80; // Cùng nhóm và cùng hàm lượng
+                        }
+                        
+                        // Lấy indication và contraindication
+                        const finalIndication = additionalProductData.indication || 'Giảm đau, kháng viêm';
+                        const finalContraindication = await getContraindicationFromMedicines(product.name, 'NSAID');
+                        
+                        const medicineData = {
+                          ...product.toObject(),
+                          indication: finalIndication,
+                          contraindication: finalContraindication,
+                          dosage: productParsed.dosage || '',
+                          groupTherapeutic: 'NSAID',
+                          activeIngredient: productParsed.baseName || '',
+                          matchReason: matchReason,
+                          matchExplanation: getMatchExplanation(matchReason, confidence),
+                          confidence: confidence
+                        };
+                        
+                        if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
+                          medicinesWithSameDosage.push(medicineData);
+                        } else {
+                          medicinesDifferentDosage.push(medicineData);
+                        }
+                        
+                        console.log(`✅ Added product from Products collection: ${product.name} (${Math.round(confidence * 100)}% match)`);
+                      }
+                    }
                     
                     // Tìm products tương ứng và phân loại theo hàm lượng
                     for (const medicine of allMedicinesToCheck) {
@@ -2643,7 +2731,14 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     }
                     
                     // Ưu tiên thuốc cùng hàm lượng trước
+                    // Bao gồm cả các products từ Products collection (như Etoricoxib)
                     let prioritizedMedicines = [...medicinesWithSameDosage, ...medicinesDifferentDosage];
+                    
+                    // Log để debug
+                    console.log(`📊 Prioritized medicines before filtering: ${prioritizedMedicines.length} medicines`);
+                    if (prioritizedMedicines.length > 0) {
+                      console.log(`   Medicines:`, prioritizedMedicines.map(m => `${m.name || m.productName} (${Math.round((m.confidence || 0) * 100)}%)`));
+                    }
 
                     // Hàm phụ để xác định thuốc dạng bôi (gel/cream/tuýp, %/g, mỡ, v.v.)
                     const isTopicalName = (name: string | undefined): boolean => {
