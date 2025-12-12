@@ -105,7 +105,11 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
         }
         contextInfo += '\n';
       });
-      contextInfo += `\nLƯU Ý: Khi gợi ý thuốc, bạn PHẢI sử dụng trường "Tác dụng" (không phải hàm lượng) trong phần mô tả công dụng của thuốc.\n`;
+      contextInfo += `\nLƯU Ý QUAN TRỌNG:\n`;
+      contextInfo += `- Khi gợi ý thuốc, bạn PHẢI sử dụng trường "Tác dụng" (không phải hàm lượng) trong phần mô tả công dụng của thuốc.\n`;
+      contextInfo += `- CHỈ hiển thị giá nếu có trong danh sách trên, KHÔNG tự ý đưa ra giá ước tính hoặc giá tham khảo.\n`;
+      contextInfo += `- Format ngắn gọn: [Số]. **[Tên thuốc]**\n   – Tác dụng: [mô tả ngắn gọn]\n   – Liều: [liều dùng]\n`;
+      contextInfo += `- Sau khi liệt kê thuốc, luôn khuyến khích: "Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi."\n`;
     }
 
     if (context?.symptoms && context.symptoms.length > 0) {
@@ -229,7 +233,8 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `1. CHỈ gợi ý các thuốc trong danh sách trên, KHÔNG được gợi ý thuốc khác.\n`;
       contextInfo += `2. Trường "Tác dụng" PHẢI là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI).\n`;
       contextInfo += `3. Nếu "Tác dụng" trong danh sách chỉ là hàm lượng, bạn PHẢI tạo mô tả công dụng dựa trên tên thuốc.\n`;
-      contextInfo += `4. Format: [Số]. **[Tên thuốc]**\n   💰 Giá: [giá]đ\n   💊 Tác dụng: [mô tả công dụng]\n   📦 Quy cách: [quy cách]\n`;
+      contextInfo += `4. Format ngắn gọn: [Số]. **[Tên thuốc]** (tên thương hiệu nếu có)\n   – Tác dụng: [mô tả công dụng ngắn gọn, 1 dòng]\n   – Liều: [liều dùng ngắn gọn]\n   [CHỈ hiển thị giá nếu có trong danh sách trên, KHÔNG tự ý đưa ra giá ước tính]\n`;
+      contextInfo += `5. Sau khi liệt kê thuốc, luôn khuyến khích: "Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi."\n`;
     }
 
     if (context?.symptoms && context.symptoms.length > 0) {

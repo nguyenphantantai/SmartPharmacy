@@ -2063,6 +2063,164 @@ function formatPrescriptionAnalysis(analysis: any): string {
   return response;
 }
 
+// Extract medicine names from AI response and map to products
+async function extractAndMapProducts(aiResponse: string): Promise<any[]> {
+  try {
+    // Get all common medicine names from symptomToMedicines mapping
+    const allCommonMedicines = new Set<string>();
+    for (const data of Object.values(symptomToMedicines)) {
+      data.medicineNames.forEach(name => allCommonMedicines.add(name.toLowerCase()));
+    }
+    
+    const medicineNames: string[] = [];
+    
+    // Extract medicine names from AI response
+    // Pattern 1: **Paracetamol** (Hapacol, Panadol) - extract both generic and brand names
+    const pattern1 = /\*\*([^*]+?)\*\*\s*\(([^)]+)\)/g;
+    let match;
+    while ((match = pattern1.exec(aiResponse)) !== null) {
+      const genericName = match[1].trim();
+      const brandNames = match[2].split(',').map(b => b.trim());
+      medicineNames.push(genericName);
+      brandNames.forEach(brand => medicineNames.push(brand));
+    }
+    
+    // Pattern 2: **Paracetamol** or **Decolgen** (standalone bold)
+    const pattern2 = /\*\*([^*]+?)\*\*/g;
+    while ((match = pattern2.exec(aiResponse)) !== null) {
+      const name = match[1].trim();
+      if (name && name.length > 2 && name.length < 50) {
+        const lowerName = name.toLowerCase();
+        // Filter out common non-medicine words
+        if (!['tác dụng', 'liều', 'lưu ý', 'cảm ơn', 'với tình trạng', 'ngoài ra', 'bạn nên'].some(word => lowerName.includes(word))) {
+          medicineNames.push(name);
+        }
+      }
+    }
+    
+    // Pattern 3: Numbered list format "1. **Paracetamol**"
+    const pattern3 = /\d+\.\s*\*\*([^*]+?)\*\*/g;
+    while ((match = pattern3.exec(aiResponse)) !== null) {
+      const name = match[1].trim();
+      if (name && name.length > 2 && name.length < 50) {
+        medicineNames.push(name);
+      }
+    }
+    
+    // Pattern 4: Capitalized medicine names (fallback)
+    const pattern4 = /\b([A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+(?:\s+[A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+)*)\b/g;
+    while ((match = pattern4.exec(aiResponse)) !== null) {
+      const name = match[1].trim();
+      if (name && name.length > 3 && name.length < 50) {
+        const lowerName = name.toLowerCase();
+        // Only include if it's a known medicine or looks like a medicine name
+        if (allCommonMedicines.has(lowerName) || 
+            (lowerName.length > 4 && !['cảm ơn', 'bạn có', 'với tình', 'ngoài ra'].some(word => lowerName.includes(word)))) {
+          medicineNames.push(name);
+        }
+      }
+    }
+    
+    // Remove duplicates and filter out non-medicine words
+    const filteredNames = medicineNames
+      .map(name => name.trim())
+      .filter(name => {
+        if (name.length < 3 || name.length > 50) return false;
+        const lower = name.toLowerCase();
+        // Exclude common non-medicine words
+        const excludeWords = ['tác dụng', 'liều', 'lưu ý', 'cảm ơn', 'với tình trạng', 'ngoài ra', 'bạn nên', 'bạn có', 'tham khảo'];
+        if (excludeWords.some(word => lower.includes(word))) return false;
+        return true;
+      });
+    
+    // Remove duplicates and limit to top 5
+    const uniqueNames = Array.from(new Set(filteredNames)).slice(0, 5);
+    
+    if (uniqueNames.length === 0) return [];
+    
+    // Search for products matching these names
+    const db = mongoose.connection.db;
+    if (!db) return [];
+    
+    const productsCollection = db.collection('products');
+    const medicinesCollection = db.collection('medicines');
+    
+    const matchedProducts: any[] = [];
+    
+    for (const medicineName of uniqueNames) {
+      // Clean name (remove dosage info for better matching)
+      const cleanName = medicineName.replace(/\d+\s*(mg|g|ml|%|viên|hộp)/gi, '').trim();
+      const baseName = cleanName.split(' ')[0];
+      
+      // Search in products collection
+      const products = await productsCollection.find({
+        $or: [
+          { name: { $regex: baseName, $options: 'i' } },
+          { name: { $regex: cleanName, $options: 'i' } },
+          { brand: { $regex: baseName, $options: 'i' } }
+        ],
+        inStock: true,
+        stockQuantity: { $gt: 0 }
+      })
+      .limit(3)
+      .toArray();
+      
+      // If not found, search in medicines collection
+      if (products.length === 0) {
+        const medicines = await medicinesCollection.find({
+          $or: [
+            { name: { $regex: baseName, $options: 'i' } },
+            { name: { $regex: cleanName, $options: 'i' } },
+            { brand: { $regex: baseName, $options: 'i' } },
+            { genericName: { $regex: baseName, $options: 'i' } }
+          ]
+        })
+        .limit(3)
+        .toArray();
+        
+        // Convert medicines to product format
+        for (const med of medicines) {
+          matchedProducts.push({
+            id: med._id.toString(),
+            name: med.name || cleanName,
+            brand: med.brand || '',
+            price: med.price || 0,
+            stockQuantity: med.stockQuantity || 0,
+            unit: med.unit || 'đơn vị',
+            imageUrl: med.imageUrl || '',
+            link: `/product/${med._id.toString()}` // Generate product link
+          });
+        }
+      } else {
+        // Add products with link
+        for (const product of products) {
+          matchedProducts.push({
+            id: product._id.toString(),
+            name: product.name,
+            brand: product.brand || '',
+            price: product.price || 0,
+            stockQuantity: product.stockQuantity || 0,
+            unit: product.unit || 'đơn vị',
+            imageUrl: product.imageUrl || '',
+            link: `/product/${product._id.toString()}` // Generate product link
+          });
+        }
+      }
+    }
+    
+    // Remove duplicates by ID
+    const uniqueProducts = Array.from(
+      new Map(matchedProducts.map(p => [p.id, p])).values()
+    );
+    
+    return uniqueProducts.slice(0, 5); // Limit to 5 products max
+    
+  } catch (error) {
+    console.error('Error extracting and mapping products:', error);
+    return [];
+  }
+}
+
 // Main chat controller
 export const chatWithAI = async (req: Request, res: Response) => {
   try {
@@ -2091,15 +2249,29 @@ export const chatWithAI = async (req: Request, res: Response) => {
     }
     
     // Generate AI response
-    const response = await generateAIResponse(
+    const aiResponse = await generateAIResponse(
       message.trim(),
       conversationHistory,
       userId
     );
     
+    // Extract and map products from AI response (only if response contains medicine suggestions)
+    let suggestedProducts: any[] = [];
+    const lowerResponse = aiResponse.toLowerCase();
+    const hasMedicineSuggestion = 
+      lowerResponse.includes('thuốc') || 
+      lowerResponse.includes('gợi ý') || 
+      lowerResponse.includes('tham khảo') ||
+      /\d+\.\s*\*\*/.test(aiResponse); // Has numbered list with bold (medicine list)
+    
+    if (hasMedicineSuggestion) {
+      suggestedProducts = await extractAndMapProducts(aiResponse);
+    }
+    
     res.json({
       success: true,
-      response: response,
+      response: aiResponse,
+      suggestedProducts: suggestedProducts.length > 0 ? suggestedProducts : undefined,
       timestamp: new Date().toISOString(),
       type: 'text'
     });
