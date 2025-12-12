@@ -766,6 +766,21 @@ async function generateAIResponse(
   userId?: string
 ): Promise<string> {
   const lowerMessage = normalizeText(userMessage);
+
+  // Detect if this is a follow-up answer to previous safety questions
+  const followUpAnswer = isFollowUpAnswer(userMessage, conversationHistory);
+  const previousSymptomMessage = followUpAnswer
+    ? [...conversationHistory].reverse().find(m =>
+        m.role === 'user' &&
+        /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy)/i.test(m.content)
+      )
+    : null;
+
+  // Use combined message to retain context when user is only providing follow-up info
+  const combinedSymptomMessage = previousSymptomMessage
+    ? `${previousSymptomMessage.content}\nThông tin bổ sung: ${userMessage}`
+    : userMessage;
+  const lowerCombinedMessage = normalizeText(combinedSymptomMessage);
   
   // Try to use AI LLM first (if configured)
   try {
@@ -775,19 +790,13 @@ async function generateAIResponse(
     if (aiService) {
       // Rehydrate context from previous symptom message if this is a follow-up
       let forcedContext: any = {};
-      if (isFollowUpAnswer(userMessage, conversationHistory)) {
-        const prevSymptomMsg = [...conversationHistory].reverse().find(m =>
-          m.role === 'user' &&
-          /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu)/i.test(m.content)
-        );
-        if (prevSymptomMsg) {
-          const meds = await semanticSearch(prevSymptomMsg.content);
-          if (meds.length > 0) {
-            forcedContext.medicines = meds.slice(0, 3);
-            forcedContext.symptoms = ['cảm cúm'];
-            forcedContext.userQuery = prevSymptomMsg.content;
-            forcedContext.isFollowUpAnswer = true;
-          }
+      if (previousSymptomMessage) {
+        const meds = await semanticSearch(previousSymptomMessage.content);
+        if (meds.length > 0) {
+          forcedContext.medicines = meds.slice(0, 3);
+          forcedContext.symptoms = ['cảm cúm'];
+          forcedContext.userQuery = previousSymptomMessage.content;
+          forcedContext.isFollowUpAnswer = true;
         }
       }
 
@@ -796,11 +805,11 @@ async function generateAIResponse(
       
       // Try to get relevant medicines for context
       const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-        lowerMessage.includes(symptom)
+        lowerCombinedMessage.includes(symptom)
       );
       if (symptomKeywords.length > 0) {
         // Use semanticSearch which already has filtering logic
-        const suggestedMedicines = await semanticSearch(userMessage);
+        const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
         if (suggestedMedicines.length > 0) {
           // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
           context.medicines = suggestedMedicines.slice(0, 3);
@@ -867,10 +876,10 @@ async function generateAIResponse(
 
   // Collect patient info before suggesting common cold/flu medicines
   const hasSymptomKeyword =
-    lowerMessage.includes('cảm') || lowerMessage.includes('cúm') || lowerMessage.includes('ho') ||
-    lowerMessage.includes('sổ mũi') || lowerMessage.includes('nghẹt mũi') ||
-    lowerMessage.includes('đau họng') || lowerMessage.includes('nhức đầu') ||
-    lowerMessage.includes('sốt');
+    lowerCombinedMessage.includes('cảm') || lowerCombinedMessage.includes('cúm') || lowerCombinedMessage.includes('ho') ||
+    lowerCombinedMessage.includes('sổ mũi') || lowerCombinedMessage.includes('nghẹt mũi') ||
+    lowerCombinedMessage.includes('đau họng') || lowerCombinedMessage.includes('nhức đầu') ||
+    lowerCombinedMessage.includes('sốt');
 
   if (hasSymptomKeyword && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
     const parsed = parsePatientInfo(userMessage);
@@ -1041,18 +1050,18 @@ async function generateAIResponse(
   // 1. Semantic Search - Check for symptom-based queries (e.g., "Tôi bị tiêu chảy nhẹ", "Nổi mề đay bị ngứa")
   // This handles natural language queries without exact keywords
   const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-    lowerMessage.includes(symptom)
+    lowerCombinedMessage.includes(symptom)
   );
   
   // Also check for semantic matches (e.g., "nổi mề đay bị ngứa" should find allergy medicines)
   const semanticMatches = Object.entries(symptomToMedicines).filter(([symptom, data]) => 
-    data.keywords.some(keyword => lowerMessage.includes(keyword))
+    data.keywords.some(keyword => lowerCombinedMessage.includes(keyword))
   );
   
   if (symptomKeywords.length > 0 || semanticMatches.length > 0) {
     try {
       // Use semantic search for better results
-      const suggestedMedicines = await semanticSearch(userMessage);
+      const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
       if (suggestedMedicines.length > 0) {
         return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : semanticMatches.map(m => m[0]));
       }
