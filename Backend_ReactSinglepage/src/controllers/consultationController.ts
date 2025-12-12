@@ -2174,14 +2174,30 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 });
                 
                 if (targetMedicine) {
-                  targetGroupTherapeutic = targetMedicine.groupTherapeutic || '';
-                  targetIndication = targetMedicine.indication || targetMedicine.description || targetMedicine.uses || targetMedicine.congDung || '';
-                  targetActiveIngredient = targetMedicine.activeIngredient || '';
-                  console.log(`🔍 Found target medicine in medicines collection: ${targetMedicine.name}`);
-                  console.log(`   Indication: ${targetIndication}`);
-                  console.log(`   GroupTherapeutic: ${targetGroupTherapeutic}`);
-                  console.log(`   ActiveIngredient: ${targetActiveIngredient}`);
-                  break;
+                  // Kiểm tra xem targetMedicine có đúng không (tên phải chứa searchTerm)
+                  const targetNameLower = (targetMedicine.name || '').toLowerCase();
+                  const targetGenericNameLower = (targetMedicine.genericName || '').toLowerCase();
+                  const searchTermLower = searchTerm.toLowerCase();
+                  
+                  // Chỉ dùng targetMedicine nếu tên hoặc genericName chứa searchTerm (tránh match sai)
+                  const isCorrectMatch = targetNameLower.includes(searchTermLower) || 
+                                        targetGenericNameLower.includes(searchTermLower) ||
+                                        (targetMedicine.activeIngredient || '').toLowerCase().includes(searchTermLower);
+                  
+                  if (isCorrectMatch) {
+                    targetGroupTherapeutic = targetMedicine.groupTherapeutic || '';
+                    targetIndication = targetMedicine.indication || targetMedicine.description || targetMedicine.uses || targetMedicine.congDung || '';
+                    targetActiveIngredient = targetMedicine.activeIngredient || '';
+                    console.log(`🔍 Found target medicine in medicines collection: ${targetMedicine.name}`);
+                    console.log(`   Indication: ${targetIndication}`);
+                    console.log(`   GroupTherapeutic: ${targetGroupTherapeutic}`);
+                    console.log(`   ActiveIngredient: ${targetActiveIngredient}`);
+                    break;
+                  } else {
+                    // Match sai - bỏ qua và tiếp tục tìm
+                    console.log(`⚠️ Found incorrect match: ${targetMedicine.name} (doesn't contain "${searchTerm}"), continuing search...`);
+                    targetMedicine = null; // Reset để tiếp tục tìm
+                  }
                 }
               }
             }
@@ -2193,19 +2209,28 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             const isTopicalOriginal = /%\/\s*g|\bgel\b|\bemulgel\b|\bcream\b|\bkem\b|\bthuốc\s*bôi\b|\bthuoc\s*boi\b|\btuýp\b|\btuyp\b|\bointment\b|\bmỡ\b|\bmo\b/i
               .test(originalTextLower);
 
-            // Nếu không tìm thấy trong medicines collection, thử hardcoded mapping cho các thuốc phổ biến
-            if (!targetMedicine || (!targetGroupTherapeutic && !targetIndication)) {
-              
-              // Mapping các thuốc NSAID phổ biến (bao gồm cả COX-2 inhibitors như Celecoxib và Etoricoxib)
-              const nsaidMedicines = ['celecoxib', 'etoricoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'indomethacin', 'piroxicam', 'ketoprofen', 'rofecoxib', 'valdecoxib'];
-              const isNSAID = nsaidMedicines.some(name => medicineNameLower.includes(name));
-              
-              if (isNSAID) {
+            // LUÔN chạy hardcoded mapping để đảm bảo targetGroupTherapeutic được set đúng
+            // Điều này quan trọng để tìm được các thuốc tương tự như Etoricoxib cho Celecoxib
+            // Mapping các thuốc NSAID phổ biến (bao gồm cả COX-2 inhibitors như Celecoxib và Etoricoxib)
+            const nsaidMedicines = ['celecoxib', 'etoricoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'indomethacin', 'piroxicam', 'ketoprofen', 'rofecoxib', 'valdecoxib'];
+            const isNSAID = nsaidMedicines.some(name => medicineNameLower.includes(name));
+            
+            if (isNSAID) {
+              // Ưu tiên groupTherapeutic từ targetMedicine nếu có và đúng, nếu không dùng hardcoded
+              if (!targetGroupTherapeutic || targetGroupTherapeutic.toLowerCase() !== 'nsaid') {
                 targetGroupTherapeutic = 'NSAID';
-                targetIndication = 'Giảm đau, kháng viêm';
                 console.log(`🔍 Detected NSAID medicine: ${genericName || cleanedText}`);
-                console.log(`   Using default NSAID groupTherapeutic and indication`);
+                console.log(`   Setting targetGroupTherapeutic = 'NSAID' (hardcoded mapping)`);
               }
+              // Ưu tiên indication từ targetMedicine nếu có và hợp lý, nếu không dùng hardcoded
+              if (!targetIndication || targetIndication.length < 10 || (!targetIndication.toLowerCase().includes('đau') && !targetIndication.toLowerCase().includes('viêm'))) {
+                targetIndication = 'Giảm đau, kháng viêm';
+                console.log(`   Setting targetIndication = 'Giảm đau, kháng viêm' (hardcoded mapping)`);
+              }
+            }
+            
+            // Nếu không tìm thấy trong medicines collection, thử hardcoded mapping cho các thuốc phổ biến khác
+            if (!targetMedicine || (!targetGroupTherapeutic && !targetIndication)) {
               
               // Mapping các thuốc Corticosteroid (Prednisolon, Prednisone, Dexamethasone, etc.)
               const corticosteroidMedicines = ['prednisolon', 'prednisone', 'dexamethasone', 'methylprednisolon', 'hydrocortisone', 'betamethasone'];
@@ -2401,8 +2426,18 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     // Tìm trực tiếp trong Products collection để tìm các thuốc như Etoricoxib
                     // ngay cả khi không có trong medicines collection hoặc không có groupTherapeutic
                     let additionalProductsFromDB: any[] = [];
-                    if (targetGroupTherapeutic && targetGroupTherapeutic.toLowerCase().includes('nsaid')) {
+                    // LUÔN tìm trong Products collection nếu là NSAID (kể cả khi targetGroupTherapeutic chưa được set)
+                    // Sử dụng lại danh sách NSAID từ scope trên
+                    const nsaidMedicinesList = ['celecoxib', 'etoricoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'indomethacin', 'piroxicam', 'ketoprofen', 'rofecoxib', 'valdecoxib'];
+                    const isNSAIDMedicine = targetGroupTherapeutic?.toLowerCase().includes('nsaid') || 
+                                           nsaidMedicinesList.some(name => medicineNameLower.includes(name));
+                    if (isNSAIDMedicine) {
                       console.log(`🔍 Searching directly in Products collection for NSAID medicines (including Etoricoxib)...`);
+                      // Đảm bảo targetGroupTherapeutic được set
+                      if (!targetGroupTherapeutic) {
+                        targetGroupTherapeutic = 'NSAID';
+                        console.log(`   Setting targetGroupTherapeutic = 'NSAID' for Products search`);
+                      }
                       
                       // Tìm các thuốc NSAID phổ biến trong Products collection
                       // Ưu tiên các thuốc COX-2 inhibitors như Etoricoxib, Celecoxib vì chúng tương tự nhau

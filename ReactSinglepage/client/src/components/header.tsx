@@ -20,7 +20,7 @@ interface HeaderProps {
 export function Header({ searchQuery, onSearchChange }: HeaderProps) {
   const headerRef = useRef<HTMLElement | null>(null);
   const [headerHeight, setHeaderHeight] = useState<number>(0);
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const isCartPage = location.startsWith("/cart");
   const { items } = useCart();
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
@@ -135,8 +135,12 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
 
   // Handle product selection from search
   const handleProductSelect = (product: SearchProduct) => {
-    // You can implement navigation to product detail page here
-    console.log('Selected product:', product);
+    // Navigate to product detail page using wouter router
+    if (product.id) {
+      setLocation(`/product/${product.id}`);
+    } else {
+      console.error('Product ID not found:', product);
+    }
     setIsSearchDropdownOpen(false);
     onSearchChange('');
   };
