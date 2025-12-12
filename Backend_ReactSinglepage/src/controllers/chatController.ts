@@ -724,14 +724,15 @@ function parsePatientInfo(message: string, conversationHistory?: ChatMessage[]) 
     .some(sym => lower.includes(sym));
 
   const hasAge =
-    /\b\d{1,2}\s*tuổi\b/.test(lower) ||
+    /\d{1,2}\s*tuổi/.test(lower) ||  // "22 tuổi", "tôi 22 tuổi"
     lower.includes('trẻ em') ||
     lower.includes('người lớn') ||
-    /\b\d{1,2}\s*yo\b/.test(lower);
+    /\d{1,2}\s*yo/i.test(lower) ||
+    /tôi\s+\d{1,2}/.test(lower);  // "tôi 22" (fallback)
 
-  const hasPregnancyInfo = /(mang thai|bầu|có thai|cho con bú|không mang thai|không bầu|không có thai)/i.test(lower);
-  const hasDrugAllergyInfo = /(dị ứng|dị thuốc|không dị ứng|không dị thuốc|tiền sử dị ứng)/i.test(lower);
-  const hasChronicInfo = /(bệnh nền|bệnh gan|bệnh thận|tim|dạ dày|cao huyết áp|tiểu đường|không bệnh nền|không có bệnh)/i.test(lower);
+  const hasPregnancyInfo = /(mang\s*thai|bầu|có\s*thai|cho\s*con\s*bú|không\s*mang\s*thai|không\s*bầu|không\s*có\s*thai)/i.test(lower);
+  const hasDrugAllergyInfo = /(dị\s*ứng|dị\s*thuốc|không\s*dị\s*ứng|không\s*dị\s*thuốc|tiền\s*sử\s*dị\s*ứng)/i.test(lower);
+  const hasChronicInfo = /(bệnh\s*nền|bệnh\s*gan|bệnh\s*thận|tim|dạ\s*dày|cao\s*huyết\s*áp|tiểu\s*đường|không\s*bệnh\s*nền|không\s*có\s*bệnh)/i.test(lower);
 
   return {
     hasSymptom,
@@ -765,18 +766,33 @@ function buildMissingInfoQuestions(info: ReturnType<typeof parsePatientInfo>): s
 function isFollowUpAnswer(message: string, conversationHistory: ChatMessage[]): boolean {
   const lower = normalizeText(message);
   const indicators = [
-    /\b\d{1,2}\s*tuổi\b/,
-    /không\s*dị\s*ứng/,
-    /không\s*bệnh/,
-    /mang\s*thai|cho\s*con\s*bú/,
-    /người\s*lớn/,
-    /trẻ\s*em/
+    /\b\d{1,2}\s*tuổi\b/,  // "22 tuổi", "30 tuổi"
+    /\d{1,2}\s*yo\b/i,      // "22 yo"
+    /không\s*dị\s*ứng/,     // "không dị ứng"
+    /không\s*dị\s*thuốc/,   // "không dị thuốc"
+    /không\s*bệnh\s*nền/,   // "không bệnh nền"
+    /không\s*có\s*bệnh/,    // "không có bệnh"
+    /mang\s*thai|cho\s*con\s*bú/,  // "mang thai", "cho con bú"
+    /không\s*mang\s*thai/,  // "không mang thai"
+    /người\s*lớn/,          // "người lớn"
+    /trẻ\s*em/              // "trẻ em"
   ];
   const isAnswer = indicators.some(p => p.test(lower));
   if (!isAnswer) return false;
 
+  // Check if last assistant message asked for info (has question mark or asks for info)
   const lastBot = [...conversationHistory].reverse().find(m => m.role === 'assistant');
-  return !!(lastBot && lastBot.content.includes('?'));
+  if (!lastBot) return false;
+  
+  const lastBotLower = normalizeText(lastBot.content);
+  const isAskingForInfo = 
+    lastBot.content.includes('?') ||
+    lastBotLower.includes('vui lòng cho biết') ||
+    lastBotLower.includes('cần bổ sung') ||
+    lastBotLower.includes('bạn vui lòng') ||
+    lastBotLower.includes('cho biết thêm');
+  
+  return isAskingForInfo;
 }
 
 // Extract medicine name from query
@@ -986,23 +1002,40 @@ async function generateAIResponse(
 
   // Check if this is a follow-up answer to safety questions
   const isFollowUp = isFollowUpAnswer(userMessage, conversationHistory);
-  const hasSymptomInHistory = conversationHistory.some(m => 
-    m.role === 'user' && 
-    /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy)/i.test(m.content)
-  );
+  const hasSymptomInHistory = 
+    conversationHistory.some(m => 
+      m.role === 'user' && 
+      /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy|đờm)/i.test(m.content)
+    ) ||
+    /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy|đờm)/i.test(combinedSymptomMessage);
   
   // Collect patient info before suggesting common cold/flu medicines
   const hasSymptomKeyword =
     lowerCombinedMessage.includes('cảm') || lowerCombinedMessage.includes('cúm') || lowerCombinedMessage.includes('ho') ||
     lowerCombinedMessage.includes('sổ mũi') || lowerCombinedMessage.includes('nghẹt mũi') ||
     lowerCombinedMessage.includes('đau họng') || lowerCombinedMessage.includes('nhức đầu') ||
-    lowerCombinedMessage.includes('sốt');
+    lowerCombinedMessage.includes('sốt') || lowerCombinedMessage.includes('đờm');
 
+  // QUAN TRỌNG: Kiểm tra xem có phải follow-up answer với đủ thông tin không
+  // Cải thiện detection: check cả message hiện tại và conversation history
+  const parsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
+  const hasAllInfo = parsed.hasAge && (parsed.hasPregnancyInfo || parsed.hasDrugAllergyInfo || parsed.hasChronicInfo);
+  
+  console.log('🔍 Rule-based check:', {
+    isFollowUp,
+    hasAllInfo,
+    hasSymptomInHistory,
+    parsed: {
+      hasAge: parsed.hasAge,
+      hasPregnancyInfo: parsed.hasPregnancyInfo,
+      hasDrugAllergyInfo: parsed.hasDrugAllergyInfo,
+      hasChronicInfo: parsed.hasChronicInfo
+    }
+  });
+  
   // If this is a follow-up answer and we have symptom in history, proceed to suggest medicines
-  if (isFollowUp && hasSymptomInHistory && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
+  if ((isFollowUp || hasAllInfo) && hasSymptomInHistory && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
     // Parse patient info from entire conversation history
-    const parsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
-    
     // If we have age info (required), proceed to suggest medicines
     if (parsed.hasAge) {
       // Find the original symptom message
@@ -1018,6 +1051,7 @@ async function generateAIResponse(
           const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
             normalizeText(originalSymptomMsg.content).includes(symptom)
           );
+          console.log('✅ Rule-based: Suggesting medicines for symptom:', originalSymptomMsg.content);
           return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
         }
       }
@@ -1030,12 +1064,23 @@ async function generateAIResponse(
     }
   } else if (hasSymptomKeyword && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
     // Parse patient info from entire conversation history to avoid asking again
-    const parsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
     const followup = buildMissingInfoQuestions(parsed);
     // Only ask if age is missing; otherwise proceed with available info
     // QUAN TRỌNG: Nếu đã có đủ thông tin từ conversation history, không hỏi lại
     if (followup && !parsed.hasAge) {
       return followup;
+    }
+    
+    // Nếu đã có đủ thông tin (có age), gợi ý thuốc ngay
+    if (parsed.hasAge && hasSymptomKeyword) {
+      const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
+      if (suggestedMedicines.length > 0) {
+        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+          lowerCombinedMessage.includes(symptom)
+        );
+        console.log('✅ Rule-based: Suggesting medicines with available info');
+        return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
+      }
     }
   }
   
@@ -1331,7 +1376,21 @@ async function generateAIResponse(
     return "Tôi sẵn sàng tư vấn cho bạn! Bạn có thể hỏi tôi về:\n- Thông tin sản phẩm và giá cả\n- Tình trạng tồn kho\n- Công dụng và cách sử dụng\n- Gợi ý thuốc theo triệu chứng\n- Lịch sử mua hàng và gợi ý\n- Chương trình khuyến mãi\n- Theo dõi đơn hàng\n\nBạn muốn biết thông tin gì?";
   }
   
-  // Default response
+  // QUAN TRỌNG: Trước khi trả về default message, kiểm tra xem có đủ thông tin để gợi ý thuốc không
+  // Nếu có symptom và đã có đủ thông tin (age), gợi ý thuốc ngay
+  const finalParsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
+  if (finalParsed.hasAge && hasSymptomKeyword) {
+    const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
+    if (suggestedMedicines.length > 0) {
+      const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+        lowerCombinedMessage.includes(symptom)
+      );
+      console.log('✅ Rule-based: Final check - suggesting medicines with available info');
+      return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
+    }
+  }
+  
+  // Default response - chỉ trả về khi thực sự không có gì để làm
   return `Cảm ơn bạn đã liên hệ với Nhà Thuốc Thông Minh! Tôi có thể giúp bạn:
   
 - 🔍 Tìm kiếm thông tin về thuốc và sản phẩm
