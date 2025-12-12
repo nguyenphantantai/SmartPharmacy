@@ -750,7 +750,15 @@ function buildMissingInfoQuestions(info: ReturnType<typeof parsePatientInfo>): s
   if (!info.hasChronicInfo) missing.push('Có bệnh nền (gan, thận, tim, dạ dày, huyết áp...) không?');
 
   if (missing.length === 0) return null;
-  return `Để tư vấn an toàn, cần bổ sung: ${missing.join('; ')}.\nBạn vui lòng cho biết thêm?`;
+  
+  // Format với xuống dòng để dễ đọc
+  let response = 'Để tư vấn an toàn, bạn vui lòng cho biết thêm:\n\n';
+  missing.forEach((item, index) => {
+    response += `${index + 1}. ${item}\n`;
+  });
+  response += '\nCảm ơn bạn!';
+  
+  return response;
 }
 
 // Detect if current message is a follow-up answer to previous questions
@@ -887,7 +895,20 @@ async function generateAIResponse(
       });
       
       if (geminiResponse) {
-        return geminiResponse;
+        // Check if response is a default/generic message (AI reset)
+        const lowerResponse = geminiResponse.toLowerCase();
+        const isDefaultMessage = 
+          lowerResponse.includes('tôi có thể giúp bạn') ||
+          lowerResponse.includes('bạn có thể hỏi tôi') ||
+          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin'));
+        
+        // If it's a default message and we have context (follow-up), fallback to rule-based
+        if (isDefaultMessage && (context.medicines?.length > 0 || previousSymptomMessage)) {
+          console.log('⚠️ AI returned default message, falling back to rule-based system');
+          // Don't return, continue to rule-based
+        } else {
+          return geminiResponse;
+        }
       }
       
       // Try OpenAI as fallback (if configured)
@@ -898,7 +919,19 @@ async function generateAIResponse(
       });
       
       if (aiResponse) {
-        return aiResponse;
+        // Check if response is a default/generic message
+        const lowerResponse = aiResponse.toLowerCase();
+        const isDefaultMessage = 
+          lowerResponse.includes('tôi có thể giúp bạn') ||
+          lowerResponse.includes('bạn có thể hỏi tôi') ||
+          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin'));
+        
+        if (isDefaultMessage && (context.medicines?.length > 0 || previousSymptomMessage)) {
+          console.log('⚠️ AI returned default message, falling back to rule-based system');
+          // Don't return, continue to rule-based
+        } else {
+          return aiResponse;
+        }
       }
       
       // Try Ollama (local LLM) as last fallback
@@ -909,7 +942,19 @@ async function generateAIResponse(
       });
       
       if (ollamaResponse) {
-        return ollamaResponse;
+        // Check if response is a default/generic message
+        const lowerResponse = ollamaResponse.toLowerCase();
+        const isDefaultMessage = 
+          lowerResponse.includes('tôi có thể giúp bạn') ||
+          lowerResponse.includes('bạn có thể hỏi tôi') ||
+          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin'));
+        
+        if (isDefaultMessage && (context.medicines?.length > 0 || previousSymptomMessage)) {
+          console.log('⚠️ AI returned default message, falling back to rule-based system');
+          // Don't return, continue to rule-based
+        } else {
+          return ollamaResponse;
+        }
       }
     }
   } catch (error) {
@@ -925,6 +970,13 @@ async function generateAIResponse(
     return safetyWarning;
   }
 
+  // Check if this is a follow-up answer to safety questions
+  const isFollowUp = isFollowUpAnswer(userMessage, conversationHistory);
+  const hasSymptomInHistory = conversationHistory.some(m => 
+    m.role === 'user' && 
+    /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy)/i.test(m.content)
+  );
+  
   // Collect patient info before suggesting common cold/flu medicines
   const hasSymptomKeyword =
     lowerCombinedMessage.includes('cảm') || lowerCombinedMessage.includes('cúm') || lowerCombinedMessage.includes('ho') ||
@@ -932,7 +984,37 @@ async function generateAIResponse(
     lowerCombinedMessage.includes('đau họng') || lowerCombinedMessage.includes('nhức đầu') ||
     lowerCombinedMessage.includes('sốt');
 
-  if (hasSymptomKeyword && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
+  // If this is a follow-up answer and we have symptom in history, proceed to suggest medicines
+  if (isFollowUp && hasSymptomInHistory && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
+    // Parse patient info from entire conversation history
+    const parsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
+    
+    // If we have age info (required), proceed to suggest medicines
+    if (parsed.hasAge) {
+      // Find the original symptom message
+      const originalSymptomMsg = [...conversationHistory].reverse().find(m =>
+        m.role === 'user' &&
+        /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy)/i.test(m.content)
+      );
+      
+      if (originalSymptomMsg) {
+        // Use semantic search to find medicines for the symptom
+        const suggestedMedicines = await semanticSearch(originalSymptomMsg.content);
+        if (suggestedMedicines.length > 0) {
+          const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+            normalizeText(originalSymptomMsg.content).includes(symptom)
+          );
+          return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
+        }
+      }
+    } else {
+      // Still missing age, ask for it
+      const followup = buildMissingInfoQuestions(parsed);
+      if (followup) {
+        return followup;
+      }
+    }
+  } else if (hasSymptomKeyword && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
     // Parse patient info from entire conversation history to avoid asking again
     const parsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
     const followup = buildMissingInfoQuestions(parsed);
