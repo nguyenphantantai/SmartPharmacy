@@ -1947,6 +1947,55 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   return result;
 }
 
+// Track Gemini quota status to avoid multiple failed calls
+let geminiQuotaExceeded = false;
+let geminiQuotaResetTime: number | null = null;
+
+/**
+ * Check if Gemini quota is exceeded
+ */
+function isGeminiQuotaExceeded(): boolean {
+  if (!geminiQuotaExceeded) return false;
+  
+  // Reset flag after 1 hour (quota usually resets daily, but we check hourly)
+  if (geminiQuotaResetTime && Date.now() > geminiQuotaResetTime) {
+    geminiQuotaExceeded = false;
+    geminiQuotaResetTime = null;
+    console.log('🔄 Gemini quota check reset - will try again');
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Mark Gemini quota as exceeded
+ */
+function markGeminiQuotaExceeded() {
+  geminiQuotaExceeded = true;
+  // Reset after 1 hour
+  geminiQuotaResetTime = Date.now() + (60 * 60 * 1000);
+  console.log('⚠️ Gemini quota exceeded - skipping Gemini calls for 1 hour');
+}
+
+/**
+ * Check if error is a quota/rate limit error
+ */
+function isQuotaError(error: any): boolean {
+  const errorMessage = error?.message || '';
+  const errorStatus = error?.status || error?.response?.status;
+  
+  return (
+    errorStatus === 429 ||
+    errorMessage.includes('429') ||
+    errorMessage.includes('quota') ||
+    errorMessage.includes('Quota exceeded') ||
+    errorMessage.includes('rate limit') ||
+    errorMessage.includes('Rate limit') ||
+    errorMessage.includes('Too Many Requests')
+  );
+}
+
 /**
  * Use Gemini AI to correct OCR text and extract structured information
  */
@@ -1954,6 +2003,12 @@ async function correctOCRWithGemini(ocrText: string): Promise<string | null> {
   try {
     // Check if Gemini is available
     if (!process.env.GEMINI_API_KEY) {
+      return null;
+    }
+
+    // Skip if quota exceeded
+    if (isGeminiQuotaExceeded()) {
+      console.log('⏭️ Skipping Gemini OCR correction - quota exceeded');
       return null;
     }
 
@@ -1987,7 +2042,13 @@ Trả về văn bản đã được sửa chữa:`;
 
     return null;
   } catch (error: any) {
-    console.error('❌ Gemini OCR correction error:', error.message);
+    // Check if it's a quota error
+    if (isQuotaError(error)) {
+      markGeminiQuotaExceeded();
+      console.error('❌ Gemini OCR correction - Quota exceeded. Will use Tesseract OCR only.');
+    } else {
+      console.error('❌ Gemini OCR correction error:', error.message);
+    }
     return null;
   }
 }
@@ -1999,6 +2060,12 @@ async function extractInfoWithGemini(ocrText: string, imagePath?: string): Promi
   try {
     // Check if Gemini is available
     if (!process.env.GEMINI_API_KEY) {
+      return null;
+    }
+
+    // Skip if quota exceeded
+    if (isGeminiQuotaExceeded()) {
+      console.log('⏭️ Skipping Gemini extraction - quota exceeded');
       return null;
     }
 
@@ -2100,7 +2167,13 @@ Lưu ý QUAN TRỌNG về Ngày sinh/Năm sinh:
 
     return null;
   } catch (error: any) {
-    console.error('❌ Gemini extraction error:', error.message);
+    // Check if it's a quota error
+    if (isQuotaError(error)) {
+      markGeminiQuotaExceeded();
+      console.error('❌ Gemini extraction - Quota exceeded. Will use pattern matching extraction only.');
+    } else {
+      console.error('❌ Gemini extraction error:', error.message);
+    }
     return null;
   }
 }
@@ -2139,6 +2212,8 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
       if (correctedText) {
         console.log('✅ Using Gemini-corrected OCR text');
         ocrText = correctedText;
+      } else if (isGeminiQuotaExceeded()) {
+        console.log('ℹ️ Using Tesseract OCR only (Gemini quota exceeded)');
       }
       
       // Try to extract structured info with Gemini (pass imagePath for Vision API)
@@ -2151,8 +2226,9 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
         console.error('Error deleting temp file:', error);
       }
       
-      // Extract info using pattern matching
+      // Extract info using pattern matching (always works, even without Gemini)
       const extractedInfo = extractPrescriptionInfo(ocrText);
+      console.log('✅ Extracted prescription info using pattern matching');
       
       // Merge Gemini results (prioritize Gemini if available and more complete)
       if (geminiInfo) {
@@ -2220,13 +2296,16 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
   if (correctedText) {
     console.log('✅ Using Gemini-corrected OCR text');
     ocrText = correctedText;
+  } else if (isGeminiQuotaExceeded()) {
+    console.log('ℹ️ Using Tesseract OCR only (Gemini quota exceeded)');
   }
   
   // Try to extract structured info with Gemini (pass imagePath for Vision API)
   const geminiInfo = await extractInfoWithGemini(ocrText, imagePath);
   
-  // Extract info using pattern matching
+  // Extract info using pattern matching (always works, even without Gemini)
   const extractedInfo = extractPrescriptionInfo(ocrText);
+  console.log('✅ Extracted prescription info using pattern matching');
   
   // Merge Gemini results (prioritize Gemini if available and more complete)
   if (geminiInfo) {
