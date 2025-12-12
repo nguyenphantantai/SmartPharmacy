@@ -823,12 +823,27 @@ async function generateAIResponse(
     if (aiService) {
       // Rehydrate context from previous symptom message if this is a follow-up
       let forcedContext: any = {};
+      let messageForAI = userMessage; // Default to current message
+      
       if (previousSymptomMessage) {
-        const meds = await semanticSearch(previousSymptomMessage.content);
+        // This is a follow-up answer - we need to combine symptom + safety info
+        const symptomText = previousSymptomMessage.content;
+        const safetyInfo = userMessage;
+        
+        // Create combined message for AI: symptom + safety info
+        messageForAI = `${symptomText}\n\nThông tin bổ sung: ${safetyInfo}`;
+        
+        // Get medicines for the symptom
+        const meds = await semanticSearch(symptomText);
         if (meds.length > 0) {
           forcedContext.medicines = meds.slice(0, 3);
-          forcedContext.symptoms = ['cảm cúm'];
-          forcedContext.userQuery = previousSymptomMessage.content;
+          
+          // Extract symptom keywords from original symptom message
+          const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+            normalizeText(symptomText).includes(symptom)
+          );
+          forcedContext.symptoms = symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm'];
+          forcedContext.userQuery = symptomText;
           forcedContext.isFollowUpAnswer = true;
         }
       }
@@ -836,20 +851,22 @@ async function generateAIResponse(
       // Get context for AI (medicines, user history, etc.)
       const context: any = { ...forcedContext };
       
-      // Try to get relevant medicines for context
-      const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-        lowerCombinedMessage.includes(symptom)
-      );
-      if (symptomKeywords.length > 0) {
-        // Use semanticSearch which already has filtering logic
-        const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
-        if (suggestedMedicines.length > 0) {
-          // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
-          context.medicines = suggestedMedicines.slice(0, 3);
-          context.symptoms = symptomKeywords;
-          // Add explicit instruction about what medicines to suggest
-          context.queryType = 'symptom_based';
-          context.userQuery = userMessage;
+      // If not already set (not a follow-up), try to get relevant medicines for context
+      if (!context.medicines || context.medicines.length === 0) {
+        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+          lowerCombinedMessage.includes(symptom)
+        );
+        if (symptomKeywords.length > 0) {
+          // Use semanticSearch which already has filtering logic
+          const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
+          if (suggestedMedicines.length > 0) {
+            // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
+            context.medicines = suggestedMedicines.slice(0, 3);
+            context.symptoms = symptomKeywords;
+            // Add explicit instruction about what medicines to suggest
+            context.queryType = 'symptom_based';
+            context.userQuery = userMessage;
+          }
         }
       }
       
@@ -862,8 +879,9 @@ async function generateAIResponse(
       }
       
       // Try Google Gemini first (free tier, good for Vietnamese)
+      // QUAN TRỌNG: Use messageForAI (combined message for follow-up) instead of just userMessage
       const geminiResponse = await aiService.generateAIResponseWithGemini({
-        userMessage,
+        userMessage: messageForAI,
         conversationHistory,
         context
       });
@@ -874,7 +892,7 @@ async function generateAIResponse(
       
       // Try OpenAI as fallback (if configured)
       const aiResponse = await aiService.generateAIResponseWithLLM({
-        userMessage,
+        userMessage: messageForAI,
         conversationHistory,
         context
       });
@@ -885,7 +903,7 @@ async function generateAIResponse(
       
       // Try Ollama (local LLM) as last fallback
       const ollamaResponse = await aiService.generateAIResponseWithOllama({
-        userMessage,
+        userMessage: messageForAI,
         conversationHistory,
         context
       });
