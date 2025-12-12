@@ -860,8 +860,8 @@ async function generateAIResponse(
         
         // Get medicines for the symptom
         const meds = await semanticSearch(symptomText);
-        if (meds.length > 0) {
-          forcedContext.medicines = meds.slice(0, 3);
+          if (meds.length > 0) {
+            forcedContext.medicines = meds.slice(0, 3);
           
           // Extract symptom keywords from original symptom message
           const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
@@ -869,7 +869,7 @@ async function generateAIResponse(
           );
           forcedContext.symptoms = symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm'];
           forcedContext.userQuery = symptomText;
-          forcedContext.isFollowUpAnswer = true;
+            forcedContext.isFollowUpAnswer = true;
           // Add explicit instruction to context
           forcedContext.instruction = `Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn cho triệu chứng "${symptomText}". Bạn PHẢI gợi ý thuốc ngay, KHÔNG được reset hay chào lại.`;
         }
@@ -880,19 +880,19 @@ async function generateAIResponse(
       
       // If not already set (not a follow-up), try to get relevant medicines for context
       if (!context.medicines || context.medicines.length === 0) {
-        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+      const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
           lowerCombinedMessage.includes(symptom)
-        );
-        if (symptomKeywords.length > 0) {
-          // Use semanticSearch which already has filtering logic
+      );
+      if (symptomKeywords.length > 0) {
+        // Use semanticSearch which already has filtering logic
           const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
-          if (suggestedMedicines.length > 0) {
-            // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
-            context.medicines = suggestedMedicines.slice(0, 3);
-            context.symptoms = symptomKeywords;
-            // Add explicit instruction about what medicines to suggest
-            context.queryType = 'symptom_based';
-            context.userQuery = userMessage;
+        if (suggestedMedicines.length > 0) {
+          // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
+          context.medicines = suggestedMedicines.slice(0, 3);
+          context.symptoms = symptomKeywords;
+          // Add explicit instruction about what medicines to suggest
+          context.queryType = 'symptom_based';
+          context.userQuery = userMessage;
           }
         }
       }
@@ -931,7 +931,7 @@ async function generateAIResponse(
           // Don't return, continue to rule-based
         } else {
           // Accept AI response even if it might be slightly generic, as long as it's not clearly reset
-          return geminiResponse;
+        return geminiResponse;
         }
       }
       
@@ -957,7 +957,7 @@ async function generateAIResponse(
           console.log('⚠️ AI returned default message despite having context, falling back to rule-based system');
           // Don't return, continue to rule-based
         } else {
-          return aiResponse;
+        return aiResponse;
         }
       }
       
@@ -983,7 +983,7 @@ async function generateAIResponse(
           console.log('⚠️ AI returned default message despite having context, falling back to rule-based system');
           // Don't return, continue to rule-based
         } else {
-          return ollamaResponse;
+        return ollamaResponse;
         }
       }
     }
@@ -1008,7 +1008,7 @@ async function generateAIResponse(
       /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy|đờm)/i.test(m.content)
     ) ||
     /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy|đờm)/i.test(combinedSymptomMessage);
-  
+
   // Collect patient info before suggesting common cold/flu medicines
   const hasSymptomKeyword =
     lowerCombinedMessage.includes('cảm') || lowerCombinedMessage.includes('cúm') || lowerCombinedMessage.includes('ho') ||
@@ -1033,27 +1033,80 @@ async function generateAIResponse(
     }
   });
   
+  // QUAN TRỌNG: Ưu tiên suggest medicines khi có đủ thông tin và có symptom
   // If this is a follow-up answer and we have symptom in history, proceed to suggest medicines
-  if ((isFollowUp || hasAllInfo) && hasSymptomInHistory && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
+  const shouldSuggestMedicines = (isFollowUp || hasAllInfo) && hasSymptomInHistory && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho');
+  
+  console.log('🔍 Should suggest medicines?', {
+    shouldSuggestMedicines,
+    condition1: (isFollowUp || hasAllInfo),
+    condition2: hasSymptomInHistory,
+    condition3: !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho'),
+    lowerMessage: lowerMessage.substring(0, 50),
+    'isFollowUp': isFollowUp,
+    'hasAllInfo': hasAllInfo,
+    'hasSymptomInHistory': hasSymptomInHistory
+  });
+  
+  console.log('📍 About to check shouldSuggestMedicines, value:', shouldSuggestMedicines);
+  
+  if (shouldSuggestMedicines) {
     // Parse patient info from entire conversation history
     // If we have age info (required), proceed to suggest medicines
     if (parsed.hasAge) {
-      // Find the original symptom message
+      // Find the original symptom message - exclude messages that are just answers
       const originalSymptomMsg = [...conversationHistory].reverse().find(m =>
         m.role === 'user' &&
-        /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy)/i.test(m.content)
+        /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|viêm|dị ứng|đau bụng|tiêu chảy|đờm)/i.test(m.content) &&
+        // Exclude messages that are likely just answers (contain age, pregnancy info, etc.)
+        !(/\d{1,2}\s*tuổi/.test(m.content) && !/(cảm|cúm|ho|sốt)/i.test(m.content))
       );
       
-      if (originalSymptomMsg) {
-        // Use semantic search to find medicines for the symptom
-        const suggestedMedicines = await semanticSearch(originalSymptomMsg.content);
-        if (suggestedMedicines.length > 0) {
-          const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-            normalizeText(originalSymptomMsg.content).includes(symptom)
-          );
-          console.log('✅ Rule-based: Suggesting medicines for symptom:', originalSymptomMsg.content);
-          return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
+      // Use original symptom message if found, otherwise use combined message
+      const symptomQuery = originalSymptomMsg ? originalSymptomMsg.content : combinedSymptomMessage;
+      
+      console.log('✅ Rule-based: Found follow-up with info, searching medicines for:', symptomQuery);
+      console.log('   Original symptom message:', originalSymptomMsg?.content || 'Not found');
+      console.log('   Combined message:', combinedSymptomMessage.substring(0, 100));
+      
+      // Use semantic search to find medicines for the symptom
+      const suggestedMedicines = await semanticSearch(symptomQuery);
+      console.log('   Semantic search result:', suggestedMedicines.length, 'medicines found');
+      
+      if (suggestedMedicines.length > 0) {
+        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+          normalizeText(symptomQuery).includes(symptom)
+        );
+        console.log('✅ Rule-based: Suggesting medicines for symptom:', symptomQuery, 'Found', suggestedMedicines.length, 'medicines');
+        console.log('   Symptom keywords:', symptomKeywords);
+        const response = await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
+        console.log('   Response length:', response.length);
+        return response;
+      } else {
+        console.log('⚠️ Rule-based: No medicines found for symptom:', symptomQuery);
+        // Fallback: Try to suggest common medicines based on symptom keywords
+        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+          normalizeText(symptomQuery).includes(symptom)
+        );
+        if (symptomKeywords.length > 0) {
+          // Try to get medicines from symptom mapping directly
+          const allMedicines: string[] = [];
+          symptomKeywords.forEach(symptom => {
+            if (symptomToMedicines[symptom]) {
+              allMedicines.push(...symptomToMedicines[symptom].medicineNames);
+            }
+          });
+          console.log('   Trying fallback with symptom keywords:', symptomKeywords, 'medicines:', allMedicines.slice(0, 5));
+          // Try search again with just the symptom name
+          const fallbackMedicines = await semanticSearch(symptomKeywords[0]);
+          if (fallbackMedicines.length > 0) {
+            console.log('   Fallback found', fallbackMedicines.length, 'medicines');
+            return await formatSymptomBasedResponse(fallbackMedicines, symptomKeywords);
+          }
         }
+        console.log('   No fallback medicines found, will return default response');
+        // Return a helpful message instead of going to product search
+        return `Cảm ơn bạn đã cung cấp thông tin. Với tình trạng ${symptomQuery.includes('cảm') || symptomQuery.includes('cúm') ? 'cảm cúm' : symptomQuery.includes('ho') ? 'ho' : 'triệu chứng'} của bạn, bạn có thể tham khảo các thuốc phổ biến như Paracetamol (giảm sốt, đau đầu), Decolgen (giảm nghẹt mũi, sổ mũi), hoặc các thuốc ho nếu có ho. Vui lòng liên hệ dược sĩ để được tư vấn cụ thể hơn.`;
       }
     } else {
       // Still missing age, ask for it
@@ -1073,6 +1126,7 @@ async function generateAIResponse(
     
     // Nếu đã có đủ thông tin (có age), gợi ý thuốc ngay
     if (parsed.hasAge && hasSymptomKeyword) {
+      console.log('✅ Rule-based: Has age and symptom, suggesting medicines');
       const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
       if (suggestedMedicines.length > 0) {
         const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
@@ -1242,26 +1296,31 @@ async function generateAIResponse(
   }
   
   // 1. Semantic Search - Check for symptom-based queries (e.g., "Tôi bị tiêu chảy nhẹ", "Nổi mề đay bị ngứa")
+  // QUAN TRỌNG: Chỉ search nếu chưa suggest medicines ở trên (shouldSuggestMedicines = false)
   // This handles natural language queries without exact keywords
+  if (!shouldSuggestMedicines) {
   const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-    lowerCombinedMessage.includes(symptom)
+      lowerCombinedMessage.includes(symptom)
   );
   
   // Also check for semantic matches (e.g., "nổi mề đay bị ngứa" should find allergy medicines)
   const semanticMatches = Object.entries(symptomToMedicines).filter(([symptom, data]) => 
-    data.keywords.some(keyword => lowerCombinedMessage.includes(keyword))
+      data.keywords.some(keyword => lowerCombinedMessage.includes(keyword))
   );
   
   if (symptomKeywords.length > 0 || semanticMatches.length > 0) {
     try {
       // Use semantic search for better results
-      const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
+        const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
       if (suggestedMedicines.length > 0) {
         return await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : semanticMatches.map(m => m[0]));
       }
     } catch (error) {
       console.error('Error suggesting medicines by symptom:', error);
     }
+    }
+  } else {
+    console.log('ℹ️ Skipping semantic search - already handled in suggest medicines above');
   }
   
   // 2. Check for detailed medicine information queries
@@ -1314,6 +1373,19 @@ async function generateAIResponse(
   }
   
   // 4. Extract keywords for medicine/product search with natural language
+  // QUAN TRỌNG: Chỉ search products nếu KHÔNG phải follow-up answer với đủ thông tin
+  // Nếu đã có đủ thông tin và có symptom, đã được xử lý ở trên (suggest medicines)
+  const shouldSkipProductSearch = (isFollowUp || hasAllInfo) && hasSymptomInHistory && parsed.hasAge;
+  
+  console.log('🔍 Should skip product search?', {
+    shouldSkipProductSearch,
+    isFollowUp,
+    hasAllInfo,
+    hasSymptomInHistory,
+    'parsed.hasAge': parsed.hasAge
+  });
+  
+  if (!shouldSkipProductSearch) {
   const { keywords, brand, category, ageGroup } = extractMedicineKeywords(userMessage);
   
   // Check if user is asking about a specific medicine/product
@@ -1326,9 +1398,14 @@ async function generateAIResponse(
     } catch (error) {
       console.error('Error searching products:', error);
     }
+    }
+  } else {
+    console.log('ℹ️ Skipping product search - already suggested medicines above');
   }
   
   // 5. Handle natural language queries (vague keywords)
+  // QUAN TRỌNG: Chỉ search nếu chưa suggest medicines ở trên
+  if (!shouldSkipProductSearch) {
   if (lowerMessage.includes('thuốc cảm thông thường') || lowerMessage.includes('thuốc cảm')) {
     const products = await searchProductsWithFilters(['cảm', 'paracetamol', 'decolgen']);
     if (products.length > 0) {
@@ -1342,6 +1419,7 @@ async function generateAIResponse(
       const products = await searchProductsWithFilters(treatmentKeywords);
       if (products.length > 0) {
         return formatProductResponse(products, userMessage);
+        }
       }
     }
   }
