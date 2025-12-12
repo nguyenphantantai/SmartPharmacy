@@ -118,7 +118,12 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
       
       // If this is a follow-up answer, add explicit instruction
       if ((context as any).isFollowUpAnswer) {
-        contextInfo += `\n⚠️ QUAN TRỌNG: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn. Bạn PHẢI gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}", KHÔNG được reset hay chào lại.\n`;
+        contextInfo += `\n⚠️⚠️⚠️ QUAN TRỌNG CỰC KỲ: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn.\n`;
+        contextInfo += `Bạn PHẢI:\n`;
+        contextInfo += `1. Gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}"\n`;
+        contextInfo += `2. KHÔNG được reset hay chào lại\n`;
+        contextInfo += `3. PHẢI liệt kê cụ thể từng thuốc theo format: [Số]. **[Tên thuốc]** với tác dụng và liều dùng\n`;
+        contextInfo += `4. KHÔNG được trả lời chung chung như "tham khảo các thuốc như..." hoặc "vui lòng liên hệ dược sĩ"\n`;
       }
       
       contextInfo += `Hãy chỉ gợi ý thuốc PHÙ HỢP với các triệu chứng này.\n`;
@@ -242,12 +247,19 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
         }
         contextInfo += '\n';
       });
-      contextInfo += `\n=== QUY TẮC QUAN TRỌNG ===\n`;
+      contextInfo += `\n=== QUY TẮC QUAN TRỌNG (BẮT BUỘC) ===\n`;
       contextInfo += `1. CHỈ gợi ý các thuốc trong danh sách trên, KHÔNG được gợi ý thuốc khác.\n`;
       contextInfo += `2. Trường "Tác dụng" PHẢI là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI).\n`;
       contextInfo += `3. Nếu "Tác dụng" trong danh sách chỉ là hàm lượng, bạn PHẢI tạo mô tả công dụng dựa trên tên thuốc.\n`;
-      contextInfo += `4. Format ngắn gọn: [Số]. **[Tên thuốc]** (tên thương hiệu nếu có)\n   – Tác dụng: [mô tả công dụng ngắn gọn, 1 dòng]\n   – Liều: [liều dùng ngắn gọn]\n   [CHỈ hiển thị giá nếu có trong danh sách trên, KHÔNG tự ý đưa ra giá ước tính]\n`;
+      contextInfo += `4. ⚠️ BẮT BUỘC: Bạn PHẢI liệt kê cụ thể từng thuốc theo format dưới đây. KHÔNG được trả lời chung chung như "tham khảo các thuốc như...", "vui lòng liên hệ dược sĩ...".\n`;
+      contextInfo += `   Format BẮT BUỘC:\n`;
+      contextInfo += `   [Số]. **[Tên thuốc]** (tên thương hiệu nếu có)\n`;
+      contextInfo += `   – Tác dụng: [mô tả công dụng ngắn gọn, 1 dòng]\n`;
+      contextInfo += `   – Liều: [liều dùng ngắn gọn]\n`;
+      contextInfo += `   [CHỈ hiển thị giá nếu có trong danh sách trên, KHÔNG tự ý đưa ra giá ước tính]\n`;
       contextInfo += `5. Sau khi liệt kê thuốc, luôn khuyến khích: "Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi."\n`;
+      contextInfo += `6. ❌ KHÔNG ĐƯỢC trả lời kiểu: "Tham khảo các thuốc như Paracetamol, Decolgen... vui lòng liên hệ dược sĩ"\n`;
+      contextInfo += `7. ✅ PHẢI trả lời kiểu: Liệt kê cụ thể từng thuốc với số thứ tự, tên thuốc in đậm, tác dụng, liều dùng\n`;
     }
 
     if (context?.symptoms && context.symptoms.length > 0) {
@@ -257,7 +269,12 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       
       // If this is a follow-up answer, add explicit instruction
       if ((context as any).isFollowUpAnswer) {
-        contextInfo += `\n⚠️ QUAN TRỌNG: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn. Bạn PHẢI gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}", KHÔNG được reset hay chào lại.\n`;
+        contextInfo += `\n⚠️⚠️⚠️ QUAN TRỌNG CỰC KỲ: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn.\n`;
+        contextInfo += `Bạn PHẢI:\n`;
+        contextInfo += `1. Gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}"\n`;
+        contextInfo += `2. KHÔNG được reset hay chào lại\n`;
+        contextInfo += `3. PHẢI liệt kê cụ thể từng thuốc theo format: [Số]. **[Tên thuốc]** với tác dụng và liều dùng\n`;
+        contextInfo += `4. KHÔNG được trả lời chung chung như "tham khảo các thuốc như..." hoặc "vui lòng liên hệ dược sĩ"\n`;
       }
       
       contextInfo += `Bạn PHẢI chỉ gợi ý thuốc PHÙ HỢP với triệu chứng này từ danh sách thuốc đã được lọc ở trên.\n`;
