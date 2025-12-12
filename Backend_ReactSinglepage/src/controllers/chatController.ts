@@ -518,18 +518,32 @@ async function semanticSearch(query: string): Promise<any[]> {
     const filteredProducts = products.filter(product => {
       const productNameLower = (product.name || '').toLowerCase();
       
-      // Nếu CHỈ hỏi "nghẹt mũi" hoặc "sổ mũi" (không có sốt, đau đầu)
+      // Nếu CHỈ hỏi "nghẹt mũi" hoặc "sổ mũi" (không có sốt, đau đầu, ho)
       if ((matchedSymptoms.includes('nghẹt mũi') || matchedSymptoms.includes('sổ mũi')) && 
           !matchedSymptoms.includes('sốt') && 
           !matchedSymptoms.includes('đau đầu') && 
           !matchedSymptoms.includes('nhức đầu') &&
+          !matchedSymptoms.includes('ho') &&
           !matchedSymptoms.includes('cảm') &&
           !matchedSymptoms.includes('cảm cúm')) {
-        // Chỉ giữ thuốc xịt mũi, loại bỏ Paracetamol
-        const nasalMedicines = ['natri clorid', 'xịt mũi', 'otrivin', 'naphazoline', 'rhinocort', 'muối biển'];
+        // Chỉ giữ thuốc xịt mũi, loại bỏ TẤT CẢ thuốc khác
+        const nasalMedicines = ['natri clorid', 'xịt mũi', 'otrivin', 'naphazoline', 'rhinocort', 'muối biển', 'loratadine', 'cetirizine', 'fexofenadine'];
         const isNasalMedicine = nasalMedicines.some(med => productNameLower.includes(med));
-        if (!isNasalMedicine && (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan'))) {
-          return false; // Loại bỏ Paracetamol nếu chỉ có nghẹt mũi
+        
+        // Loại bỏ TẤT CẢ thuốc không phải thuốc nghẹt mũi
+        if (!isNasalMedicine) {
+          // Loại bỏ thuốc sốt/đau
+          if (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan') || productNameLower.includes('ibuprofen')) {
+            return false;
+          }
+          // Loại bỏ thuốc ho
+          if (productNameLower.includes('terpin') || productNameLower.includes('acetylcysteine') || productNameLower.includes('bromhexin') || productNameLower.includes('ambroxol')) {
+            return false;
+          }
+          // Loại bỏ thuốc cảm cúm
+          if (productNameLower.includes('decolgen') || productNameLower.includes('tiffy') || productNameLower.includes('coldacmin')) {
+            return false;
+          }
         }
       }
       
@@ -547,18 +561,33 @@ async function semanticSearch(query: string): Promise<any[]> {
         }
       }
       
-      // Nếu CHỈ hỏi "ho" (không có sốt, đau đầu)
+      // Nếu CHỈ hỏi "ho" (không có sốt, đau đầu, nghẹt mũi)
       if (matchedSymptoms.includes('ho') && 
           !matchedSymptoms.includes('sốt') && 
           !matchedSymptoms.includes('đau đầu') &&
           !matchedSymptoms.includes('nhức đầu') &&
+          !matchedSymptoms.includes('nghẹt mũi') &&
+          !matchedSymptoms.includes('sổ mũi') &&
           !matchedSymptoms.includes('cảm') &&
           !matchedSymptoms.includes('cảm cúm')) {
-        // Ưu tiên thuốc ho, loại bỏ Paracetamol
-        const coughMedicines = ['terpin', 'bromhexin', 'acetylcysteine', 'ambroxol', 'prospan', 'eugica', 'mucosolvan'];
+        // Ưu tiên thuốc ho, loại bỏ TẤT CẢ thuốc khác
+        const coughMedicines = ['terpin', 'bromhexin', 'acetylcysteine', 'ambroxol', 'prospan', 'eugica', 'mucosolvan', 'dextromethorphan'];
         const isCoughMedicine = coughMedicines.some(med => productNameLower.includes(med));
-        if (!isCoughMedicine && (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan'))) {
-          return false; // Loại bỏ Paracetamol nếu chỉ có ho
+        
+        // Loại bỏ TẤT CẢ thuốc không phải thuốc ho
+        if (!isCoughMedicine) {
+          // Loại bỏ thuốc sốt/đau
+          if (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan') || productNameLower.includes('ibuprofen')) {
+            return false;
+          }
+          // Loại bỏ thuốc nghẹt mũi
+          if (productNameLower.includes('otrivin') || productNameLower.includes('naphazoline') || productNameLower.includes('rhinocort')) {
+            return false;
+          }
+          // Loại bỏ thuốc cảm cúm
+          if (productNameLower.includes('decolgen') || productNameLower.includes('tiffy') || productNameLower.includes('coldacmin')) {
+            return false;
+          }
         }
       }
       
@@ -1042,6 +1071,16 @@ async function generateAIResponse(
   const safetyWarning = checkSafetyWarnings(userMessage);
   if (safetyWarning) {
     return safetyWarning;
+  }
+
+  // 0.5. Check for vague symptoms - must ask for clarification
+  const vagueSymptoms = ['mệt', 'nhức người', 'khó chịu', 'người không ổn', 'mệt mỏi'];
+  const hasVagueSymptom = vagueSymptoms.some(symptom => lowerMessage.includes(symptom));
+  const hasSpecificSymptom = /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu|đau đầu|viêm|dị ứng|đau bụng|tiêu chảy|đờm)/i.test(lowerMessage);
+  
+  // If only vague symptoms without specific ones, ask for clarification
+  if (hasVagueSymptom && !hasSpecificSymptom) {
+    return "Để tư vấn thuốc phù hợp, bạn vui lòng cho tôi biết thêm triệu chứng cụ thể:\n\nBạn có sốt, đau đầu, nghẹt mũi, ho, đau họng hay triệu chứng nào khác không?";
   }
 
   // Check if this is a follow-up answer to safety questions

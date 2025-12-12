@@ -306,34 +306,65 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `Yêu cầu gốc: "${(context as any).userQuery || userMessage}"\n`;
       
       // Add specific symptom analysis instruction
-      contextInfo += `\n⚠️⚠️⚠️ PHÂN TÍCH TRIỆU CHỨNG:\n`;
-      contextInfo += `Bạn PHẢI phân tích ĐÚNG triệu chứng và gợi ý thuốc PHÙ HỢP:\n`;
+      contextInfo += `\n⚠️⚠️⚠️ PHÂN TÍCH TRIỆU CHỨNG (BẮT BUỘC):\n`;
+      contextInfo += `Bạn PHẢI phân tích ĐÚNG triệu chứng trong TIN NHẮN MỚI NHẤT và gợi ý thuốc PHÙ HỢP:\n`;
       
       const symptoms = context.symptoms;
-      if (symptoms.includes('nghẹt mũi') || symptoms.includes('sổ mũi')) {
-        contextInfo += `- Triệu chứng: Nghẹt mũi/Sổ mũi → Ưu tiên thuốc: Natri Clorid 0.9%, Xịt mũi muối biển, Otrivin, Naphazoline\n`;
-        contextInfo += `- KHÔNG gợi ý Paracetamol nếu chỉ có nghẹt mũi (trừ khi có sốt/đau đầu kèm theo)\n`;
-      }
-      if (symptoms.includes('nhức đầu') || symptoms.includes('đau đầu')) {
-        contextInfo += `- Triệu chứng: Đau đầu → Ưu tiên thuốc: Paracetamol, Ibuprofen\n`;
-        contextInfo += `- KHÔNG gợi ý Decolgen, Tiffy nếu chỉ đau đầu đơn thuần (trừ khi có nghẹt mũi/sổ mũi kèm theo)\n`;
-      }
-      if (symptoms.includes('cảm cúm') || symptoms.includes('cảm')) {
-        contextInfo += `- Triệu chứng: Cảm cúm (nhiều triệu chứng) → Gợi ý combo: Paracetamol + Decolgen/Tiffy\n`;
-      }
-      if (symptoms.includes('ho')) {
-        contextInfo += `- Triệu chứng: Ho → Ưu tiên thuốc: Terpin Codein (ho khan), Bromhexin/Acetylcysteine (ho đờm)\n`;
-        contextInfo += `- KHÔNG gợi ý Paracetamol nếu chỉ có ho (trừ khi có sốt kèm theo)\n`;
-      }
-      if (symptoms.includes('sốt')) {
-        contextInfo += `- Triệu chứng: Sốt → Ưu tiên thuốc: Paracetamol, Panadol, Efferalgan\n`;
-      }
-      if (symptoms.includes('đau họng')) {
-        contextInfo += `- Triệu chứng: Đau họng → Ưu tiên thuốc: Strepsils, Betadine, Lysopaine\n`;
-        contextInfo += `- KHÔNG gợi ý Paracetamol nếu chỉ có đau họng (trừ khi có sốt kèm theo)\n`;
+      const userQuery = ((context as any).userQuery || userMessage).toLowerCase();
+      
+      // Check for specific symptoms and provide strict rules
+      if (userQuery.includes('nghẹt mũi') || userQuery.includes('sổ mũi') || userQuery.includes('tắc mũi')) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Nghẹt mũi/Sổ mũi\n`;
+        contextInfo += `✅ PHẢI gợi ý: Natri Clorid 0.9%, Xịt mũi muối biển, Otrivin, Naphazoline, Rhinocort\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Paracetamol, Terpin Codein, Acetylcysteine, Bromhexin (đây là thuốc ho/sốt, KHÔNG phải thuốc nghẹt mũi)\n`;
       }
       
-      contextInfo += `\n⚠️ QUAN TRỌNG: Mỗi triệu chứng khác nhau PHẢI có danh sách thuốc khác nhau. KHÔNG được dùng cùng một danh sách thuốc cho mọi triệu chứng.\n`;
+      if (userQuery.includes('ho khan') || (userQuery.includes('ho') && !userQuery.includes('đờm'))) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Ho khan\n`;
+        contextInfo += `✅ PHẢI gợi ý: Terpin Codein, Dextromethorphan\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Paracetamol, Panadol, Ibuprofen, Efferalgan (đây là thuốc sốt/đau, KHÔNG phải thuốc ho)\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Acetylcysteine, Bromhexin (chỉ dùng cho ho đờm)\n`;
+      }
+      
+      if (userQuery.includes('ho đờm') || userQuery.includes('ho có đờm')) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Ho đờm\n`;
+        contextInfo += `✅ PHẢI gợi ý: Acetylcysteine, Bromhexin, Ambroxol, Prospan\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Terpin Codein (chỉ dùng cho ho khan)\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Paracetamol, Panadol (đây là thuốc sốt/đau)\n`;
+      }
+      
+      if (userQuery.includes('đau đầu') || userQuery.includes('nhức đầu')) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Đau đầu\n`;
+        contextInfo += `✅ PHẢI gợi ý: Paracetamol, Ibuprofen\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Decolgen, Tiffy (trừ khi có nghẹt mũi/sổ mũi kèm theo)\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Terpin Codein, Acetylcysteine (đây là thuốc ho)\n`;
+      }
+      
+      if (userQuery.includes('sốt') && !userQuery.includes('cảm') && !userQuery.includes('cúm')) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Sốt\n`;
+        contextInfo += `✅ PHẢI gợi ý: Paracetamol, Panadol, Efferalgan\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG tự thêm: Decolgen, Tiffy (chỉ thêm nếu có nghẹt mũi kèm theo)\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Terpin Codein, Acetylcysteine (đây là thuốc ho)\n`;
+      }
+      
+      if (userQuery.includes('cảm cúm') || (userQuery.includes('cảm') && (userQuery.includes('sốt') || userQuery.includes('đau đầu') || userQuery.includes('nghẹt mũi')))) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Cảm cúm (nhiều triệu chứng)\n`;
+        contextInfo += `✅ PHẢI gợi ý combo: Paracetamol + Decolgen/Tiffy\n`;
+      }
+      
+      if (userQuery.includes('mệt') || userQuery.includes('nhức người') || userQuery.includes('khó chịu')) {
+        contextInfo += `\n🔍 TRIỆU CHỨNG: Mệt mỏi/Nhức người (MƠ HỒ)\n`;
+        contextInfo += `⚠️ BẠN PHẢI HỎI LẠI triệu chứng cụ thể: "Bạn có sốt, đau đầu, nghẹt mũi, ho hay triệu chứng nào khác không?"\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG được gợi ý thuốc khi triệu chứng mơ hồ\n`;
+        contextInfo += `❌ TUYỆT ĐỐI KHÔNG gợi ý: Terpin Codein, Acetylcysteine (đây là thuốc ho, không phải thuốc mệt mỏi)\n`;
+      }
+      
+      contextInfo += `\n⚠️⚠️⚠️ QUY TẮC CHẶT CHẼ:\n`;
+      contextInfo += `1. KHÔNG được tái sử dụng danh sách thuốc từ câu trả lời trước\n`;
+      contextInfo += `2. KHÔNG được gợi ý thuốc ho cho nghẹt mũi hoặc sốt\n`;
+      contextInfo += `3. KHÔNG được gợi ý thuốc sốt/đau cho ho\n`;
+      contextInfo += `4. Mỗi triệu chứng PHẢI có danh sách thuốc RIÊNG\n`;
+      contextInfo += `5. Trước khi trả lời, TỰ KIỂM TRA: Thuốc có đúng triệu chứng không? Có bị lặp không?\n`;
       
       // If this is a follow-up answer, add explicit instruction
       if ((context as any).isFollowUpAnswer) {
