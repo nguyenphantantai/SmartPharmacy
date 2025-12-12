@@ -1960,21 +1960,27 @@ let lastGeminiApiKey: string | null = null; // Track API key to detect changes
 function isGeminiQuotaExceeded(): boolean {
   // Check if API key has changed - if so, reset quota status
   const currentApiKey = process.env.GEMINI_API_KEY;
+  
   if (currentApiKey && currentApiKey !== lastGeminiApiKey) {
     // API key changed - reset quota status
+    const wasExceeded = geminiQuotaExceeded;
     geminiQuotaExceeded = false;
     geminiQuotaResetTime = null;
     lastGeminiApiKey = currentApiKey;
-    console.log('🔄 Gemini API key changed - resetting quota status');
-    return false;
+    console.log(`🔄 Gemini API key changed - resetting quota status (was exceeded: ${wasExceeded})`);
+    console.log(`   New API key: ${currentApiKey.substring(0, 10)}...${currentApiKey.substring(currentApiKey.length - 4)}`);
+    return false; // Allow using new API key
   }
   
   // Update last API key if not set
   if (currentApiKey && !lastGeminiApiKey) {
     lastGeminiApiKey = currentApiKey;
+    console.log(`✅ Gemini API key initialized: ${currentApiKey.substring(0, 10)}...${currentApiKey.substring(currentApiKey.length - 4)}`);
   }
   
-  if (!geminiQuotaExceeded) return false;
+  if (!geminiQuotaExceeded) {
+    return false; // Quota not exceeded
+  }
   
   // Reset flag after 1 hour (quota usually resets daily, but we check hourly)
   if (geminiQuotaResetTime && Date.now() > geminiQuotaResetTime) {
@@ -1984,6 +1990,9 @@ function isGeminiQuotaExceeded(): boolean {
     return false;
   }
   
+  // Still exceeded
+  const remainingTime = geminiQuotaResetTime ? Math.round((geminiQuotaResetTime - Date.now()) / 1000 / 60) : 0;
+  console.log(`⏸️ Gemini quota still exceeded (will retry in ${remainingTime} minutes)`);
   return true;
 }
 
@@ -2024,14 +2033,17 @@ async function correctOCRWithGemini(ocrText: string): Promise<string | null> {
   try {
     // Check if Gemini is available
     if (!process.env.GEMINI_API_KEY) {
+      console.log('⚠️ Gemini API key not set');
       return null;
     }
 
-    // Skip if quota exceeded
+    // Check quota status (this will auto-reset if API key changed)
     if (isGeminiQuotaExceeded()) {
       console.log('⏭️ Skipping Gemini OCR correction - quota exceeded');
       return null;
     }
+    
+    console.log('🔄 Attempting Gemini OCR correction...');
 
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -2081,14 +2093,17 @@ async function extractInfoWithGemini(ocrText: string, imagePath?: string): Promi
   try {
     // Check if Gemini is available
     if (!process.env.GEMINI_API_KEY) {
+      console.log('⚠️ Gemini API key not set');
       return null;
     }
 
-    // Skip if quota exceeded
+    // Check quota status (this will auto-reset if API key changed)
     if (isGeminiQuotaExceeded()) {
       console.log('⏭️ Skipping Gemini extraction - quota exceeded');
       return null;
     }
+    
+    console.log('🔄 Attempting Gemini extraction...');
 
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
