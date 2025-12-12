@@ -220,15 +220,18 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
     }
   }
   
-  console.log('📄 ========== OCR TEXT ANALYSIS ==========');
-  console.log('📄 Full OCR Text length:', fullText.length, 'characters');
-  console.log('📄 First 1000 chars:', fullText.substring(0, 1000));
-  console.log('📄 Total lines:', lines.length);
-  console.log('📄 First 20 lines:');
-  lines.slice(0, 20).forEach((line, idx) => {
-    console.log(`   Line ${idx + 1}: "${line}"`);
-  });
-  console.log('📄 =======================================');
+  // Only log OCR analysis in debug mode or first time
+  if (process.env.DEBUG_OCR === 'true') {
+    console.log('📄 ========== OCR TEXT ANALYSIS ==========');
+    console.log('📄 Full OCR Text length:', fullText.length, 'characters');
+    console.log('📄 First 1000 chars:', fullText.substring(0, 1000));
+    console.log('📄 Total lines:', lines.length);
+    console.log('📄 First 20 lines:');
+    lines.slice(0, 20).forEach((line, idx) => {
+      console.log(`   Line ${idx + 1}: "${line}"`);
+    });
+    console.log('📄 =======================================');
+  }
   
   const result: ExtractedPrescriptionInfo = {
     rawText: ocrText
@@ -267,15 +270,19 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   ];
   
   // Search in full text first
-  console.log('🔍 Searching for customer name...');
+  if (process.env.DEBUG_OCR === 'true') {
+    console.log('🔍 Searching for customer name...');
+  }
   for (let i = 0; i < namePatterns.length; i++) {
     const pattern = namePatterns[i];
     if (!pattern) continue;
     const match = fullText.match(pattern);
-    console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
-    if (match) {
-      console.log(`   Match[0]: "${match[0]}"`);
-      console.log(`   Match[1]: "${match[1] || 'N/A'}"`);
+    if (process.env.DEBUG_OCR === 'true') {
+      console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
+      if (match) {
+        console.log(`   Match[0]: "${match[0]}"`);
+        console.log(`   Match[1]: "${match[1] || 'N/A'}"`);
+      }
     }
     if (match && match[1]) {
       let name = match[1].trim();
@@ -290,13 +297,17 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
       // Limit to 6 words to capture full Vietnamese names (e.g., "HUỲNH THỊ PHƯỢNG")
       const words = name.split(/\s+/).filter(w => w.length > 0);
       name = words.slice(0, 6).join(' ');
-      console.log(`   Cleaned name: "${name}" (length: ${name.length})`);
+      if (process.env.DEBUG_OCR === 'true') {
+        console.log(`   Cleaned name: "${name}" (length: ${name.length})`);
+      }
       // Accept names with at least 2 characters (for cases like "HA THI HOC")
       if (name.length >= 2 && name.length < 50) {
         result.customerName = name;
-        console.log('✅ Extracted customer name:', result.customerName);
+        if (!process.env.DEBUG_OCR || process.env.DEBUG_OCR !== 'true') {
+          console.log('✅ Extracted customer name:', result.customerName);
+        }
         break;
-      } else {
+      } else if (process.env.DEBUG_OCR === 'true') {
         console.log(`   ⚠️ Name rejected: length ${name.length} (must be 2-49)`);
       }
     }
@@ -318,7 +329,9 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
           // Accept names with at least 2 characters
           if (name.length >= 2 && name.length < 50) {
             result.customerName = name;
-            console.log('✅ Extracted customer name from line:', result.customerName);
+            if (!process.env.DEBUG_OCR || process.env.DEBUG_OCR !== 'true') {
+              console.log('✅ Extracted customer name from line:', result.customerName);
+            }
             break;
           }
         }
@@ -367,15 +380,19 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   ];
   
   // Search in full text
-  console.log('🔍 Searching for doctor name...');
+  if (process.env.DEBUG_OCR === 'true') {
+    console.log('🔍 Searching for doctor name...');
+  }
   for (let i = 0; i < doctorPatterns.length; i++) {
     const pattern = doctorPatterns[i];
     if (!pattern) continue;
     const match = fullText.match(pattern);
-    console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
-    if (match) {
-      console.log(`   Match[0]: "${match[0]}"`);
-      console.log(`   Match[1]: "${match[1] || 'N/A'}"`);
+    if (process.env.DEBUG_OCR === 'true') {
+      console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
+      if (match) {
+        console.log(`   Match[0]: "${match[0]}"`);
+        console.log(`   Match[1]: "${match[1] || 'N/A'}"`);
+      }
     }
     if (match && match[1]) {
       let doctorName = match[1].trim();
@@ -390,10 +407,14 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
       doctorName = doctorName.split(/\s+/).slice(0, 4).join(' ');
       // Remove trailing invalid characters but preserve "nh" in "Thanh", "Hải"
       doctorName = doctorName.replace(/[.,;:]+$/, '').trim();
-      console.log(`   Cleaned doctor name: "${doctorName}" (length: ${doctorName.length})`);
+      if (process.env.DEBUG_OCR === 'true') {
+        console.log(`   Cleaned doctor name: "${doctorName}" (length: ${doctorName.length})`);
+      }
       if (doctorName.length > 2 && doctorName.length < 60) {
         result.doctorName = doctorName;
-        console.log('✅ Extracted doctor name:', result.doctorName);
+        if (!process.env.DEBUG_OCR || process.env.DEBUG_OCR !== 'true') {
+          console.log('✅ Extracted doctor name:', result.doctorName);
+        }
         break;
       } else {
         console.log(`   ⚠️ Doctor name rejected: length ${doctorName.length} (must be 3-59)`);
@@ -497,15 +518,19 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   ];
   
   // Search in full text
-  console.log('🔍 Searching for hospital name...');
+  if (process.env.DEBUG_OCR === 'true') {
+    console.log('🔍 Searching for hospital name...');
+  }
   for (let i = 0; i < hospitalPatterns.length; i++) {
     const pattern = hospitalPatterns[i];
     if (!pattern) continue;
     const match = fullText.match(pattern);
-    console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
-    if (match) {
-      console.log(`   Match[0]: "${match[0]}"`);
-      console.log(`   Match[1]: "${match[1] || 'N/A'}", Match[2]: "${match[2] || 'N/A'}"`);
+    if (process.env.DEBUG_OCR === 'true') {
+      console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
+      if (match) {
+        console.log(`   Match[0]: "${match[0]}"`);
+        console.log(`   Match[1]: "${match[1] || 'N/A'}", Match[2]: "${match[2] || 'N/A'}"`);
+      }
     }
     // For Pattern 0a/0b, match[1] is the name after "BV ĐKKV"
     // For Pattern 0, match[0] is the full name "SỞ Y TẾ TỈNH A - BỆNH VIỆN ĐA KHOA TỈNH"
@@ -575,11 +600,15 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
         continue; // Skip this match and try next pattern
       }
       hospitalName = hospitalName.split(/\s+/).slice(0, 10).join(' '); // Limit to 10 words for full names
-      console.log(`   Cleaned hospital name: "${hospitalName}" (length: ${hospitalName.length})`);
+      if (process.env.DEBUG_OCR === 'true') {
+        console.log(`   Cleaned hospital name: "${hospitalName}" (length: ${hospitalName.length})`);
+      }
       // Accept hospital names with at least 3 characters
       if (hospitalName.length >= 3 && hospitalName.length < 100) {
         result.hospitalName = hospitalName;
-        console.log('✅ Extracted hospital name:', result.hospitalName);
+        if (!process.env.DEBUG_OCR || process.env.DEBUG_OCR !== 'true') {
+          console.log('✅ Extracted hospital name:', result.hospitalName);
+        }
         break;
       } else {
         console.log(`   ⚠️ Hospital name rejected: length ${hospitalName.length} (must be 3-99)`);
@@ -1660,15 +1689,19 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   ];
   
   // Search in full text
-  console.log('🔍 Searching for diagnosis...');
+  if (process.env.DEBUG_OCR === 'true') {
+    console.log('🔍 Searching for diagnosis...');
+  }
   for (let i = 0; i < diagnosisPatterns.length; i++) {
     const pattern = diagnosisPatterns[i];
     if (!pattern) continue;
     const match = fullText.match(pattern);
-    console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
-    if (match) {
-      console.log(`   Match[0]: "${match[0]}"`);
-      console.log(`   Match[1]: "${match[1] || 'N/A'}"`);
+    if (process.env.DEBUG_OCR === 'true') {
+      console.log(`   Pattern ${i + 1}: ${match ? 'MATCHED' : 'no match'}`);
+      if (match) {
+        console.log(`   Match[0]: "${match[0]}"`);
+        console.log(`   Match[1]: "${match[1] || 'N/A'}"`);
+      }
     }
     if (match && match[1]) {
       let diagnosis = match[1].trim();
@@ -1770,11 +1803,15 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
       // Limit length but allow for full diagnosis descriptions (including multiple ICD codes with semicolons)
       // For multiple diagnoses like "H81.9-Rối loạn...; J02.9-Viêm họng...; K21.9-Bệnh trào ngược...", allow more words
       diagnosis = diagnosis.split(/\s+/).slice(0, 30).join(' '); // Allow up to 30 words for multiple diagnoses
-      console.log(`   Cleaned diagnosis: "${diagnosis}" (length: ${diagnosis.length})`);
+      if (process.env.DEBUG_OCR === 'true') {
+        console.log(`   Cleaned diagnosis: "${diagnosis}" (length: ${diagnosis.length})`);
+      }
       // Allow up to 300 characters for multiple diagnoses with ICD codes
       if (diagnosis.length >= 2 && diagnosis.length < 300) {
         result.diagnosis = diagnosis;
-        console.log('✅ Extracted diagnosis:', result.diagnosis);
+        if (!process.env.DEBUG_OCR || process.env.DEBUG_OCR !== 'true') {
+          console.log('✅ Extracted diagnosis:', result.diagnosis);
+        }
         break;
       } else {
         console.log(`   ⚠️ Diagnosis rejected: length ${diagnosis.length} (must be 2-299)`);
@@ -2077,8 +2114,15 @@ Trả về văn bản đã được sửa chữa:`;
   } catch (error: any) {
     // Check if it's a quota error
     if (isQuotaError(error)) {
+      const currentApiKey = process.env.GEMINI_API_KEY;
+      const apiKeyPreview = currentApiKey ? `${currentApiKey.substring(0, 10)}...${currentApiKey.substring(currentApiKey.length - 4)}` : 'N/A';
+      const errorDetails = error?.message || error?.toString() || 'Unknown error';
       markGeminiQuotaExceeded();
-      console.error('❌ Gemini OCR correction - Quota exceeded. Will use Tesseract OCR only.');
+      console.error(`❌ Gemini OCR correction - Quota exceeded`);
+      console.error(`   API Key: ${apiKeyPreview}`);
+      console.error(`   Error: ${errorDetails.substring(0, 200)}`);
+      console.error('   ⚠️ If this is a NEW API key, it may also be out of quota (20 requests/day for free tier)');
+      console.error('   💡 Solution: Check quota at https://aistudio.google.com/apikey or wait for daily reset');
     } else {
       console.error('❌ Gemini OCR correction error:', error.message);
     }
@@ -2205,8 +2249,16 @@ Lưu ý QUAN TRỌNG về Ngày sinh/Năm sinh:
   } catch (error: any) {
     // Check if it's a quota error
     if (isQuotaError(error)) {
+      const currentApiKey = process.env.GEMINI_API_KEY;
+      const apiKeyPreview = currentApiKey ? `${currentApiKey.substring(0, 10)}...${currentApiKey.substring(currentApiKey.length - 4)}` : 'N/A';
+      const errorDetails = error?.message || error?.toString() || 'Unknown error';
       markGeminiQuotaExceeded();
-      console.error('❌ Gemini extraction - Quota exceeded. Will use pattern matching extraction only.');
+      console.error(`❌ Gemini extraction - Quota exceeded`);
+      console.error(`   API Key: ${apiKeyPreview}`);
+      console.error(`   Error: ${errorDetails.substring(0, 200)}`);
+      console.error('   ⚠️ If this is a NEW API key, it may also be out of quota (20 requests/day for free tier)');
+      console.error('   💡 Solution: Check quota at https://aistudio.google.com/apikey or wait for daily reset');
+      console.error('   Will use pattern matching extraction only.');
     } else {
       console.error('❌ Gemini extraction error:', error.message);
     }
