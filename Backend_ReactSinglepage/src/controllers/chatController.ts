@@ -720,6 +720,24 @@ function buildMissingInfoQuestions(info: ReturnType<typeof parsePatientInfo>): s
   return `Để tư vấn an toàn, cần bổ sung: ${missing.join('; ')}.\nBạn vui lòng cho biết thêm?`;
 }
 
+// Detect if current message is a follow-up answer to previous questions
+function isFollowUpAnswer(message: string, conversationHistory: ChatMessage[]): boolean {
+  const lower = normalizeText(message);
+  const indicators = [
+    /\b\d{1,2}\s*tuổi\b/,
+    /không\s*dị\s*ứng/,
+    /không\s*bệnh/,
+    /mang\s*thai|cho\s*con\s*bú/,
+    /người\s*lớn/,
+    /trẻ\s*em/
+  ];
+  const isAnswer = indicators.some(p => p.test(lower));
+  if (!isAnswer) return false;
+
+  const lastBot = [...conversationHistory].reverse().find(m => m.role === 'assistant');
+  return !!(lastBot && lastBot.content.includes('?'));
+}
+
 // Extract medicine name from query
 function extractMedicineNameFromQuery(query: string): string | null {
   const lowerQuery = normalizeText(query);
@@ -755,8 +773,26 @@ async function generateAIResponse(
     const aiService = await import('../services/aiService.js').catch(() => null);
     
     if (aiService) {
+      // Rehydrate context from previous symptom message if this is a follow-up
+      let forcedContext: any = {};
+      if (isFollowUpAnswer(userMessage, conversationHistory)) {
+        const prevSymptomMsg = [...conversationHistory].reverse().find(m =>
+          m.role === 'user' &&
+          /(cảm|cúm|sốt|ho|sổ mũi|nghẹt mũi|đau họng|nhức đầu)/i.test(m.content)
+        );
+        if (prevSymptomMsg) {
+          const meds = await semanticSearch(prevSymptomMsg.content);
+          if (meds.length > 0) {
+            forcedContext.medicines = meds.slice(0, 3);
+            forcedContext.symptoms = ['cảm cúm'];
+            forcedContext.userQuery = prevSymptomMsg.content;
+            forcedContext.isFollowUpAnswer = true;
+          }
+        }
+      }
+
       // Get context for AI (medicines, user history, etc.)
-      const context: any = {};
+      const context: any = { ...forcedContext };
       
       // Try to get relevant medicines for context
       const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
@@ -767,7 +803,7 @@ async function generateAIResponse(
         const suggestedMedicines = await semanticSearch(userMessage);
         if (suggestedMedicines.length > 0) {
           // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
-          context.medicines = suggestedMedicines.slice(0, 5);
+          context.medicines = suggestedMedicines.slice(0, 3);
           context.symptoms = symptomKeywords;
           // Add explicit instruction about what medicines to suggest
           context.queryType = 'symptom_based';
