@@ -81,6 +81,16 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
   try {
     // Build context information
     let contextInfo = '';
+    
+    // Add instruction for recognizing various question formats
+    contextInfo += `\n=== HƯỚNG DẪN NHẬN DIỆN CÂU HỎI ===\n`;
+    contextInfo += `Người dùng có thể hỏi theo nhiều cách khác nhau:\n`;
+    contextInfo += `- Câu hỏi trực tiếp: "Tôi bị cảm cúm, có thuốc nào không?"\n`;
+    contextInfo += `- Mô tả triệu chứng mơ hồ: "Tôi mệt và nhức người", "Người tôi khó chịu quá"\n`;
+    contextInfo += `- Câu nói tự nhiên: "Bạn ơi tôi đang bị cảm", "Nay trời lạnh quá, tôi hơi cảm rồi"\n`;
+    contextInfo += `- Câu không rõ ý: "Uống cái gì cho khỏe vậy?", "Tôi mệt quá"\n`;
+    contextInfo += `Bạn PHẢI tự phân tích để hiểu đúng nhu cầu của họ và hỏi lại 4 thông tin an toàn nếu cần.\n`;
+    
     if (context?.medicines && context.medicines.length > 0) {
       contextInfo += `\n\nThông tin thuốc có sẵn trong hệ thống (gợi ý tối đa 3 thuốc):\n`;
       // Limit to 3 medicines max to reduce tokens
@@ -122,8 +132,17 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
         contextInfo += `Bạn PHẢI:\n`;
         contextInfo += `1. Gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}"\n`;
         contextInfo += `2. KHÔNG được reset hay chào lại\n`;
-        contextInfo += `3. PHẢI liệt kê cụ thể từng thuốc theo format: [Số]. **[Tên thuốc]** với tác dụng và liều dùng\n`;
-        contextInfo += `4. KHÔNG được trả lời chung chung như "tham khảo các thuốc như..." hoặc "vui lòng liên hệ dược sĩ"\n`;
+        contextInfo += `3. PHẢI liệt kê cụ thể từng thuốc theo format BẮT BUỘC:\n`;
+        contextInfo += `   "Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
+        contextInfo += `   [Số]. **[Tên thuốc]**\n`;
+        contextInfo += `   - Công dụng: [mô tả]\n`;
+        contextInfo += `   - Liều: [liều dùng]\n`;
+        contextInfo += `   - Lưu ý: [lưu ý nếu cần]"\n`;
+        contextInfo += `4. ❌ KHÔNG ĐƯỢC trả lời chung chung như:\n`;
+        contextInfo += `   - "tham khảo các thuốc như..."\n`;
+        contextInfo += `   - "vui lòng liên hệ dược sĩ"\n`;
+        contextInfo += `   - "bạn có thể tham khảo các thuốc phổ biến như..."\n`;
+        contextInfo += `5. ✅ PHẢI bắt đầu bằng: "Dưới đây là các thuốc phù hợp với tình trạng của bạn:" và liệt kê cụ thể từng thuốc\n`;
       }
       
       contextInfo += `Hãy chỉ gợi ý thuốc PHÙ HỢP với các triệu chứng này.\n`;
@@ -211,6 +230,16 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
 
     // Build context information
     let contextInfo = '';
+    
+    // Add instruction for recognizing various question formats
+    contextInfo += `\n=== HƯỚNG DẪN NHẬN DIỆN CÂU HỎI ===\n`;
+    contextInfo += `Người dùng có thể hỏi theo nhiều cách khác nhau:\n`;
+    contextInfo += `- Câu hỏi trực tiếp: "Tôi bị cảm cúm, có thuốc nào không?"\n`;
+    contextInfo += `- Mô tả triệu chứng mơ hồ: "Tôi mệt và nhức người", "Người tôi khó chịu quá"\n`;
+    contextInfo += `- Câu nói tự nhiên: "Bạn ơi tôi đang bị cảm", "Nay trời lạnh quá, tôi hơi cảm rồi"\n`;
+    contextInfo += `- Câu không rõ ý: "Uống cái gì cho khỏe vậy?", "Tôi mệt quá"\n`;
+    contextInfo += `Bạn PHẢI tự phân tích để hiểu đúng nhu cầu của họ và hỏi lại 4 thông tin an toàn nếu cần.\n`;
+    
     if (context?.medicines && context.medicines.length > 0) {
       contextInfo += `\n\n=== THÔNG TIN THUỐC CÓ SẴN TRONG HỆ THỐNG ===\n`;
       contextInfo += `QUAN TRỌNG: Danh sách thuốc dưới đây ĐÃ ĐƯỢC LỌC và CHỈ CHỨA THUỐC PHÙ HỢP với yêu cầu của người dùng.\n`;
@@ -251,15 +280,24 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `1. CHỈ gợi ý các thuốc trong danh sách trên, KHÔNG được gợi ý thuốc khác.\n`;
       contextInfo += `2. Trường "Tác dụng" PHẢI là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI).\n`;
       contextInfo += `3. Nếu "Tác dụng" trong danh sách chỉ là hàm lượng, bạn PHẢI tạo mô tả công dụng dựa trên tên thuốc.\n`;
-      contextInfo += `4. ⚠️ BẮT BUỘC: Bạn PHẢI liệt kê cụ thể từng thuốc theo format dưới đây. KHÔNG được trả lời chung chung như "tham khảo các thuốc như...", "vui lòng liên hệ dược sĩ...".\n`;
-      contextInfo += `   Format BẮT BUỘC:\n`;
+      contextInfo += `4. ⚠️⚠️⚠️ BẮT BUỘC CỰC KỲ: Bạn PHẢI liệt kê cụ thể từng thuốc theo format dưới đây. KHÔNG được trả lời chung chung.\n`;
+      contextInfo += `   Format BẮT BUỘC (KHÔNG ĐƯỢC SAI):\n`;
+      contextInfo += `   Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
       contextInfo += `   [Số]. **[Tên thuốc]** (tên thương hiệu nếu có)\n`;
-      contextInfo += `   – Tác dụng: [mô tả công dụng ngắn gọn, 1 dòng]\n`;
-      contextInfo += `   – Liều: [liều dùng ngắn gọn]\n`;
-      contextInfo += `   [CHỈ hiển thị giá nếu có trong danh sách trên, KHÔNG tự ý đưa ra giá ước tính]\n`;
-      contextInfo += `5. Sau khi liệt kê thuốc, luôn khuyến khích: "Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi."\n`;
-      contextInfo += `6. ❌ KHÔNG ĐƯỢC trả lời kiểu: "Tham khảo các thuốc như Paracetamol, Decolgen... vui lòng liên hệ dược sĩ"\n`;
-      contextInfo += `7. ✅ PHẢI trả lời kiểu: Liệt kê cụ thể từng thuốc với số thứ tự, tên thuốc in đậm, tác dụng, liều dùng\n`;
+      contextInfo += `   - Công dụng: [mô tả công dụng ngắn gọn, 1 dòng]\n`;
+      contextInfo += `   - Liều: [liều dùng ngắn gọn] hoặc "Theo hướng dẫn bao bì / hỏi dược sĩ"\n`;
+      contextInfo += `   [CHỈ hiển thị giá nếu có trong danh sách trên: 💰 Giá: [giá]đ]\n`;
+      contextInfo += `   - Lưu ý: [lưu ý an toàn nếu cần]\n\n`;
+      contextInfo += `   ⚠️ Lưu ý chung:\n`;
+      contextInfo += `   - Không dùng chung nhiều thuốc chứa cùng hoạt chất.\n`;
+      contextInfo += `   - Nếu sốt cao >39°C, khó thở, đau ngực → đi khám ngay.\n`;
+      contextInfo += `   - Đọc kỹ hướng dẫn sử dụng trước khi dùng.\n\n`;
+      contextInfo += `   Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.\n`;
+      contextInfo += `5. ❌❌❌ KHÔNG ĐƯỢC trả lời kiểu:\n`;
+      contextInfo += `   - "Tham khảo các thuốc như Paracetamol, Decolgen... vui lòng liên hệ dược sĩ"\n`;
+      contextInfo += `   - "Bạn có thể tham khảo các thuốc phổ biến như..."\n`;
+      contextInfo += `   - "Vui lòng liên hệ dược sĩ để được tư vấn cụ thể hơn"\n`;
+      contextInfo += `6. ✅✅✅ PHẢI trả lời kiểu: Liệt kê cụ thể từng thuốc với số thứ tự, tên thuốc in đậm, công dụng, liều dùng theo đúng format trên\n`;
     }
 
     if (context?.symptoms && context.symptoms.length > 0) {
@@ -273,8 +311,17 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
         contextInfo += `Bạn PHẢI:\n`;
         contextInfo += `1. Gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}"\n`;
         contextInfo += `2. KHÔNG được reset hay chào lại\n`;
-        contextInfo += `3. PHẢI liệt kê cụ thể từng thuốc theo format: [Số]. **[Tên thuốc]** với tác dụng và liều dùng\n`;
-        contextInfo += `4. KHÔNG được trả lời chung chung như "tham khảo các thuốc như..." hoặc "vui lòng liên hệ dược sĩ"\n`;
+        contextInfo += `3. PHẢI liệt kê cụ thể từng thuốc theo format BẮT BUỘC:\n`;
+        contextInfo += `   "Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
+        contextInfo += `   [Số]. **[Tên thuốc]**\n`;
+        contextInfo += `   - Công dụng: [mô tả]\n`;
+        contextInfo += `   - Liều: [liều dùng]\n`;
+        contextInfo += `   - Lưu ý: [lưu ý nếu cần]"\n`;
+        contextInfo += `4. ❌ KHÔNG ĐƯỢC trả lời chung chung như:\n`;
+        contextInfo += `   - "tham khảo các thuốc như..."\n`;
+        contextInfo += `   - "vui lòng liên hệ dược sĩ"\n`;
+        contextInfo += `   - "bạn có thể tham khảo các thuốc phổ biến như..."\n`;
+        contextInfo += `5. ✅ PHẢI bắt đầu bằng: "Dưới đây là các thuốc phù hợp với tình trạng của bạn:" và liệt kê cụ thể từng thuốc\n`;
       }
       
       contextInfo += `Bạn PHẢI chỉ gợi ý thuốc PHÙ HỢP với triệu chứng này từ danh sách thuốc đã được lọc ở trên.\n`;

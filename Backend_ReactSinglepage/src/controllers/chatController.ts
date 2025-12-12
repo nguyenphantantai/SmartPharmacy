@@ -856,7 +856,7 @@ async function generateAIResponse(
         
         // Create combined message for AI with clear instruction
         // Format: Original symptom + explicit instruction + safety info
-        messageForAI = `Người dùng đã mô tả triệu chứng: "${symptomText}"\n\nBây giờ người dùng cung cấp thông tin an toàn: "${safetyInfo}"\n\nBẠN PHẢI tiếp tục tư vấn thuốc dựa trên triệu chứng "${symptomText}" với thông tin an toàn đã có. KHÔNG được reset hay chào lại.`;
+        messageForAI = `Người dùng đã mô tả triệu chứng: "${symptomText}"\n\nBây giờ người dùng cung cấp thông tin an toàn: "${safetyInfo}"\n\nBẠN PHẢI tiếp tục tư vấn thuốc dựa trên triệu chứng "${symptomText}" với thông tin an toàn đã có. BẮT ĐẦU bằng "Dưới đây là các thuốc phù hợp với tình trạng của bạn:" và liệt kê cụ thể từng thuốc với format: [Số]. **[Tên thuốc]** - Công dụng: [mô tả] - Liều: [liều dùng]. KHÔNG được trả lời chung chung. KHÔNG được reset hay chào lại.`;
         
         // Get medicines for the symptom
         const meds = await semanticSearch(symptomText);
@@ -871,7 +871,7 @@ async function generateAIResponse(
           forcedContext.userQuery = symptomText;
             forcedContext.isFollowUpAnswer = true;
           // Add explicit instruction to context
-          forcedContext.instruction = `Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn cho triệu chứng "${symptomText}". Bạn PHẢI gợi ý thuốc ngay, KHÔNG được reset hay chào lại.`;
+          forcedContext.instruction = `Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn cho triệu chứng "${symptomText}". Bạn PHẢI gợi ý thuốc ngay theo format BẮT BUỘC: Bắt đầu bằng "Dưới đây là các thuốc phù hợp với tình trạng của bạn:" và liệt kê cụ thể từng thuốc với số thứ tự, tên thuốc in đậm, công dụng, liều dùng. KHÔNG được trả lời chung chung như "tham khảo các thuốc như..." hoặc "vui lòng liên hệ dược sĩ". KHÔNG được reset hay chào lại.`;
         }
       }
 
