@@ -114,7 +114,20 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
 
     if (context?.symptoms && context.symptoms.length > 0) {
       contextInfo += `\nTriệu chứng người dùng đã đề cập: ${context.symptoms.join(', ')}\n`;
+      contextInfo += `Yêu cầu gốc: "${(context as any).userQuery || userMessage}"\n`;
+      
+      // If this is a follow-up answer, add explicit instruction
+      if ((context as any).isFollowUpAnswer) {
+        contextInfo += `\n⚠️ QUAN TRỌNG: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn. Bạn PHẢI gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}", KHÔNG được reset hay chào lại.\n`;
+      }
+      
       contextInfo += `Hãy chỉ gợi ý thuốc PHÙ HỢP với các triệu chứng này.\n`;
+    }
+    
+    // Add explicit instruction if provided
+    if ((context as any).instruction) {
+      contextInfo += `\n=== HƯỚNG DẪN ĐẶC BIỆT ===\n`;
+      contextInfo += `${(context as any).instruction}\n`;
     }
 
     // Build messages for OpenAI
@@ -241,7 +254,19 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `\n=== TRIỆU CHỨNG NGƯỜI DÙNG ===\n`;
       contextInfo += `Người dùng đã đề cập: ${context.symptoms.join(', ')}\n`;
       contextInfo += `Yêu cầu gốc: "${(context as any).userQuery || userMessage}"\n`;
+      
+      // If this is a follow-up answer, add explicit instruction
+      if ((context as any).isFollowUpAnswer) {
+        contextInfo += `\n⚠️ QUAN TRỌNG: Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn. Bạn PHẢI gợi ý thuốc ngay dựa trên triệu chứng "${(context as any).userQuery || ''}", KHÔNG được reset hay chào lại.\n`;
+      }
+      
       contextInfo += `Bạn PHẢI chỉ gợi ý thuốc PHÙ HỢP với triệu chứng này từ danh sách thuốc đã được lọc ở trên.\n`;
+    }
+    
+    // Add explicit instruction if provided
+    if ((context as any).instruction) {
+      contextInfo += `\n=== HƯỚNG DẪN ĐẶC BIỆT ===\n`;
+      contextInfo += `${(context as any).instruction}\n`;
     }
 
     if (context?.userHistory && context.userHistory.length > 0) {

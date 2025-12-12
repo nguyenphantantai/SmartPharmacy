@@ -838,8 +838,9 @@ async function generateAIResponse(
         const symptomText = previousSymptomMessage.content;
         const safetyInfo = userMessage;
         
-        // Create combined message for AI: symptom + safety info
-        messageForAI = `${symptomText}\n\nThông tin bổ sung: ${safetyInfo}`;
+        // Create combined message for AI with clear instruction
+        // Format: Original symptom + explicit instruction + safety info
+        messageForAI = `Người dùng đã mô tả triệu chứng: "${symptomText}"\n\nBây giờ người dùng cung cấp thông tin an toàn: "${safetyInfo}"\n\nBẠN PHẢI tiếp tục tư vấn thuốc dựa trên triệu chứng "${symptomText}" với thông tin an toàn đã có. KHÔNG được reset hay chào lại.`;
         
         // Get medicines for the symptom
         const meds = await semanticSearch(symptomText);
@@ -853,6 +854,8 @@ async function generateAIResponse(
           forcedContext.symptoms = symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm'];
           forcedContext.userQuery = symptomText;
           forcedContext.isFollowUpAnswer = true;
+          // Add explicit instruction to context
+          forcedContext.instruction = `Đây là follow-up answer. Người dùng đã cung cấp thông tin an toàn cho triệu chứng "${symptomText}". Bạn PHẢI gợi ý thuốc ngay, KHÔNG được reset hay chào lại.`;
         }
       }
 
@@ -895,18 +898,23 @@ async function generateAIResponse(
       });
       
       if (geminiResponse) {
-        // Check if response is a default/generic message (AI reset)
+        // Check if response is a default/generic message (AI reset) - only fallback if really needed
         const lowerResponse = geminiResponse.toLowerCase();
-        const isDefaultMessage = 
-          lowerResponse.includes('tôi có thể giúp bạn') ||
-          lowerResponse.includes('bạn có thể hỏi tôi') ||
-          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin'));
+        // More strict check: must have multiple default keywords AND be a follow-up answer
+        const hasMultipleDefaultKeywords = 
+          (lowerResponse.includes('tôi có thể giúp bạn') && lowerResponse.includes('bạn có thể hỏi tôi')) ||
+          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin') && lowerResponse.includes('gợi ý thuốc'));
         
-        // If it's a default message and we have context (follow-up), fallback to rule-based
-        if (isDefaultMessage && (context.medicines?.length > 0 || previousSymptomMessage)) {
-          console.log('⚠️ AI returned default message, falling back to rule-based system');
+        // Only fallback if: it's clearly a default message AND we have strong context (medicines or follow-up)
+        const shouldFallback = hasMultipleDefaultKeywords && 
+                               previousSymptomMessage && 
+                               context.medicines?.length > 0;
+        
+        if (shouldFallback) {
+          console.log('⚠️ AI returned default message despite having context, falling back to rule-based system');
           // Don't return, continue to rule-based
         } else {
+          // Accept AI response even if it might be slightly generic, as long as it's not clearly reset
           return geminiResponse;
         }
       }
@@ -919,15 +927,18 @@ async function generateAIResponse(
       });
       
       if (aiResponse) {
-        // Check if response is a default/generic message
+        // Same logic as Gemini
         const lowerResponse = aiResponse.toLowerCase();
-        const isDefaultMessage = 
-          lowerResponse.includes('tôi có thể giúp bạn') ||
-          lowerResponse.includes('bạn có thể hỏi tôi') ||
-          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin'));
+        const hasMultipleDefaultKeywords = 
+          (lowerResponse.includes('tôi có thể giúp bạn') && lowerResponse.includes('bạn có thể hỏi tôi')) ||
+          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin') && lowerResponse.includes('gợi ý thuốc'));
         
-        if (isDefaultMessage && (context.medicines?.length > 0 || previousSymptomMessage)) {
-          console.log('⚠️ AI returned default message, falling back to rule-based system');
+        const shouldFallback = hasMultipleDefaultKeywords && 
+                               previousSymptomMessage && 
+                               context.medicines?.length > 0;
+        
+        if (shouldFallback) {
+          console.log('⚠️ AI returned default message despite having context, falling back to rule-based system');
           // Don't return, continue to rule-based
         } else {
           return aiResponse;
@@ -942,15 +953,18 @@ async function generateAIResponse(
       });
       
       if (ollamaResponse) {
-        // Check if response is a default/generic message
+        // Same logic - be more lenient
         const lowerResponse = ollamaResponse.toLowerCase();
-        const isDefaultMessage = 
-          lowerResponse.includes('tôi có thể giúp bạn') ||
-          lowerResponse.includes('bạn có thể hỏi tôi') ||
-          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin'));
+        const hasMultipleDefaultKeywords = 
+          (lowerResponse.includes('tôi có thể giúp bạn') && lowerResponse.includes('bạn có thể hỏi tôi')) ||
+          (lowerResponse.includes('tìm kiếm thông tin') && lowerResponse.includes('tư vấn thông tin') && lowerResponse.includes('gợi ý thuốc'));
         
-        if (isDefaultMessage && (context.medicines?.length > 0 || previousSymptomMessage)) {
-          console.log('⚠️ AI returned default message, falling back to rule-based system');
+        const shouldFallback = hasMultipleDefaultKeywords && 
+                               previousSymptomMessage && 
+                               context.medicines?.length > 0;
+        
+        if (shouldFallback) {
+          console.log('⚠️ AI returned default message despite having context, falling back to rule-based system');
           // Don't return, continue to rule-based
         } else {
           return ollamaResponse;
@@ -2177,38 +2191,71 @@ async function extractAndMapProducts(aiResponse: string): Promise<any[]> {
     // Extract medicine names from AI response
     // Pattern 1: **Paracetamol** (Hapacol, Panadol) - extract both generic and brand names
     const pattern1 = /\*\*([^*]+?)\*\*\s*\(([^)]+)\)/g;
-    let match;
+    let match: RegExpExecArray | null;
+    const processedRanges: Array<{start: number, end: number}> = [];
+    
     while ((match = pattern1.exec(aiResponse)) !== null) {
       const genericName = match[1].trim();
       const brandNames = match[2].split(',').map(b => b.trim());
+      
+      // Store range to skip in pattern 2
+      if (match.index !== undefined) {
+        processedRanges.push({ start: match.index, end: match.index + match[0].length });
+      }
+      
       medicineNames.push(genericName);
-      brandNames.forEach(brand => medicineNames.push(brand));
+      brandNames.forEach(brand => {
+        if (brand && brand.length > 2) {
+          medicineNames.push(brand);
+        }
+      });
     }
     
-    // Pattern 2: **Paracetamol** or **Decolgen** (standalone bold)
+    // Pattern 2: **Paracetamol** or **Decolgen** (standalone bold, but skip if already in pattern1)
     const pattern2 = /\*\*([^*]+?)\*\*/g;
+    pattern2.lastIndex = 0; // Reset regex
+    match = null;
     while ((match = pattern2.exec(aiResponse)) !== null) {
+      if (!match) continue;
+      
+      // Skip if this match is within a pattern1 range
+      const matchIndex = match.index;
+      if (matchIndex !== undefined) {
+        const isInProcessedRange = processedRanges.some(range => 
+          matchIndex >= range.start && matchIndex < range.end
+        );
+        if (isInProcessedRange) continue;
+      }
+      
       const name = match[1].trim();
       if (name && name.length > 2 && name.length < 50) {
         const lowerName = name.toLowerCase();
         // Filter out common non-medicine words
-        if (!['tác dụng', 'liều', 'lưu ý', 'cảm ơn', 'với tình trạng', 'ngoài ra', 'bạn nên'].some(word => lowerName.includes(word))) {
+        const excludeWords = ['tác dụng', 'liều', 'lưu ý', 'cảm ơn', 'với tình trạng', 'ngoài ra', 'bạn nên', 'lưu ý quan trọng'];
+        if (!excludeWords.some(word => lowerName.includes(word))) {
           medicineNames.push(name);
         }
       }
     }
     
-    // Pattern 3: Numbered list format "1. **Paracetamol**"
+    // Pattern 3: Numbered list format "1. **Paracetamol**" (already covered by pattern1/2, but keep for safety)
     const pattern3 = /\d+\.\s*\*\*([^*]+?)\*\*/g;
+    pattern3.lastIndex = 0;
+    match = null;
     while ((match = pattern3.exec(aiResponse)) !== null) {
       const name = match[1].trim();
       if (name && name.length > 2 && name.length < 50) {
-        medicineNames.push(name);
+        // Check if not already added
+        if (!medicineNames.some(n => n.toLowerCase() === name.toLowerCase())) {
+          medicineNames.push(name);
+        }
       }
     }
     
     // Pattern 4: Capitalized medicine names (fallback)
     const pattern4 = /\b([A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+(?:\s+[A-Z][a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]+)*)\b/g;
+    pattern4.lastIndex = 0;
+    match = null;
     while ((match = pattern4.exec(aiResponse)) !== null) {
       const name = match[1].trim();
       if (name && name.length > 3 && name.length < 50) {
@@ -2247,66 +2294,93 @@ async function extractAndMapProducts(aiResponse: string): Promise<any[]> {
     
     const matchedProducts: any[] = [];
     
+    console.log(`🔍 Extracting products from AI response. Found medicine names: ${uniqueNames.join(', ')}`);
+    
     for (const medicineName of uniqueNames) {
       // Clean name (remove dosage info for better matching)
       const cleanName = medicineName.replace(/\d+\s*(mg|g|ml|%|viên|hộp)/gi, '').trim();
       const baseName = cleanName.split(' ')[0];
+      const fullName = cleanName;
       
-      // Search in products collection
-      const products = await productsCollection.find({
-        $or: [
-          { name: { $regex: baseName, $options: 'i' } },
-          { name: { $regex: cleanName, $options: 'i' } },
-          { brand: { $regex: baseName, $options: 'i' } }
-        ],
-        inStock: true,
-        stockQuantity: { $gt: 0 }
+      // Try multiple search strategies
+      // Strategy 1: Exact match or starts with
+      let products = await productsCollection.find({
+        $and: [
+          {
+            $or: [
+              { name: { $regex: `^${fullName}`, $options: 'i' } },
+              { name: { $regex: `^${baseName}`, $options: 'i' } },
+              { name: { $regex: fullName, $options: 'i' } },
+              { brand: { $regex: `^${baseName}`, $options: 'i' } },
+              { brand: { $regex: fullName, $options: 'i' } }
+            ]
+          },
+          {
+            $or: [
+              { inStock: true },
+              { stockQuantity: { $gt: 0 } }
+            ]
+          }
+        ]
       })
-      .limit(3)
+      .limit(5)
       .toArray();
       
-      // If not found, search in medicines collection
+      // Strategy 2: If not found, search in medicines collection
       if (products.length === 0) {
         const medicines = await medicinesCollection.find({
           $or: [
-            { name: { $regex: baseName, $options: 'i' } },
-            { name: { $regex: cleanName, $options: 'i' } },
-            { brand: { $regex: baseName, $options: 'i' } },
-            { genericName: { $regex: baseName, $options: 'i' } }
+            { name: { $regex: `^${fullName}`, $options: 'i' } },
+            { name: { $regex: `^${baseName}`, $options: 'i' } },
+            { name: { $regex: fullName, $options: 'i' } },
+            { brand: { $regex: `^${baseName}`, $options: 'i' } },
+            { brand: { $regex: fullName, $options: 'i' } },
+            { genericName: { $regex: `^${baseName}`, $options: 'i' } },
+            { genericName: { $regex: fullName, $options: 'i' } }
           ]
         })
-        .limit(3)
+        .limit(5)
         .toArray();
         
         // Convert medicines to product format
         for (const med of medicines) {
+          const productId = med._id?.toString() || med.id?.toString();
+          if (!productId) continue;
+          
           matchedProducts.push({
-            id: med._id.toString(),
+            id: productId,
             name: med.name || cleanName,
             brand: med.brand || '',
             price: med.price || 0,
             stockQuantity: med.stockQuantity || 0,
             unit: med.unit || 'đơn vị',
             imageUrl: med.imageUrl || '',
-            link: `/product/${med._id.toString()}` // Generate product link
+            // Link to product detail page - matches frontend route /product/:id
+            link: `/product/${productId}`
           });
         }
       } else {
         // Add products with link
         for (const product of products) {
+          const productId = product._id?.toString() || product.id?.toString();
+          if (!productId) continue;
+          
           matchedProducts.push({
-            id: product._id.toString(),
+            id: productId,
             name: product.name,
             brand: product.brand || '',
             price: product.price || 0,
             stockQuantity: product.stockQuantity || 0,
             unit: product.unit || 'đơn vị',
             imageUrl: product.imageUrl || '',
-            link: `/product/${product._id.toString()}` // Generate product link
+            // Link to product detail page - matches frontend route /product/:id
+            link: `/product/${productId}`
           });
         }
       }
     }
+    
+    console.log(`✅ Found ${matchedProducts.length} products to suggest`);
     
     // Remove duplicates by ID
     const uniqueProducts = Array.from(
@@ -2355,22 +2429,50 @@ export const chatWithAI = async (req: Request, res: Response) => {
       userId
     );
     
-    // Extract and map products from AI response (only if response contains medicine suggestions)
+    // Extract and map products from AI response (only if response contains actual medicine suggestions)
+    // QUAN TRỌNG: Chỉ extract khi AI đã gợi ý thuốc cụ thể, KHÔNG extract khi đang hỏi thông tin
     let suggestedProducts: any[] = [];
     const lowerResponse = aiResponse.toLowerCase();
-    const hasMedicineSuggestion = 
-      lowerResponse.includes('thuốc') || 
-      lowerResponse.includes('gợi ý') || 
-      lowerResponse.includes('tham khảo') ||
-      /\d+\.\s*\*\*/.test(aiResponse); // Has numbered list with bold (medicine list)
     
-    if (hasMedicineSuggestion) {
+    // Check if AI is asking for information (should NOT extract products)
+    const isAskingForInfo = 
+      lowerResponse.includes('vui lòng cho biết') ||
+      lowerResponse.includes('cần bổ sung') ||
+      lowerResponse.includes('bạn vui lòng') ||
+      lowerResponse.includes('cho tôi biết') ||
+      lowerResponse.includes('bạn bao nhiêu tuổi') ||
+      lowerResponse.includes('có đang mang thai') ||
+      lowerResponse.includes('có dị ứng') ||
+      lowerResponse.includes('có bệnh nền') ||
+      (lowerResponse.includes('?') && !lowerResponse.includes('tham khảo') && !lowerResponse.includes('gợi ý'));
+    
+    // Check if AI is actually suggesting medicines (should extract products)
+    const hasActualMedicineSuggestion = 
+      // Has numbered list with bold medicine names (most reliable indicator)
+      /\d+\.\s*\*\*[^*]+\*\*/.test(aiResponse) ||
+      // Has medicine names in format: **Paracetamol** (Hapacol, Panadol)
+      /\*\*[^*]+\*\*\s*\([^)]+\)/.test(aiResponse) ||
+      // Has multiple bold medicine names (at least 2)
+      (aiResponse.match(/\*\*[A-Z][^*]+\*\*/g) || []).length >= 2;
+    
+    // Only extract if AI is suggesting medicines AND not asking for info
+    if (hasActualMedicineSuggestion && !isAskingForInfo) {
+      console.log('📦 Detected actual medicine suggestion in AI response, extracting products...');
       suggestedProducts = await extractAndMapProducts(aiResponse);
+      if (suggestedProducts.length > 0) {
+        console.log(`✅ Successfully extracted ${suggestedProducts.length} products:`, suggestedProducts.map(p => p.name).join(', '));
+      } else {
+        console.log('⚠️ No products found in database for suggested medicines');
+      }
+    } else {
+      console.log('ℹ️ Skipping product extraction - AI is asking for info or not suggesting medicines yet');
     }
     
     res.json({
       success: true,
       response: aiResponse,
+      // QUAN TRỌNG: Chỉ trả về suggestedProducts nếu có sản phẩm thực tế trong database
+      // Nếu không có sản phẩm, không trả về field này (hoặc trả về empty array)
       suggestedProducts: suggestedProducts.length > 0 ? suggestedProducts : undefined,
       timestamp: new Date().toISOString(),
       type: 'text'

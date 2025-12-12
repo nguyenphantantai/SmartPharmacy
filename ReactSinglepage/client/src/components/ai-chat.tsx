@@ -1,10 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User, Image as ImageIcon, X as XIcon } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Image as ImageIcon, X as XIcon, ExternalLink, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { API_BASE } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "wouter";
+
+interface SuggestedProduct {
+  id: string;
+  name: string;
+  brand?: string;
+  price?: number;
+  stockQuantity?: number;
+  unit?: string;
+  imageUrl?: string;
+  link: string;
+}
 
 interface Message {
   id: string;
@@ -12,6 +24,7 @@ interface Message {
   content: string;
   image?: string;
   timestamp: Date;
+  suggestedProducts?: SuggestedProduct[];
 }
 
 export function AIChat() {
@@ -116,6 +129,9 @@ export function AIChat() {
         role: "assistant",
         content: data.response || "Xin lỗi, tôi không thể trả lời câu hỏi này.",
         timestamp: new Date(),
+        suggestedProducts: data.suggestedProducts && data.suggestedProducts.length > 0 
+          ? data.suggestedProducts 
+          : undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -216,6 +232,45 @@ export function AIChat() {
                         {message.content}
                       </p>
                     )}
+                    
+                    {/* Suggested Products */}
+                    {message.suggestedProducts && message.suggestedProducts.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Package className="h-4 w-4 text-primary" />
+                          <p className="text-xs font-semibold text-primary">Sản phẩm có sẵn:</p>
+                        </div>
+                        <div className="space-y-2">
+                          {message.suggestedProducts.map((product) => (
+                            <Link
+                              key={product.id}
+                              href={product.link}
+                              className="block"
+                            >
+                              <div className="flex items-center justify-between p-2 bg-background border border-border rounded-md hover:bg-accent hover:border-primary/50 transition-colors cursor-pointer group">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate group-hover:text-primary">
+                                    {product.name}
+                                  </p>
+                                  {product.brand && (
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {product.brand}
+                                    </p>
+                                  )}
+                                  {product.price && product.price > 0 && (
+                                    <p className="text-xs font-semibold text-primary mt-1">
+                                      {product.price.toLocaleString('vi-VN')}đ
+                                    </p>
+                                  )}
+                                </div>
+                                <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0 ml-2" />
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <p className="text-xs opacity-60 mt-1">
                       {message.timestamp.toLocaleTimeString("vi-VN", {
                         hour: "2-digit",
