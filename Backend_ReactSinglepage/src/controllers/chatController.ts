@@ -27,11 +27,21 @@ const symptomToMedicines: { [key: string]: { keywords: string[]; medicineNames: 
   },
   'cảm cúm': {
     keywords: ['cảm cúm', 'cảm', 'cúm', 'sốt', 'đau đầu', 'nhức đầu'],
-    medicineNames: ['Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol', 'Terpin Codein', 'Terpin-codein', 'Coldacmin']
+    medicineNames: [
+      'Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol',
+      'Terpin Codein', 'Terpin-codein', 'Coldacmin',
+      'Natri Clorid 0.9%', 'Xịt mũi muối biển', 'Otrivin', 'Naphazoline', 'Rhinocort',
+      'Acetylcysteine', 'Bromhexine', 'Dextromethorphan', 'Pseudoephedrine'
+    ]
   },
   'cảm': {
     keywords: ['cảm', 'cảm lạnh', 'cảm thông thường'],
-    medicineNames: ['Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol', 'Terpin Codein', 'Terpin-codein', 'Coldacmin', 'Loratadine', 'Cetirizine']
+    medicineNames: [
+      'Paracetamol', 'Decolgen', 'Tiffy', 'Panadol', 'Efferalgan', 'Hapacol',
+      'Terpin Codein', 'Terpin-codein', 'Coldacmin', 'Loratadine', 'Cetirizine',
+      'Natri Clorid 0.9%', 'Xịt mũi muối biển', 'Otrivin', 'Naphazoline', 'Rhinocort',
+      'Acetylcysteine', 'Bromhexine', 'Dextromethorphan', 'Pseudoephedrine'
+    ]
   },
   'sốt': {
     keywords: ['sốt', 'nóng sốt', 'sốt cao'],
@@ -329,6 +339,7 @@ async function getMedicineDetails(productName: string, isUsageQuery: boolean = f
       
       if (medicine) {
         product = {
+          _id: medicine._id,
           name: medicine.name || baseName,
           description: medicine.description || medicine.indication || commonMedicineInfo[baseName]?.description || '',
           brand: medicine.brand || '',
@@ -344,6 +355,7 @@ async function getMedicineDetails(productName: string, isUsageQuery: boolean = f
       } else if (commonMedicineInfo[baseName]) {
         // Fallback to common info
         product = {
+          _id: new mongoose.Types.ObjectId(),
           name: baseName,
           description: commonMedicineInfo[baseName].description,
           indication: commonMedicineInfo[baseName].indication,
@@ -408,6 +420,27 @@ async function getUserPurchaseHistory(userId: string): Promise<any[]> {
 
 // Semantic search - find medicines by meaning, not exact keywords
 // QUAN TRỌNG: Chỉ tìm thuốc từ medicineNames mapping để đảm bảo chính xác
+function relevanceScore(query: string, product: any, matchedSymptoms: string[]): number {
+  const q = query.toLowerCase();
+  const name = (product.name || '').toLowerCase();
+  const brand = (product.brand || '').toLowerCase();
+  const desc = (product.description || product.indication || '').toLowerCase();
+
+  let score = 0;
+  matchedSymptoms.forEach(sym => {
+    if (name.includes(sym)) score += 0.4;
+    if (desc.includes(sym)) score += 0.3;
+  });
+  if (q.includes('ho') && (name.includes('ho') || desc.includes('ho'))) score += 0.3;
+  if (q.includes('nghẹt mũi') && (name.includes('nghẹt') || desc.includes('nghẹt'))) score += 0.3;
+  if (q.includes('sổ mũi') && (name.includes('mũi') || desc.includes('mũi'))) score += 0.3;
+  if (q.includes('sốt') && (name.includes('sốt') || desc.includes('sốt'))) score += 0.2;
+  if (q.includes('đau họng') && (name.includes('họng') || desc.includes('họng'))) score += 0.3;
+  if (q.includes('cảm')) score += 0.2;
+  if (name.includes('probiotic') || desc.includes('probiotic')) score -= 1;
+  return score;
+}
+
 async function semanticSearch(query: string): Promise<any[]> {
   try {
     const lowerQuery = query.toLowerCase();
@@ -465,6 +498,7 @@ async function semanticSearch(query: string): Promise<any[]> {
       
       // Convert to product format
       const convertedMedicines = medicines.map(med => ({
+        _id: med._id,
         name: med.name,
         price: med.price || 0,
         description: med.description || med.indication || '',
@@ -480,42 +514,70 @@ async function semanticSearch(query: string): Promise<any[]> {
     }
     
     // Filter out irrelevant medicines based on matched symptoms
-    // Ví dụ: Nếu chỉ hỏi "cảm" (không có "ho đờm"), loại bỏ Acetylcysteine
+    // QUAN TRỌNG: Loại bỏ thuốc không liên quan đến triệu chứng
     const filteredProducts = products.filter(product => {
       const productNameLower = (product.name || '').toLowerCase();
       
-      // Nếu hỏi "cảm" nhưng không có "ho đờm" hoặc "ho có đờm", loại bỏ thuốc long đờm
-      if (matchedSymptoms.includes('cảm') && !lowerQuery.includes('ho đờm') && !lowerQuery.includes('ho có đờm') && !lowerQuery.includes('long đờm')) {
-        if (productNameLower.includes('acetylcysteine') || 
-            productNameLower.includes('bromhexin') || 
-            productNameLower.includes('ambroxol') ||
-            productNameLower.includes('mucosolvan')) {
-          return false; // Loại bỏ thuốc long đờm khi không có ho đờm
-        }
-      }
-      
-      // Loại bỏ Probiotics khi hỏi về cảm
+      // Nếu hỏi "cảm" hoặc "cảm cúm"
       if (matchedSymptoms.includes('cảm') || matchedSymptoms.includes('cảm cúm')) {
+        // Loại bỏ Probiotics - KHÔNG liên quan đến cảm
         if (productNameLower.includes('probiotic') || 
             productNameLower.includes('men vi sinh') ||
-            productNameLower.includes('lactobacillus')) {
-          return false; // Loại bỏ Probiotics khi hỏi về cảm
+            productNameLower.includes('lactobacillus') ||
+            productNameLower.includes('probio') ||
+            productNameLower.includes('biogaia') ||
+            productNameLower.includes('enterogermina')) {
+          return false;
+        }
+        
+        // Loại bỏ thuốc long đờm nếu không có "ho đờm" hoặc "ho có đờm"
+        if (!lowerQuery.includes('ho đờm') && !lowerQuery.includes('ho có đờm') && !lowerQuery.includes('long đờm')) {
+          if (productNameLower.includes('acetylcysteine') || 
+              productNameLower.includes('bromhexin') || 
+              productNameLower.includes('ambroxol') ||
+              productNameLower.includes('mucosolvan') ||
+              productNameLower.includes('long đờm')) {
+            return false; // Loại bỏ thuốc long đờm khi không có ho đờm
+          }
+        }
+        
+        // Chỉ giữ lại thuốc cảm phù hợp: Paracetamol, Panadol, Efferalgan, Decolgen, Tiffy, Coldacmin, Hapacol
+        const validColdMedicines = ['paracetamol', 'panadol', 'efferalgan', 'decolgen', 'tiffy', 'coldacmin', 'hapacol', 'terpin'];
+        const isValidColdMedicine = validColdMedicines.some(med => productNameLower.includes(med));
+        
+        // Nếu không phải thuốc cảm hợp lệ, loại bỏ
+        if (!isValidColdMedicine) {
+          // Cho phép một số thuốc hỗ trợ cảm nhưng không phải thuốc chính
+          const allowedSupportMedicines = ['loratadine', 'cetirizine', 'fexofenadine']; // Thuốc dị ứng có thể dùng khi cảm
+          const isAllowedSupport = allowedSupportMedicines.some(med => productNameLower.includes(med));
+          
+          if (!isAllowedSupport) {
+            return false; // Loại bỏ nếu không phải thuốc cảm hợp lệ
+          }
         }
       }
       
       return true;
     });
     
-    // Remove duplicates and prioritize exact matches
-    const uniqueProducts = new Map();
+    // Remove duplicates
+    const uniqueProducts = new Map<string, any>();
     for (const product of filteredProducts) {
       const key = product.name?.toLowerCase() || '';
-      if (!uniqueProducts.has(key)) {
-        uniqueProducts.set(key, product);
-      }
+      if (!uniqueProducts.has(key)) uniqueProducts.set(key, product);
     }
-    
-    return Array.from(uniqueProducts.values()).slice(0, 5); // Limit to 5 medicines
+
+    // Scoring and limit to top 5 by relevance
+    const scored = Array.from(uniqueProducts.values()).map(p => ({
+      ...p,
+      _score: relevanceScore(query, p, matchedSymptoms)
+    }));
+
+    return scored
+      .filter(p => p._score > 0.3)
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 5)
+      .map(({ _score, ...rest }) => rest);
   } catch (error) {
     console.error('Error in semantic search:', error);
     return [];
@@ -600,14 +662,57 @@ function normalizeText(text: string): string {
 // Check for safety warnings
 function checkSafetyWarnings(message: string): string | null {
   const lowerMessage = normalizeText(message);
-  
+
+  const criticalPatterns: { pattern: RegExp; warning: string }[] = [
+    { pattern: /sốt\s*(cao|trên|>)\s*39/i, warning: safetyWarnings['sốt cao 40'] },
+    { pattern: /(khó thở|thở dốc|ngạt thở)/i, warning: safetyWarnings['đau ngực tim'] },
+    { pattern: /đau\s*ngực/i, warning: safetyWarnings['đau ngực'] },
+    { pattern: /trẻ\s*(em|nhỏ|<|dưới)\s*[0-5]\s*(tháng|th)/i, warning: '⚠️ Trẻ dưới 6 tháng cần được khám bác sĩ ngay. Không tự ý dùng thuốc.' },
+    { pattern: /mang\s*thai\s*(3|ba)\s*tháng\s*đầu/i, warning: '⚠️ Phụ nữ mang thai 3 tháng đầu cần khám bác sĩ trước khi dùng thuốc.' }
+  ];
+
+  for (const { pattern, warning } of criticalPatterns) {
+    if (pattern.test(lowerMessage)) return warning;
+  }
+
   for (const [key, warning] of Object.entries(safetyWarnings)) {
     if (lowerMessage.includes(key)) {
       return warning;
     }
   }
-  
+
   return null;
+}
+
+// Determine if we need to collect patient safety info before suggesting
+function requiresPatientInfo(message: string): boolean {
+  const lower = normalizeText(message);
+  const hasSymptom = ['cảm', 'cúm', 'sốt', 'ho', 'sổ mũi', 'nghẹt mũi', 'đau họng', 'nhức đầu']
+    .some(sym => lower.includes(sym));
+  if (!hasSymptom) return false;
+
+  const hasAge =
+    /\b\d{1,2}\s*tuổi\b/.test(lower) ||
+    lower.includes('trẻ em') ||
+    lower.includes('người lớn') ||
+    /\b\d{1,2}\s*yo\b/.test(lower);
+  const hasPregnancy = lower.includes('mang thai') || lower.includes('bầu') || lower.includes('cho con bú');
+  const hasChronic = lower.includes('bệnh') || lower.includes('gan') || lower.includes('thận') || lower.includes('tim');
+  const hasDrugAllergy = lower.includes('dị ứng');
+
+  return !(hasAge && hasPregnancy && hasChronic && hasDrugAllergy);
+}
+
+function patientInfoQuestions(): string {
+  return (
+    "Để tư vấn thuốc an toàn, cho tôi biết:\n" +
+    "1) Bạn bao nhiêu tuổi? (người lớn/trẻ em)\n" +
+    "2) Triệu chứng chính: sốt/đau đầu/sổ mũi/nghẹt mũi/ho/đau họng?\n" +
+    "3) Có đang mang thai hoặc cho con bú không?\n" +
+    "4) Có dị ứng thuốc hay bệnh nền (gan, thận, tim, dạ dày...)?\n" +
+    "5) Đang dùng thuốc gì khác?\n\n" +
+    "Sau khi có thông tin, tôi sẽ gợi ý thuốc phù hợp. Đây là tư vấn tham khảo, vui lòng hỏi dược sĩ tại quầy trước khi mua."
+  );
 }
 
 // Extract medicine name from query
@@ -653,10 +758,15 @@ async function generateAIResponse(
         lowerMessage.includes(symptom)
       );
       if (symptomKeywords.length > 0) {
+        // Use semanticSearch which already has filtering logic
         const suggestedMedicines = await semanticSearch(userMessage);
         if (suggestedMedicines.length > 0) {
+          // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
           context.medicines = suggestedMedicines.slice(0, 5);
           context.symptoms = symptomKeywords;
+          // Add explicit instruction about what medicines to suggest
+          context.queryType = 'symptom_based';
+          context.userQuery = userMessage;
         }
       }
       
@@ -712,6 +822,21 @@ async function generateAIResponse(
   const safetyWarning = checkSafetyWarnings(userMessage);
   if (safetyWarning) {
     return safetyWarning;
+  }
+
+  // Collect patient info before suggesting common cold/flu medicines
+  const needsInfo =
+    (lowerMessage.includes('cảm') || lowerMessage.includes('cúm') || lowerMessage.includes('ho') ||
+     lowerMessage.includes('sổ mũi') || lowerMessage.includes('nghẹt mũi') ||
+     lowerMessage.includes('đau họng') || lowerMessage.includes('nhức đầu') ||
+     lowerMessage.includes('sốt')) &&
+    requiresPatientInfo(userMessage) &&
+    !lowerMessage.includes('liều') &&
+    !lowerMessage.includes('giá') &&
+    !lowerMessage.includes('tồn kho');
+
+  if (needsInfo) {
+    return patientInfoQuestions();
   }
   
   // 1. Check for dosage questions (liều dùng tham khảo)
@@ -1212,6 +1337,7 @@ async function searchProductsWithFilters(
       
       // Convert medicines to product-like format
       products = medicines.map(med => ({
+        _id: med._id,
         name: med.name,
         price: med.price || 0,
         description: med.description || med.indication || '',
@@ -1410,6 +1536,21 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
       response += `   💊 Tác dụng: ${defaultIndication}\n`;
     }
     
+    // Liều dùng
+    const dosage = medicine.dosage || medicineDosageReference[medicine.name] || medicineDosageReference[medicine.name?.split(' ')[0]];
+    if (dosage) {
+      response += `   📋 Liều dùng tham khảo: ${dosage}\n`;
+    } else {
+      response += `   📋 Liều dùng tham khảo: Theo hướng dẫn trên bao bì / hỏi dược sĩ.\n`;
+    }
+
+    // Chống chỉ định / lưu ý
+    if (medicine.contraindication || medicine.sideEffect) {
+      response += `   ⚠️ Lưu ý: ${medicine.contraindication || ''}${medicine.contraindication && medicine.sideEffect ? ' | ' : ''}${medicine.sideEffect || ''}\n`;
+    } else {
+      response += `   ⚠️ Lưu ý: Tham khảo ý kiến dược sĩ nếu có bệnh gan, thận, tim, dạ dày hoặc đang mang thai/cho con bú.\n`;
+    }
+
     // Quy cách (Đơn vị)
     if (medicine.unit) {
       response += `   📦 Quy cách: ${medicine.unit}\n`;
@@ -1429,7 +1570,8 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
     response += '\n';
   });
   
-  response += "Bạn đang bị ho, nghẹt mũi hay đau họng không? Tôi có thể chọn ra thuốc phù hợp nhất cho triệu chứng cụ thể của bạn.";
+  response += "Bạn đang bị ho, nghẹt mũi hay đau họng không? Tôi có thể chọn ra thuốc phù hợp nhất cho triệu chứng cụ thể của bạn.\n";
+  response += "Bạn có câu hỏi nào về cách dùng thuốc không?";
   
   return response;
 }
@@ -1560,6 +1702,7 @@ async function getRecommendedMedicines(purchaseHistory: any[]): Promise<any[]> {
       .toArray();
       
       const convertedMedicines = medicines.map(med => ({
+        _id: med._id,
         name: med.name,
         price: med.price || 0,
         description: med.description || med.indication || '',

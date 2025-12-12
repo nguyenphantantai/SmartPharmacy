@@ -220,7 +220,13 @@ export default function NotificationsPage() {
             notif._id === notificationId ? { ...notif, isRead: true } : notif
           )
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        const newUnreadCount = Math.max(0, unreadCount - 1);
+        setUnreadCount(newUnreadCount);
+        
+        // Dispatch custom event to notify header component
+        window.dispatchEvent(new CustomEvent('notifications-updated', {
+          detail: { unreadCount: newUnreadCount }
+        }));
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -252,6 +258,12 @@ export default function NotificationsPage() {
             prev.map(notif => ({ ...notif, isRead: true }))
           );
           setUnreadCount(0);
+          
+          // Dispatch custom event to notify header component
+          window.dispatchEvent(new CustomEvent('notifications-updated', {
+            detail: { unreadCount: 0 }
+          }));
+          
           toast({
             title: "Thành công",
             description: "Đã đánh dấu tất cả thông báo là đã đọc",

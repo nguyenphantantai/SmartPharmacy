@@ -1,4 +1,5 @@
 import { config } from '../config/index.js';
+import { systemPrompt, systemInstructionGemini } from './aiPrompts.js';
 
 // Lazy load AI clients to avoid errors if packages not installed
 let openaiClient: any = null;
@@ -76,52 +77,12 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
   }
 
   try {
-    // Build system prompt for pharmacy assistant
-    const systemPrompt = `Bạn là trợ lý AI chuyên nghiệp của Nhà Thuốc Thông Minh. Nhiệm vụ của bạn:
-
-1. **Hiểu đúng ngữ cảnh**: Phân tích chính xác yêu cầu của khách hàng và chỉ gợi ý thuốc PHÙ HỢP với triệu chứng/bệnh họ đề cập. KHÔNG BAO GIỜ gợi ý thuốc không liên quan.
-
-2. **Hỏi thêm triệu chứng**: Khi khách hàng yêu cầu thuốc chung chung (ví dụ: "thuốc cảm"), bạn NÊN hỏi thêm 1-2 câu về triệu chứng cụ thể (ho, nghẹt mũi, sốt, đau họng...) trước khi gợi ý thuốc.
-
-3. **Gợi ý thuốc chính xác**:
-   - Chỉ gợi ý 3-5 thuốc phù hợp nhất (KHÔNG quá nhiều)
-   - Ưu tiên thuốc OTC (không cần đơn bác sĩ)
-   - Phân loại theo nhóm: hạ sốt-giảm đau, cảm tổng hợp, long đờm, ho khan, v.v.
-   - KHÔNG gợi ý thuốc không liên quan (ví dụ: hỏi cảm nhưng gợi ý probiotics, thuốc ho trẻ em)
-
-4. **Format chuyên nghiệp khi gợi ý thuốc**:
-   - Sử dụng format sau cho mỗi thuốc:
-     ```
-     [Số]. **[Tên thuốc]**
-     💰 Giá: [giá]đ
-     💊 Tác dụng: [mô tả công dụng rõ ràng, KHÔNG phải hàm lượng]
-     📦 Quy cách: [đơn vị/quy cách]
-     ```
-   - QUAN TRỌNG: Trường "Tác dụng" phải là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI)
-
-5. **Thông tin chính xác**: 
-   - Sử dụng thông tin từ context (danh sách thuốc được cung cấp)
-   - Nếu không có thông tin, nói rõ "Vui lòng liên hệ dược sĩ"
-
-6. **Cảnh báo an toàn**:
-   - Luôn cảnh báo: "⚠️ Đây chỉ là tư vấn tham khảo. Vui lòng hỏi dược sĩ trước khi dùng."
-   - Cảnh báo ngay khi phát hiện tình trạng nghiêm trọng (sốt cao >39°C, đau ngực, khó thở...)
-
-7. **Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp**
-
-QUAN TRỌNG:
-- KHÔNG được thay thế chỉ định của bác sĩ
-- Luôn khuyến khích tham khảo ý kiến dược sĩ/bác sĩ
-- KHÔNG bán kháng sinh không cần đơn
-- Chỉ gợi ý thuốc OTC (không cần đơn bác sĩ)
-- Hiểu đúng ngữ cảnh: Nếu khách hỏi "thuốc cảm" → chỉ gợi ý thuốc cảm, KHÔNG gợi ý thuốc khác`;
-
     // Build context information
     let contextInfo = '';
     if (context?.medicines && context.medicines.length > 0) {
-      contextInfo += `\n\nThông tin thuốc có sẵn trong hệ thống (chỉ gợi ý 3-5 thuốc phù hợp nhất):\n`;
-      // Limit to 5 medicines max, prioritize by relevance
-      context.medicines.slice(0, 5).forEach((med, idx) => {
+      contextInfo += `\n\nThông tin thuốc có sẵn trong hệ thống (gợi ý tối đa 3 thuốc):\n`;
+      // Limit to 3 medicines max to reduce tokens
+      context.medicines.slice(0, 3).forEach((med, idx) => {
         contextInfo += `${idx + 1}. ${med.name}`;
         // QUAN TRỌNG: Chỉ hiển thị công dụng (indication), KHÔNG hiển thị hàm lượng ở đây
         if (med.indication) {
@@ -222,81 +183,58 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
     
     const model = geminiClient.getGenerativeModel({ model: modelName });
 
-    // Build system instruction for pharmacy assistant
-    const systemInstruction = `Bạn là trợ lý AI chuyên nghiệp của Nhà Thuốc Thông Minh. Nhiệm vụ của bạn:
-
-1. **Hiểu đúng ngữ cảnh**: Phân tích chính xác yêu cầu của khách hàng và chỉ gợi ý thuốc PHÙ HỢP với triệu chứng/bệnh họ đề cập. KHÔNG BAO GIỜ gợi ý thuốc không liên quan.
-
-2. **Hỏi thêm triệu chứng**: Khi khách hàng yêu cầu thuốc chung chung (ví dụ: "thuốc cảm"), bạn NÊN hỏi thêm 1-2 câu về triệu chứng cụ thể (ho, nghẹt mũi, sốt, đau họng...) trước khi gợi ý thuốc.
-
-3. **Gợi ý thuốc chính xác**:
-   - Chỉ gợi ý 3-5 thuốc phù hợp nhất (KHÔNG quá nhiều)
-   - Ưu tiên thuốc OTC (không cần đơn bác sĩ)
-   - Phân loại theo nhóm: hạ sốt-giảm đau, cảm tổng hợp, long đờm, ho khan, v.v.
-   - KHÔNG gợi ý thuốc không liên quan (ví dụ: hỏi cảm nhưng gợi ý probiotics, thuốc ho trẻ em)
-
-4. **Format chuyên nghiệp khi gợi ý thuốc**:
-   - Sử dụng format sau cho mỗi thuốc:
-     ```
-     [Số]. **[Tên thuốc]**
-     💰 Giá: [giá]đ
-     💊 Tác dụng: [mô tả công dụng rõ ràng, KHÔNG phải hàm lượng]
-     📦 Quy cách: [đơn vị/quy cách]
-     ```
-   - QUAN TRỌNG: Trường "Tác dụng" phải là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI)
-
-5. **Thông tin chính xác**: 
-   - Sử dụng thông tin từ context (danh sách thuốc được cung cấp)
-   - Nếu không có thông tin, nói rõ "Vui lòng liên hệ dược sĩ"
-
-6. **Cảnh báo an toàn**:
-   - Luôn cảnh báo: "⚠️ Đây chỉ là tư vấn tham khảo. Vui lòng hỏi dược sĩ trước khi dùng."
-   - Cảnh báo ngay khi phát hiện tình trạng nghiêm trọng (sốt cao >39°C, đau ngực, khó thở...)
-
-7. **Trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp**
-
-QUAN TRỌNG:
-- KHÔNG được thay thế chỉ định của bác sĩ
-- Luôn khuyến khích tham khảo ý kiến dược sĩ/bác sĩ
-- KHÔNG bán kháng sinh không cần đơn
-- Chỉ gợi ý thuốc OTC (không cần đơn bác sĩ)
-- Hiểu đúng ngữ cảnh: Nếu khách hỏi "thuốc cảm" → chỉ gợi ý thuốc cảm, KHÔNG gợi ý thuốc khác`;
+    const systemInstruction = systemInstructionGemini;
 
     // Build context information
     let contextInfo = '';
     if (context?.medicines && context.medicines.length > 0) {
-      contextInfo += `\n\nThông tin thuốc có sẵn trong hệ thống (chỉ gợi ý 3-5 thuốc phù hợp nhất):\n`;
+      contextInfo += `\n\n=== THÔNG TIN THUỐC CÓ SẴN TRONG HỆ THỐNG ===\n`;
+      contextInfo += `QUAN TRỌNG: Danh sách thuốc dưới đây ĐÃ ĐƯỢC LỌC và CHỈ CHỨA THUỐC PHÙ HỢP với yêu cầu của người dùng.\n`;
+      contextInfo += `Bạn PHẢI chỉ gợi ý các thuốc trong danh sách này, KHÔNG được gợi ý thuốc khác.\n`;
+      contextInfo += `Chỉ gợi ý 3-5 thuốc phù hợp nhất từ danh sách này.\n\n`;
+      
       // Limit to 5 medicines max, prioritize by relevance
-      context.medicines.slice(0, 5).forEach((med, idx) => {
-        contextInfo += `${idx + 1}. ${med.name}`;
+      context.medicines.slice(0, 3).forEach((med, idx) => {
+        contextInfo += `${idx + 1}. **${med.name}**\n`;
         // QUAN TRỌNG: Chỉ hiển thị công dụng (indication), KHÔNG hiển thị hàm lượng ở đây
         if (med.indication) {
           // Truncate long indications
           const shortIndication = med.indication.length > 200 
             ? med.indication.substring(0, 200) + '...' 
             : med.indication;
-          contextInfo += `\n   - Tác dụng: ${shortIndication}`;
+          contextInfo += `   - Tác dụng: ${shortIndication}\n`;
+        } else if (med.description) {
+          const shortDesc = med.description.length > 200 
+            ? med.description.substring(0, 200) + '...' 
+            : med.description;
+          contextInfo += `   - Tác dụng: ${shortDesc}\n`;
         }
         if (med.strength) {
-          contextInfo += `\n   - Hàm lượng: ${med.strength}`;
+          contextInfo += `   - Hàm lượng: ${med.strength}\n`;
         }
         if (med.price) {
-          contextInfo += `\n   - Giá: ${med.price.toLocaleString('vi-VN')}đ`;
+          contextInfo += `   - Giá: ${med.price.toLocaleString('vi-VN')}đ\n`;
         }
         if (med.unit) {
-          contextInfo += `\n   - Quy cách: ${med.unit}`;
+          contextInfo += `   - Quy cách: ${med.unit}\n`;
         }
         if (med.stockQuantity) {
-          contextInfo += `\n   - Tồn kho: ${med.stockQuantity} ${med.unit || 'sản phẩm'}`;
+          contextInfo += `   - Tồn kho: ${med.stockQuantity} ${med.unit || 'sản phẩm'}\n`;
         }
         contextInfo += '\n';
       });
-      contextInfo += `\nLƯU Ý: Khi gợi ý thuốc, bạn PHẢI sử dụng trường "Tác dụng" (không phải hàm lượng) trong phần mô tả công dụng của thuốc.\n`;
+      contextInfo += `\n=== QUY TẮC QUAN TRỌNG ===\n`;
+      contextInfo += `1. CHỈ gợi ý các thuốc trong danh sách trên, KHÔNG được gợi ý thuốc khác.\n`;
+      contextInfo += `2. Trường "Tác dụng" PHẢI là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI).\n`;
+      contextInfo += `3. Nếu "Tác dụng" trong danh sách chỉ là hàm lượng, bạn PHẢI tạo mô tả công dụng dựa trên tên thuốc.\n`;
+      contextInfo += `4. Format: [Số]. **[Tên thuốc]**\n   💰 Giá: [giá]đ\n   💊 Tác dụng: [mô tả công dụng]\n   📦 Quy cách: [quy cách]\n`;
     }
 
     if (context?.symptoms && context.symptoms.length > 0) {
-      contextInfo += `\nTriệu chứng người dùng đã đề cập: ${context.symptoms.join(', ')}\n`;
-      contextInfo += `Hãy chỉ gợi ý thuốc PHÙ HỢP với các triệu chứng này.\n`;
+      contextInfo += `\n=== TRIỆU CHỨNG NGƯỜI DÙNG ===\n`;
+      contextInfo += `Người dùng đã đề cập: ${context.symptoms.join(', ')}\n`;
+      contextInfo += `Yêu cầu gốc: "${(context as any).userQuery || userMessage}"\n`;
+      contextInfo += `Bạn PHẢI chỉ gợi ý thuốc PHÙ HỢP với triệu chứng này từ danh sách thuốc đã được lọc ở trên.\n`;
     }
 
     if (context?.userHistory && context.userHistory.length > 0) {
@@ -346,7 +284,7 @@ QUAN TRỌNG:
 
     // Start chat session
     // systemInstruction must be an object with parts array, not a string
-    const fullSystemInstruction = systemInstruction + contextInfo;
+    const fullSystemInstruction = systemInstructionGemini + contextInfo;
     const chat = model.startChat({
       history: chatHistory.length > 0 ? chatHistory : undefined, // Only include if not empty
       systemInstruction: {

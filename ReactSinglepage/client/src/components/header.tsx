@@ -95,8 +95,24 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     loadUnreadCount();
     // Refresh unread count every 30 seconds
     const interval = setInterval(loadUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [user, token]);
+    
+    // Listen for custom event when notifications are updated
+    const handleNotificationsUpdated = (event: CustomEvent) => {
+      if (event.detail?.unreadCount !== undefined) {
+        setUnreadNotificationCount(event.detail.unreadCount);
+      } else {
+        // If no count provided, reload from API
+        loadUnreadCount();
+      }
+    };
+    
+    window.addEventListener('notifications-updated', handleNotificationsUpdated as EventListener);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated as EventListener);
+    };
+  }, [user, token, logout]);
 
   // Handle search input focus
   const handleSearchFocus = () => {
