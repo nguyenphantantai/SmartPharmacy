@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Check, X, Tag, Gift } from "lucide-react";
@@ -45,22 +45,52 @@ export default function CouponSelector({
 
   const format = (n: number) => new Intl.NumberFormat("vi-VN").format(n);
 
+  // Refs to prevent excessive API calls
+  const isLoadingRef = useRef(false);
+  const lastOrderAmountRef = useRef<number>(0);
+  const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastPromotionsFetchRef = useRef<number>(0);
+
   // Load saved coupons from localStorage and validate with backend
   // Also fetch active promotions from API to ensure we have the latest data
   useEffect(() => {
     const loadAndValidateCoupons = async () => {
+      // Prevent concurrent loads
+      if (isLoadingRef.current) {
+        return;
+      }
+
+      // Only fetch promotions if we haven't fetched in the last 30 seconds
+      const now = Date.now();
+      const shouldFetchPromotions = now - lastPromotionsFetchRef.current > 30000; // 30 seconds
+
+      // Only validate if orderAmount changed significantly (more than 1000 VND)
+      const orderAmountChanged = Math.abs(orderAmount - lastOrderAmountRef.current) > 1000;
+      if (!orderAmountChanged && lastOrderAmountRef.current > 0 && !shouldFetchPromotions) {
+        // Order amount hasn't changed much and we recently fetched promotions, skip
+        return;
+      }
+
+      isLoadingRef.current = true;
+      lastOrderAmountRef.current = orderAmount;
+      if (shouldFetchPromotions) {
+        lastPromotionsFetchRef.current = now;
+      }
+
       try {
-        // First, try to fetch active promotions from API to get latest data
+        // First, try to fetch active promotions from API to get latest data (only if needed)
         let activePromotions: SavedCoupon[] = [];
-        try {
-          const response = await apiRequest("GET", "/api/promotions?activeOnly=true");
-          const data = await response.json();
-          if (data.success && Array.isArray(data.data)) {
-            activePromotions = data.data;
-            console.log('Fetched active promotions from API:', activePromotions);
+        if (shouldFetchPromotions) {
+          try {
+            const response = await apiRequest("GET", "/api/promotions?activeOnly=true");
+            const data = await response.json();
+            if (data.success && Array.isArray(data.data)) {
+              activePromotions = data.data;
+              console.log('Fetched active promotions from API:', activePromotions);
+            }
+          } catch (apiError) {
+            console.error('Error fetching active promotions:', apiError);
           }
-        } catch (apiError) {
-          console.error('Error fetching active promotions:', apiError);
         }
 
         // Then check localStorage for saved coupons
@@ -165,10 +195,27 @@ export default function CouponSelector({
       } catch (error) {
         console.error('Error loading saved coupons:', error);
         setSavedCoupons([]);
+      } finally {
+        isLoadingRef.current = false;
       }
     };
 
-    loadAndValidateCoupons();
+    // Clear previous timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Debounce validation by 500ms to avoid excessive API calls
+    loadTimeoutRef.current = setTimeout(() => {
+      loadAndValidateCoupons();
+    }, 500);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+      }
+    };
   }, [orderAmount]); // Re-validate when order amount changes
 
   // Separate coupons into eligible and not eligible

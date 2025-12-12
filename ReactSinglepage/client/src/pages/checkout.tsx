@@ -1,7 +1,7 @@
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
@@ -28,36 +28,89 @@ export default function CheckoutPage() {
   // Coupon state
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
+  
+  // Refs to prevent excessive API calls
+  const isValidatingRef = useRef(false);
+  const lastValidatedSubtotalRef = useRef<number>(0);
+  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load applied coupon from localStorage on mount and when items change
-  // Validate coupon with backend to ensure it's still valid
-  useEffect(() => {
-    const validateAndLoadCoupon = async () => {
-      try {
-        const savedCoupon = localStorage.getItem('applied_coupon');
-        if (!savedCoupon) {
-          setAppliedCoupon(null);
-          setDiscountAmount(0);
-          return;
+  // Calculate subtotal
+  const calculateSubtotal = useCallback(() => {
+    return items.reduce((sum, i) => sum + toNum(i.product.price) * i.quantity, 0);
+  }, [items]);
+
+  // Validate coupon with debounce and prevent duplicate calls
+  const validateAndLoadCoupon = useCallback(async () => {
+    // Prevent concurrent validations
+    if (isValidatingRef.current) {
+      return;
+    }
+
+    try {
+      const savedCoupon = localStorage.getItem('applied_coupon');
+      if (!savedCoupon) {
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      const couponData = JSON.parse(savedCoupon);
+      const couponCode = couponData.code;
+
+      if (!couponCode) {
+        // No code, clear coupon
+        localStorage.removeItem('applied_coupon');
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        return;
+      }
+
+      const subtotal = calculateSubtotal();
+      
+      // Only validate if subtotal changed significantly (more than 1000 VND) or on mount
+      const subtotalChanged = Math.abs(subtotal - lastValidatedSubtotalRef.current) > 1000;
+      if (!subtotalChanged && lastValidatedSubtotalRef.current > 0) {
+        // Subtotal hasn't changed much, use cached discount
+        if (couponData.discountAmount) {
+          setDiscountAmount(couponData.discountAmount);
         }
+        return;
+      }
 
-        const couponData = JSON.parse(savedCoupon);
-        const couponCode = couponData.code;
+      isValidatingRef.current = true;
+      lastValidatedSubtotalRef.current = subtotal;
 
-        if (!couponCode) {
-          // No code, clear coupon
+      // Validate coupon with backend to ensure it's still valid
+      try {
+        // Try promotion code validation first
+        const response = await apiRequest("POST", "/api/promotions/validate-code", {
+          code: couponCode,
+          orderAmount: subtotal,
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          // Coupon is still valid, update discount amount
+          const discountAmount = data.data.discountAmount;
+          setAppliedCoupon(couponData);
+          setDiscountAmount(discountAmount);
+          // Update localStorage with new discount amount
+          localStorage.setItem('applied_coupon', JSON.stringify({
+            ...couponData,
+            discountAmount: discountAmount,
+          }));
+        } else {
+          // Coupon is invalid or expired, remove it
+          console.log('Coupon validation failed:', data.message);
           localStorage.removeItem('applied_coupon');
           setAppliedCoupon(null);
           setDiscountAmount(0);
-          return;
         }
-
-        // Validate coupon with backend to ensure it's still valid
+      } catch (promoError) {
+        // Try coupon validation as fallback
         try {
-          const subtotal = items.reduce((sum, i) => sum + toNum(i.product.price) * i.quantity, 0);
-          
-          // Try promotion code validation first
-          const response = await apiRequest("POST", "/api/promotions/validate-code", {
+          const response = await apiRequest("POST", "/api/coupons/validate", {
             code: couponCode,
             orderAmount: subtotal,
           });
@@ -81,52 +134,43 @@ export default function CheckoutPage() {
             setAppliedCoupon(null);
             setDiscountAmount(0);
           }
-        } catch (promoError) {
-          // Try coupon validation as fallback
-          try {
-            const subtotal = items.reduce((sum, i) => sum + toNum(i.product.price) * i.quantity, 0);
-            const response = await apiRequest("POST", "/api/coupons/validate", {
-              code: couponCode,
-              orderAmount: subtotal,
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-              // Coupon is still valid, update discount amount
-              const discountAmount = data.data.discountAmount;
-              setAppliedCoupon(couponData);
-              setDiscountAmount(discountAmount);
-              // Update localStorage with new discount amount
-              localStorage.setItem('applied_coupon', JSON.stringify({
-                ...couponData,
-                discountAmount: discountAmount,
-              }));
-            } else {
-              // Coupon is invalid or expired, remove it
-              console.log('Coupon validation failed:', data.message);
-              localStorage.removeItem('applied_coupon');
-              setAppliedCoupon(null);
-              setDiscountAmount(0);
-            }
-          } catch (couponError) {
-            // Both validations failed, remove coupon
-            console.error('Error validating coupon:', couponError);
-            localStorage.removeItem('applied_coupon');
-            setAppliedCoupon(null);
-            setDiscountAmount(0);
-          }
+        } catch (couponError) {
+          // Both validations failed, remove coupon
+          console.error('Error validating coupon:', couponError);
+          localStorage.removeItem('applied_coupon');
+          setAppliedCoupon(null);
+          setDiscountAmount(0);
         }
-      } catch (error) {
-        console.error('Error loading saved coupon:', error);
-        localStorage.removeItem('applied_coupon');
-        setAppliedCoupon(null);
-        setDiscountAmount(0);
+      }
+    } catch (error) {
+      console.error('Error loading saved coupon:', error);
+      localStorage.removeItem('applied_coupon');
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+    } finally {
+      isValidatingRef.current = false;
+    }
+  }, [calculateSubtotal, apiRequest]);
+
+  // Load applied coupon from localStorage on mount and when items change (with debounce)
+  useEffect(() => {
+    // Clear previous timeout
+    if (validationTimeoutRef.current) {
+      clearTimeout(validationTimeoutRef.current);
+    }
+
+    // Debounce validation by 500ms to avoid excessive API calls
+    validationTimeoutRef.current = setTimeout(() => {
+      validateAndLoadCoupon();
+    }, 500);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current);
       }
     };
-
-    validateAndLoadCoupon();
-  }, [items, apiRequest]); // Re-check when items change
+  }, [items, validateAndLoadCoupon]); // Only depend on items and memoized function
 
   // Form data
   const [senderData, setSenderData] = useState({
@@ -338,10 +382,14 @@ export default function CheckoutPage() {
           console.log('Processing VNPay payment...');
           try {
             // Create VNPay payment request
+            // IMPORTANT: Use order.totalAmount from backend response instead of frontend-calculated finalAmount
+            // Backend may apply promotions, loyalty points, or P-Xu that frontend doesn't know about
+            const orderTotalAmount = result.data.totalAmount || finalAmount;
             console.log('Creating VNPay payment request for order:', result.data._id);
+            console.log('Using order totalAmount from backend:', orderTotalAmount, '(frontend calculated:', finalAmount, ')');
             const paymentResponse = await apiRequest("POST", "/api/payment/vnpay/create", {
               orderId: result.data._id,
-              amount: finalAmount,
+              amount: orderTotalAmount,
               orderInfo: `Thanh toán đơn hàng ${result.data.orderNumber}`,
             });
             
