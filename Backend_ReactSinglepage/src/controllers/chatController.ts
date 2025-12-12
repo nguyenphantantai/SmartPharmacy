@@ -659,22 +659,45 @@ function normalizeText(text: string): string {
   return normalized;
 }
 
-// Check for safety warnings
+// Check for safety warnings and handle difficult situations
 function checkSafetyWarnings(message: string): string | null {
   const lowerMessage = normalizeText(message);
 
+  // Critical symptoms - require immediate medical attention
   const criticalPatterns: { pattern: RegExp; warning: string }[] = [
     { pattern: /sốt\s*(cao|trên|>)\s*39/i, warning: safetyWarnings['sốt cao 40'] },
-    { pattern: /(khó thở|thở dốc|ngạt thở)/i, warning: safetyWarnings['đau ngực tim'] },
+    { pattern: /(khó thở|thở dốc|ngạt thở|thở gấp)/i, warning: safetyWarnings['đau ngực tim'] },
     { pattern: /đau\s*ngực/i, warning: safetyWarnings['đau ngực'] },
     { pattern: /trẻ\s*(em|nhỏ|<|dưới)\s*[0-5]\s*(tháng|th)/i, warning: '⚠️ Trẻ dưới 6 tháng cần được khám bác sĩ ngay. Không tự ý dùng thuốc.' },
-    { pattern: /mang\s*thai\s*(3|ba)\s*tháng\s*đầu/i, warning: '⚠️ Phụ nữ mang thai 3 tháng đầu cần khám bác sĩ trước khi dùng thuốc.' }
+    { pattern: /mang\s*thai\s*(3|ba)\s*tháng\s*đầu/i, warning: '⚠️ Phụ nữ mang thai 3 tháng đầu cần khám bác sĩ trước khi dùng thuốc.' },
+    { pattern: /(nôn\s*ra\s*máu|đi\s*ngoài\s*ra\s*máu|ho\s*ra\s*máu)/i, warning: '⚠️ Đây là triệu chứng nghiêm trọng. Bạn cần đi khám bác sĩ ngay lập tức hoặc đến cơ sở y tế gần nhất. Không tự ý điều trị tại nhà.' },
+    { pattern: /(co giật|động kinh|hôn mê)/i, warning: '⚠️ Đây là tình trạng khẩn cấp. Bạn cần gọi cấp cứu 115 hoặc đến bệnh viện ngay lập tức.' }
   ];
 
   for (const { pattern, warning } of criticalPatterns) {
     if (pattern.test(lowerMessage)) return warning;
   }
 
+  // Check for prescription-only medicines requests
+  const prescriptionMedicinePatterns = [
+    /(kháng sinh|antibiotic|amoxicillin|azithromycin|cefuroxime|augmentin|metronidazole)/i,
+    /(thuốc\s*kê\s*đơn|thuốc\s*theo\s*đơn|thuốc\s*phải\s*có\s*đơn)/i,
+    /(corticoid|prednisolone|dexamethasone)/i
+  ];
+  
+  for (const pattern of prescriptionMedicinePatterns) {
+    if (pattern.test(lowerMessage)) {
+      return '⚠️ Kháng sinh và một số thuốc khác là thuốc kê đơn, không được bán không cần đơn bác sĩ. Việc tự ý dùng thuốc kê đơn có thể gây nguy hiểm và kháng thuốc. Vui lòng đến bác sĩ để được kê đơn phù hợp.';
+    }
+  }
+
+  // Check for diagnosis requests (AI should not diagnose)
+  if (/(chẩn đoán|tôi\s*bị\s*bệnh\s*gì|bệnh\s*của\s*tôi\s*là|tôi\s*có\s*bị)/i.test(lowerMessage) && 
+      !/(thuốc|tư vấn|gợi ý)/i.test(lowerMessage)) {
+    return '⚠️ Tôi không thể chẩn đoán bệnh. Tôi chỉ có thể tư vấn về thuốc và triệu chứng nhẹ. Nếu bạn cần chẩn đoán, vui lòng đến bác sĩ để được khám và xét nghiệm.';
+  }
+
+  // Check existing safety warnings
   for (const [key, warning] of Object.entries(safetyWarnings)) {
     if (lowerMessage.includes(key)) {
       return warning;
@@ -684,9 +707,19 @@ function checkSafetyWarnings(message: string): string | null {
   return null;
 }
 
-// Parse patient info from a message
-function parsePatientInfo(message: string) {
-  const lower = normalizeText(message);
+// Parse patient info from a message or entire conversation history
+function parsePatientInfo(message: string, conversationHistory?: ChatMessage[]) {
+  // Combine current message with all previous user messages to check for already provided info
+  let combinedText = normalizeText(message);
+  if (conversationHistory && conversationHistory.length > 0) {
+    const allUserMessages = conversationHistory
+      .filter(m => m.role === 'user')
+      .map(m => m.content)
+      .join(' ');
+    combinedText = normalizeText(allUserMessages + ' ' + message);
+  }
+  
+  const lower = combinedText;
   const hasSymptom = ['cảm', 'cúm', 'sốt', 'ho', 'sổ mũi', 'nghẹt mũi', 'đau họng', 'nhức đầu']
     .some(sym => lower.includes(sym));
 
@@ -696,9 +729,9 @@ function parsePatientInfo(message: string) {
     lower.includes('người lớn') ||
     /\b\d{1,2}\s*yo\b/.test(lower);
 
-  const hasPregnancyInfo = /(mang thai|bầu|có thai|cho con bú|không mang thai|không bầu)/i.test(lower);
-  const hasDrugAllergyInfo = /(dị ứng|dị thuốc|không dị ứng|không dị thuốc)/i.test(lower);
-  const hasChronicInfo = /(bệnh nền|bệnh gan|bệnh thận|tim|dạ dày|cao huyết áp|tiểu đường|không bệnh nền)/i.test(lower);
+  const hasPregnancyInfo = /(mang thai|bầu|có thai|cho con bú|không mang thai|không bầu|không có thai)/i.test(lower);
+  const hasDrugAllergyInfo = /(dị ứng|dị thuốc|không dị ứng|không dị thuốc|tiền sử dị ứng)/i.test(lower);
+  const hasChronicInfo = /(bệnh nền|bệnh gan|bệnh thận|tim|dạ dày|cao huyết áp|tiểu đường|không bệnh nền|không có bệnh)/i.test(lower);
 
   return {
     hasSymptom,
@@ -882,9 +915,11 @@ async function generateAIResponse(
     lowerCombinedMessage.includes('sốt');
 
   if (hasSymptomKeyword && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
-    const parsed = parsePatientInfo(userMessage);
+    // Parse patient info from entire conversation history to avoid asking again
+    const parsed = parsePatientInfo(combinedSymptomMessage, conversationHistory);
     const followup = buildMissingInfoQuestions(parsed);
     // Only ask if age is missing; otherwise proceed with available info
+    // QUAN TRỌNG: Nếu đã có đủ thông tin từ conversation history, không hỏi lại
     if (followup && !parsed.hasAge) {
       return followup;
     }
