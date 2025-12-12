@@ -31,14 +31,16 @@ async function initializeClients() {
   if (!geminiClient && process.env.GEMINI_API_KEY) {
     try {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      // IMPORTANT: Never log API key - only use it for initialization
       geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       // Default to gemini-2.5-flash (stable and fast), user can override with GEMINI_MODEL
       const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
       console.log(`✅ Google Gemini AI initialized (Model: ${modelName})`);
     } catch (error: any) {
-      console.log('⚠️ Google Gemini package not installed or error:', error.message);
+      const errorMsg = error?.message || 'Unknown error';
+      console.log('⚠️ Google Gemini package not installed or error:', errorMsg.substring(0, 100));
       console.log('   Run: npm install @google/generative-ai');
-      console.log('   Add GEMINI_API_KEY to .env file');
+      console.log('   Add GEMINI_API_KEY to environment variables (never commit to git)');
     }
   } else if (!process.env.GEMINI_API_KEY) {
     console.log('ℹ️ GEMINI_API_KEY not found in environment variables');
@@ -318,11 +320,23 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
     return aiResponse;
 
   } catch (error: any) {
-    console.error('Error calling Gemini API:', error);
+    // Log error without exposing sensitive information
+    const errorMessage = error?.message || 'Unknown error';
+    const errorStatus = error?.status || 'N/A';
     
-    // Handle rate limit errors
-    if (error.message?.includes('429') || error.message?.includes('quota')) {
+    // Handle specific error types
+    if (errorStatus === 403 || errorMessage?.includes('403') || errorMessage?.includes('Forbidden')) {
+      if (errorMessage?.includes('leaked') || errorMessage?.includes('API key')) {
+        console.error('❌ Gemini API key issue detected. Please check your GEMINI_API_KEY in environment variables.');
+        console.error('   Error: API key was reported as leaked or invalid');
+      } else {
+        console.error('❌ Gemini API access forbidden (403). Check API key permissions.');
+      }
+    } else if (errorStatus === 429 || errorMessage?.includes('429') || errorMessage?.includes('quota') || errorMessage?.includes('rate limit')) {
       console.log('⚠️ Gemini API rate limit reached, falling back to rule-based system');
+    } else {
+      // Log generic error without full error object (may contain sensitive info)
+      console.error(`❌ Error calling Gemini API (Status: ${errorStatus}): ${errorMessage.substring(0, 200)}`);
     }
     
     // Fallback to rule-based system on error
