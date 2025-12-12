@@ -1952,11 +1952,28 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
 // Track Gemini quota status to avoid multiple failed calls
 let geminiQuotaExceeded = false;
 let geminiQuotaResetTime: number | null = null;
+let lastGeminiApiKey: string | null = null; // Track API key to detect changes
 
 /**
  * Check if Gemini quota is exceeded
  */
 function isGeminiQuotaExceeded(): boolean {
+  // Check if API key has changed - if so, reset quota status
+  const currentApiKey = process.env.GEMINI_API_KEY;
+  if (currentApiKey && currentApiKey !== lastGeminiApiKey) {
+    // API key changed - reset quota status
+    geminiQuotaExceeded = false;
+    geminiQuotaResetTime = null;
+    lastGeminiApiKey = currentApiKey;
+    console.log('🔄 Gemini API key changed - resetting quota status');
+    return false;
+  }
+  
+  // Update last API key if not set
+  if (currentApiKey && !lastGeminiApiKey) {
+    lastGeminiApiKey = currentApiKey;
+  }
+  
   if (!geminiQuotaExceeded) return false;
   
   // Reset flag after 1 hour (quota usually resets daily, but we check hourly)
@@ -1977,6 +1994,8 @@ function markGeminiQuotaExceeded() {
   geminiQuotaExceeded = true;
   // Reset after 1 hour
   geminiQuotaResetTime = Date.now() + (60 * 60 * 1000);
+  // Store current API key when marking as exceeded
+  lastGeminiApiKey = process.env.GEMINI_API_KEY || null;
   console.log('⚠️ Gemini quota exceeded - skipping Gemini calls for 1 hour');
 }
 
