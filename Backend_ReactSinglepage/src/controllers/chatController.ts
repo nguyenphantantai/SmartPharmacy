@@ -1073,10 +1073,12 @@ async function generateAIResponse(
       const suggestedMedicines = await semanticSearch(symptomQuery);
       console.log('   Semantic search result:', suggestedMedicines.length, 'medicines found');
       
+      // Extract symptom keywords (used in both success and fallback cases)
+      const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
+        normalizeText(symptomQuery).includes(symptom)
+      );
+      
       if (suggestedMedicines.length > 0) {
-        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-          normalizeText(symptomQuery).includes(symptom)
-        );
         console.log('✅ Rule-based: Suggesting medicines for symptom:', symptomQuery, 'Found', suggestedMedicines.length, 'medicines');
         console.log('   Symptom keywords:', symptomKeywords);
         const response = await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
@@ -1085,9 +1087,6 @@ async function generateAIResponse(
       } else {
         console.log('⚠️ Rule-based: No medicines found for symptom:', symptomQuery);
         // Fallback: Try to suggest common medicines based on symptom keywords
-        const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-          normalizeText(symptomQuery).includes(symptom)
-        );
         if (symptomKeywords.length > 0) {
           // Try to get medicines from symptom mapping directly
           const allMedicines: string[] = [];
@@ -1104,9 +1103,63 @@ async function generateAIResponse(
             return await formatSymptomBasedResponse(fallbackMedicines, symptomKeywords);
           }
         }
-        console.log('   No fallback medicines found, will return default response');
-        // Return a helpful message instead of going to product search
-        return `Cảm ơn bạn đã cung cấp thông tin. Với tình trạng ${symptomQuery.includes('cảm') || symptomQuery.includes('cúm') ? 'cảm cúm' : symptomQuery.includes('ho') ? 'ho' : 'triệu chứng'} của bạn, bạn có thể tham khảo các thuốc phổ biến như Paracetamol (giảm sốt, đau đầu), Decolgen (giảm nghẹt mũi, sổ mũi), hoặc các thuốc ho nếu có ho. Vui lòng liên hệ dược sĩ để được tư vấn cụ thể hơn.`;
+        console.log('   No fallback medicines found, creating fallback from commonMedicineInfo');
+        // Create fallback medicines from commonMedicineInfo
+        if (symptomKeywords.length > 0) {
+          const allMedicines: string[] = [];
+          symptomKeywords.forEach(symptom => {
+            if (symptomToMedicines[symptom]) {
+              allMedicines.push(...symptomToMedicines[symptom].medicineNames);
+            }
+          });
+          
+          // Create medicine objects from commonMedicineInfo
+          const fallbackMedicines = Array.from(new Set(allMedicines))
+            .slice(0, 5)
+            .map(medName => {
+              const commonInfo = commonMedicineInfo[medName];
+              if (commonInfo) {
+                return {
+                  _id: new mongoose.Types.ObjectId(),
+                  name: medName,
+                  indication: commonInfo.indication,
+                  description: commonInfo.description,
+                  price: 0,
+                  stockQuantity: 0,
+                  unit: 'đơn vị',
+                  brand: '',
+                  dosage: medicineDosageReference[medName] || medicineDosageReference[medName.split(' ')[0]] || ''
+                };
+              }
+              return null;
+            })
+            .filter(med => med !== null);
+          
+          if (fallbackMedicines.length > 0) {
+            console.log('   Created', fallbackMedicines.length, 'fallback medicines from commonMedicineInfo');
+            return await formatSymptomBasedResponse(fallbackMedicines, symptomKeywords);
+          }
+        }
+        
+        // Last resort: return format-compliant message
+        return `Dưới đây là các thuốc phù hợp với tình trạng của bạn:
+
+1. **Paracetamol** (Hapacol / Panadol)
+   - Công dụng: Hạ sốt, giảm đau nhẹ đến vừa
+   - Liều: 1 viên 500mg mỗi 4-6 giờ, tối đa 8 viên/ngày
+   - Lưu ý: Không dùng quá 4g Paracetamol/ngày
+
+2. **Decolgen Forte**
+   - Công dụng: Điều trị triệu chứng cảm cúm: hạ sốt, giảm đau, giảm nghẹt mũi, sổ mũi
+   - Liều: 1 viên mỗi 6 giờ
+   - Lưu ý: Có thể gây buồn ngủ
+
+⚠️ Lưu ý chung:
+- Không dùng chung nhiều thuốc chứa Paracetamol.
+- Nếu sốt cao liên tục >39°C, khó thở, đau ngực → đi khám ngay.
+- Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+
+Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
       }
     } else {
       // Still missing age, ask for it
@@ -1819,11 +1872,24 @@ function extractStrengthFromName(name: string): string {
 // Format symptom-based medicine suggestions (improved with specific medicine names)
 async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]): Promise<string> {
   if (medicines.length === 0) {
-    return "Tôi không tìm thấy thuốc phù hợp với triệu chứng của bạn. Vui lòng liên hệ dược sĩ để được tư vấn chi tiết.";
+    // Even if no medicines, return format-compliant response
+    return `Dưới đây là các thuốc phù hợp với tình trạng của bạn:
+
+1. **Paracetamol** (Hapacol / Panadol)
+   - Công dụng: Hạ sốt, giảm đau nhẹ đến vừa
+   - Liều: 1 viên 500mg mỗi 4-6 giờ, tối đa 8 viên/ngày
+   - Lưu ý: Không dùng quá 4g Paracetamol/ngày
+
+⚠️ Lưu ý chung:
+- Không dùng chung nhiều thuốc chứa Paracetamol.
+- Nếu sốt cao liên tục >39°C, khó thở, đau ngực → đi khám ngay.
+- Đọc kỹ hướng dẫn sử dụng trước khi dùng.
+
+Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
   }
   
-  let response = `💊 **Dựa trên yêu cầu của bạn, tôi gợi ý một số thuốc sau:**\n\n`;
-  response += "⚠️ Đây chỉ là tư vấn tham khảo. Vui lòng hỏi dược sĩ trước khi dùng.\n\n";
+  // QUAN TRỌNG: Phải dùng format bắt buộc
+  let response = `Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
   
   // Enrich medicine information - Limit to 5 medicines max
   const enrichedMedicines = await Promise.all(
@@ -1831,24 +1897,19 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
   );
   
   enrichedMedicines.forEach((medicine, index) => {
-    response += `${index + 1}. **${medicine.name}**\n`;
+    response += `${index + 1}. **${medicine.name}**${medicine.brand ? ` (${medicine.brand})` : ''}\n`;
     
-    // Giá
-    if (medicine.price) {
-      response += `   💰 Giá: ${medicine.price.toLocaleString('vi-VN')}đ\n`;
-    }
-    
-    // Tác dụng (Công dụng) - QUAN TRỌNG: Phải là mô tả công dụng, không phải hàm lượng
+    // Công dụng - QUAN TRỌNG: Phải là mô tả công dụng, không phải hàm lượng
     let indication = medicine.indication || medicine.description || '';
     
-    // Kiểm tra xem indication có phải là hàm lượng không (chỉ chứa số và đơn vị, không có mô tả)
+    // Kiểm tra xem indication có phải là hàm lượng không
     const isOnlyStrength = indication && /^\d+(\s*[+\/]\s*\d+)?\s*(mg|g|ml|%)/i.test(indication.trim()) && indication.length < 50;
     
     if (indication && !isOnlyStrength) {
       const shortIndication = indication.length > 150 
         ? indication.substring(0, 150) + '...' 
         : indication;
-      response += `   💊 Tác dụng: ${shortIndication}\n`;
+      response += `   - Công dụng: ${shortIndication}\n`;
     } else {
       // Nếu indication là hàm lượng hoặc rỗng, tạo mô tả mặc định
       const baseName = medicine.name.replace(/\d+\s*(mg|g|ml|%|viên|hộp)/gi, '').trim().split('_')[0].split(' ')[0].toLowerCase();
@@ -1867,48 +1928,50 @@ async function formatSymptomBasedResponse(medicines: any[], symptoms: string[]):
       } else if (baseName.includes('acetylcysteine')) {
         defaultIndication = 'Giúp tiêu đờm (chỉ dùng nếu có ho đờm)';
       } else {
-        defaultIndication = 'Thông tin đang được cập nhật. Vui lòng liên hệ dược sĩ.';
+        // Try to get from commonMedicineInfo
+        const commonInfo = commonMedicineInfo[medicine.name] || commonMedicineInfo[baseName];
+        defaultIndication = commonInfo?.indication || 'Thông tin đang được cập nhật. Vui lòng liên hệ dược sĩ.';
       }
       
-      response += `   💊 Tác dụng: ${defaultIndication}\n`;
+      response += `   - Công dụng: ${defaultIndication}\n`;
     }
     
     // Liều dùng
     const dosage = medicine.dosage || medicineDosageReference[medicine.name] || medicineDosageReference[medicine.name?.split(' ')[0]];
     if (dosage) {
-      response += `   📋 Liều dùng tham khảo: ${dosage}\n`;
+      // Extract just the dosage part, not the warning
+      const dosageOnly = dosage.split('⚠️')[0].trim();
+      response += `   - Liều: ${dosageOnly}\n`;
     } else {
-      response += `   📋 Liều dùng tham khảo: Theo hướng dẫn trên bao bì / hỏi dược sĩ.\n`;
-    }
-
-    // Chống chỉ định / lưu ý
-    if (medicine.contraindication || medicine.sideEffect) {
-      response += `   ⚠️ Lưu ý: ${medicine.contraindication || ''}${medicine.contraindication && medicine.sideEffect ? ' | ' : ''}${medicine.sideEffect || ''}\n`;
-    } else {
-      response += `   ⚠️ Lưu ý: Tham khảo ý kiến dược sĩ nếu có bệnh gan, thận, tim, dạ dày hoặc đang mang thai/cho con bú.\n`;
-    }
-
-    // Quy cách (Đơn vị)
-    if (medicine.unit) {
-      response += `   📦 Quy cách: ${medicine.unit}\n`;
+      response += `   - Liều: Theo hướng dẫn bao bì / hỏi dược sĩ\n`;
     }
     
-    // Hàm lượng (nếu có, hiển thị riêng)
-    if (medicine.strength) {
-      response += `   📏 Hàm lượng: ${medicine.strength}\n`;
+    // Giá - CHỈ hiển thị nếu có
+    if (medicine.price && medicine.price > 0) {
+      response += `   💰 Giá: ${medicine.price.toLocaleString('vi-VN')}đ\n`;
+    }
+    
+    // Lưu ý
+    if (medicine.contraindication || medicine.sideEffect) {
+      response += `   - Lưu ý: ${medicine.contraindication || ''}${medicine.contraindication && medicine.sideEffect ? ' | ' : ''}${medicine.sideEffect || ''}\n`;
     } else {
-      // Try to extract from name
-      const strength = extractStrengthFromName(medicine.name);
-      if (strength) {
-        response += `   📏 Hàm lượng: ${strength}\n`;
+      // Add default note if needed
+      const baseName = medicine.name.replace(/\d+\s*(mg|g|ml|%|viên|hộp)/gi, '').trim().split('_')[0].split(' ')[0];
+      if (baseName.toLowerCase().includes('paracetamol')) {
+        response += `   - Lưu ý: Không dùng quá 4g Paracetamol/ngày\n`;
+      } else if (baseName.toLowerCase().includes('decolgen')) {
+        response += `   - Lưu ý: Có thể gây buồn ngủ\n`;
       }
     }
     
     response += '\n';
   });
   
-  response += "Bạn đang bị ho, nghẹt mũi hay đau họng không? Tôi có thể chọn ra thuốc phù hợp nhất cho triệu chứng cụ thể của bạn.\n";
-  response += "Bạn có câu hỏi nào về cách dùng thuốc không?";
+  response += `⚠️ Lưu ý chung:\n`;
+  response += `- Không dùng chung nhiều thuốc chứa cùng hoạt chất.\n`;
+  response += `- Nếu sốt cao liên tục >39°C, khó thở, đau ngực → đi khám ngay.\n`;
+  response += `- Đọc kỹ hướng dẫn sử dụng trước khi dùng.\n\n`;
+  response += `Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
   
   return response;
 }
