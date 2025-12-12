@@ -684,35 +684,40 @@ function checkSafetyWarnings(message: string): string | null {
   return null;
 }
 
-// Determine if we need to collect patient safety info before suggesting
-function requiresPatientInfo(message: string): boolean {
+// Parse patient info from a message
+function parsePatientInfo(message: string) {
   const lower = normalizeText(message);
   const hasSymptom = ['cảm', 'cúm', 'sốt', 'ho', 'sổ mũi', 'nghẹt mũi', 'đau họng', 'nhức đầu']
     .some(sym => lower.includes(sym));
-  if (!hasSymptom) return false;
 
   const hasAge =
     /\b\d{1,2}\s*tuổi\b/.test(lower) ||
     lower.includes('trẻ em') ||
     lower.includes('người lớn') ||
     /\b\d{1,2}\s*yo\b/.test(lower);
-  const hasPregnancy = lower.includes('mang thai') || lower.includes('bầu') || lower.includes('cho con bú');
-  const hasChronic = lower.includes('bệnh') || lower.includes('gan') || lower.includes('thận') || lower.includes('tim');
-  const hasDrugAllergy = lower.includes('dị ứng');
 
-  return !(hasAge && hasPregnancy && hasChronic && hasDrugAllergy);
+  const hasPregnancyInfo = /(mang thai|bầu|có thai|cho con bú|không mang thai|không bầu)/i.test(lower);
+  const hasDrugAllergyInfo = /(dị ứng|dị thuốc|không dị ứng|không dị thuốc)/i.test(lower);
+  const hasChronicInfo = /(bệnh nền|bệnh gan|bệnh thận|tim|dạ dày|cao huyết áp|tiểu đường|không bệnh nền)/i.test(lower);
+
+  return {
+    hasSymptom,
+    hasAge,
+    hasPregnancyInfo,
+    hasDrugAllergyInfo,
+    hasChronicInfo
+  };
 }
 
-function patientInfoQuestions(): string {
-  return (
-    "Để tư vấn thuốc an toàn, cho tôi biết:\n" +
-    "1) Bạn bao nhiêu tuổi? (người lớn/trẻ em)\n" +
-    "2) Triệu chứng chính: sốt/đau đầu/sổ mũi/nghẹt mũi/ho/đau họng?\n" +
-    "3) Có đang mang thai hoặc cho con bú không?\n" +
-    "4) Có dị ứng thuốc hay bệnh nền (gan, thận, tim, dạ dày...)?\n" +
-    "5) Đang dùng thuốc gì khác?\n\n" +
-    "Sau khi có thông tin, tôi sẽ gợi ý thuốc phù hợp. Đây là tư vấn tham khảo, vui lòng hỏi dược sĩ tại quầy trước khi mua."
-  );
+function buildMissingInfoQuestions(info: ReturnType<typeof parsePatientInfo>): string | null {
+  const missing: string[] = [];
+  if (!info.hasAge) missing.push('Tuổi (người lớn/trẻ em)');
+  if (!info.hasPregnancyInfo) missing.push('Có đang mang thai/cho con bú không?');
+  if (!info.hasDrugAllergyInfo) missing.push('Có dị ứng thuốc không?');
+  if (!info.hasChronicInfo) missing.push('Có bệnh nền (gan, thận, tim, dạ dày, huyết áp...) không?');
+
+  if (missing.length === 0) return null;
+  return `Để tư vấn an toàn, cần bổ sung: ${missing.join('; ')}.\nBạn vui lòng cho biết thêm?`;
 }
 
 // Extract medicine name from query
@@ -825,18 +830,19 @@ async function generateAIResponse(
   }
 
   // Collect patient info before suggesting common cold/flu medicines
-  const needsInfo =
-    (lowerMessage.includes('cảm') || lowerMessage.includes('cúm') || lowerMessage.includes('ho') ||
-     lowerMessage.includes('sổ mũi') || lowerMessage.includes('nghẹt mũi') ||
-     lowerMessage.includes('đau họng') || lowerMessage.includes('nhức đầu') ||
-     lowerMessage.includes('sốt')) &&
-    requiresPatientInfo(userMessage) &&
-    !lowerMessage.includes('liều') &&
-    !lowerMessage.includes('giá') &&
-    !lowerMessage.includes('tồn kho');
+  const hasSymptomKeyword =
+    lowerMessage.includes('cảm') || lowerMessage.includes('cúm') || lowerMessage.includes('ho') ||
+    lowerMessage.includes('sổ mũi') || lowerMessage.includes('nghẹt mũi') ||
+    lowerMessage.includes('đau họng') || lowerMessage.includes('nhức đầu') ||
+    lowerMessage.includes('sốt');
 
-  if (needsInfo) {
-    return patientInfoQuestions();
+  if (hasSymptomKeyword && !lowerMessage.includes('liều') && !lowerMessage.includes('giá') && !lowerMessage.includes('tồn kho')) {
+    const parsed = parsePatientInfo(userMessage);
+    const followup = buildMissingInfoQuestions(parsed);
+    // Only ask if age is missing; otherwise proceed with available info
+    if (followup && !parsed.hasAge) {
+      return followup;
+    }
   }
   
   // 1. Check for dosage questions (liều dùng tham khảo)
