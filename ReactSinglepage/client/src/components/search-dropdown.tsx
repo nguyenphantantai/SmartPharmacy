@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Search, Clock, TrendingUp, Package, Star, Grid3X3 } from "lucide-react";
 import { SearchService, SearchProduct, SearchResult } from "@/services/searchService";
 import { Link } from "wouter";
@@ -23,11 +23,27 @@ export default function SearchDropdown({ query, isOpen, onClose, onSelectProduct
   const [trendingProducts] = useState(SearchService.getTrendingProducts());
   const dropdownRef = useRef<HTMLDivElement>(null);
   
-  // Load search history from API
+  // Refs to prevent excessive API calls
+  const lastQueryRef = useRef<string>('');
+  const isSearchingRef = useRef(false);
+  const searchHistoryLoadedRef = useRef(false);
+  const searchHistoryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Load search history from API (chỉ load 1 lần khi mở dropdown)
   useEffect(() => {
-    const loadSearchHistory = async () => {
+    // Clear previous timeout
+    if (searchHistoryTimeoutRef.current) {
+      clearTimeout(searchHistoryTimeoutRef.current);
+    }
+    
+    if (!isOpen || searchHistoryLoadedRef.current) {
+      return;
+    }
+    
+    // Debounce search history loading
+    searchHistoryTimeoutRef.current = setTimeout(async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
         if (!token) return;
         
         const response = await fetch(`${API_BASE}/api/recommend/search-history?limit=10`, {
@@ -43,88 +59,137 @@ export default function SearchDropdown({ query, isOpen, onClose, onSelectProduct
             // Remove duplicates and keep unique keywords
             const uniqueKeywords = Array.from(new Set(keywords));
             setSearchHistory(uniqueKeywords);
+            searchHistoryLoadedRef.current = true;
           }
         }
       } catch (error) {
         console.error('Error loading search history:', error);
       }
-    };
+    }, 500); // Debounce 500ms
     
-    if (isOpen) {
-      loadSearchHistory();
+    return () => {
+      if (searchHistoryTimeoutRef.current) {
+        clearTimeout(searchHistoryTimeoutRef.current);
+      }
+    };
+  }, [isOpen]);
+  
+  // Reset search history loaded flag when dropdown closes
+  useEffect(() => {
+    if (!isOpen) {
+      searchHistoryLoadedRef.current = false;
     }
   }, [isOpen]);
 
-  // Search products when query changes
+  // Search products when query changes (với debounce và prevent duplicate calls)
   useEffect(() => {
-    if (!query || query.trim().length < 2) {
+    const trimmedQuery = query?.trim() || '';
+    
+    if (!trimmedQuery || trimmedQuery.length < 2) {
       setSearchResults(null);
       setApiProducts([]);
+      lastQueryRef.current = '';
+      return;
+    }
+
+    // Nếu query giống lần trước, không gọi lại API
+    if (trimmedQuery === lastQueryRef.current) {
+      return;
+    }
+
+    // Nếu đang search, bỏ qua
+    if (isSearchingRef.current) {
       return;
     }
 
     setIsLoading(true);
     
-    // Debounce search
+    // Debounce search - tăng lên 500ms để giảm số lần gọi API
     const timeoutId = setTimeout(async () => {
-      // Search from static data
-      const staticResults = SearchService.searchProducts(query, 8);
-      setSearchResults(staticResults);
+      // Kiểm tra lại query sau khi debounce
+      if (trimmedQuery !== query?.trim()) {
+        setIsLoading(false);
+        return;
+      }
+
+      // Nếu query giống lần trước, không gọi lại
+      if (trimmedQuery === lastQueryRef.current) {
+        setIsLoading(false);
+        return;
+      }
+
+      isSearchingRef.current = true;
+      lastQueryRef.current = trimmedQuery;
       
-      // Search from API
       try {
-        const response = await fetch(`${API_BASE}/api/products?search=${encodeURIComponent(query)}&limit=8`);
-        const data = await response.json();
+        // Search from static data
+        const staticResults = SearchService.searchProducts(trimmedQuery, 8);
+        setSearchResults(staticResults);
         
-        if (data.success && data.data?.products) {
-          setApiProducts(data.data.products);
-        } else {
+        // Search from API
+        try {
+          const response = await fetch(`${API_BASE}/api/products?search=${encodeURIComponent(trimmedQuery)}&limit=8`);
+          const data = await response.json();
+          
+          if (data.success && data.data?.products) {
+            setApiProducts(data.data.products);
+          } else {
+            setApiProducts([]);
+          }
+        } catch (error) {
+          console.error('Error fetching products from API:', error);
           setApiProducts([]);
         }
-      } catch (error) {
-        console.error('Error fetching products from API:', error);
-        setApiProducts([]);
       } finally {
         setIsLoading(false);
+        isSearchingRef.current = false;
       }
-    }, 300);
+    }, 500); // Tăng debounce từ 300ms lên 500ms
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [query]);
+
+  // Lưu onClose trong ref để tránh re-run useEffect khi onClose thay đổi
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]); // Chỉ depend on isOpen, không depend on onClose
 
   // Close dropdown on escape key
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-    }
+    document.addEventListener('keydown', handleEscape);
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]); // Chỉ depend on isOpen, không depend on onClose
 
   if (!isOpen) return null;
 

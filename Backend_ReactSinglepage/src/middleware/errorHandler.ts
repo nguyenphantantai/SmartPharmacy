@@ -1,32 +1,63 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
 
-// General rate limiter
+// Helper function to extract user ID from JWT token
+function extractUserIdFromToken(req: Request): string | null {
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const decoded = jwt.decode(token) as any;
+      if (decoded && decoded.userId) {
+        return decoded.userId;
+      }
+    }
+  } catch (error) {
+    // Ignore JWT decode errors
+  }
+  return null;
+}
+
+// Helper function to get client IP
+function getClientIP(req: Request): string {
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    const ips = String(forwardedFor).split(',');
+    return ips[0].trim();
+  }
+  return req.headers['x-real-ip'] as string || req.ip || req.socket.remoteAddress || 'unknown';
+}
+
+// General rate limiter - sử dụng user ID nếu có, fallback về IP
 export const generalLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
-  max: process.env.NODE_ENV === 'development' ? 10000 : config.rateLimit.maxRequests, // Much higher limit in development
+  // Tăng rate limit cho production: 5000 requests trong 15 phút
+  max: process.env.NODE_ENV === 'development' ? 10000 : (parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '5000')),
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.',
   },
   standardHeaders: true,
   legacyHeaders: false,
-  // Custom key generator to safely extract IP from headers (fixes trust proxy issue)
+  // Custom key generator: ưu tiên user ID, fallback về IP
   keyGenerator: (req) => {
-    // Get IP from x-forwarded-for header (first IP in the chain)
-    // This is the real client IP when behind a reverse proxy
-    const forwardedFor = req.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      const ips = String(forwardedFor).split(',');
-      return ips[0].trim();
+    // Ưu tiên sử dụng user ID nếu có (tránh block tất cả users cùng IP)
+    const userId = extractUserIdFromToken(req);
+    if (userId) {
+      return `user:${userId}`;
     }
-    // Fallback to x-real-ip or req.ip
-    return req.headers['x-real-ip'] as string || req.ip || req.socket.remoteAddress || 'unknown';
+    
+    // Fallback về IP nếu không có user ID
+    return `ip:${getClientIP(req)}`;
   },
   skip: (req) => {
-    // Skip rate limiting for static files and images
-    return req.path.startsWith('/medicine-images') || req.path.startsWith('/images');
+    // Skip rate limiting for static files, images, and health checks
+    return req.path.startsWith('/medicine-images') || 
+           req.path.startsWith('/images') ||
+           req.path === '/health' ||
+           req.path === '/api/health';
   },
 });
 

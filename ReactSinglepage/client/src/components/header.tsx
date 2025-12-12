@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Link, useLocation } from "wouter";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/contexts/AuthContext";
 import GarenaAuthDialog from "./garena-auth-dialog";
@@ -133,8 +133,13 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     }
   };
 
+  // Memoize callbacks để tránh re-render SearchDropdown
+  const handleCloseSearchDropdown = useCallback(() => {
+    setIsSearchDropdownOpen(false);
+  }, []);
+
   // Handle product selection from search
-  const handleProductSelect = (product: SearchProduct) => {
+  const handleProductSelect = useCallback((product: SearchProduct) => {
     // Navigate to product detail page using wouter router
     if (product.id) {
       setLocation(`/product/${product.id}`);
@@ -143,7 +148,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
     }
     setIsSearchDropdownOpen(false);
     onSearchChange('');
-  };
+  }, [setLocation, onSearchChange]);
 
   // Handle search button click
   const handleSearchClick = () => {
@@ -195,7 +200,7 @@ export function Header({ searchQuery, onSearchChange }: HeaderProps) {
               <SearchDropdown
                 query={searchQuery}
                 isOpen={isSearchDropdownOpen}
-                onClose={() => setIsSearchDropdownOpen(false)}
+                onClose={handleCloseSearchDropdown}
                 onSelectProduct={handleProductSelect}
               />
             </div>

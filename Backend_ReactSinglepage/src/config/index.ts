@@ -24,7 +24,7 @@ export const config = {
   // Rate Limiting
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // Increased from 100 to 1000
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '5000'), // Tăng lên 5000 requests trong 15 phút
   },
   
   // Supabase (optional - for image storage)
