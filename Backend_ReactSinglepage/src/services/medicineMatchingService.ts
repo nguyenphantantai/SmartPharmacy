@@ -501,40 +501,52 @@ export async function findSimilarMedicines(
       
       // Nếu tìm thấy thuốc, tìm thuốc cùng công dụng và hàm lượng
       if (targetMedicine && (targetMedicine.indication || targetMedicine.groupTherapeutic)) {
-        console.log(`🔍 Found target medicine: ${targetMedicine.name}, indication: ${targetMedicine.indication}, groupTherapeutic: ${targetMedicine.groupTherapeutic}, subcategory: ${targetMedicine.subcategory || 'N/A'}`);
+        console.log(`🔍 Found target medicine: ${targetMedicine.name}, indication: ${targetMedicine.indication}, groupTherapeutic: ${targetMedicine.groupTherapeutic}, subcategory: ${targetMedicine.subcategory || 'N/A'}, category: ${targetMedicine.category || 'N/A'}, dosageForm: ${targetMedicine.dosageForm || 'N/A'}`);
         
         // Tìm thuốc cùng công dụng (indication hoặc groupTherapeutic) và cùng hàm lượng
-        // ƯU TIÊN: cùng subcategory > cùng activeIngredient > cùng groupTherapeutic
+        // ƯU TIÊN: category > subcategory > activeIngredient > dosageForm > groupTherapeutic
         const searchCriteria: any = {
           _id: { $ne: targetMedicine._id }
         };
         
-        // Thêm điều kiện tìm cùng công dụng - ưu tiên subcategory
+        // Thêm điều kiện tìm cùng công dụng - ưu tiên category, subcategory, activeIngredient, dosageForm
         const orConditions: any[] = [];
         
-        // Ưu tiên 1: Cùng subcategory (nếu có)
-        if (targetMedicine.subcategory) {
-          orConditions.push({ subcategory: targetMedicine.subcategory });
-          console.log(`   Priority 1: Searching by subcategory: "${targetMedicine.subcategory}"`);
+        // Ưu tiên 1: Cùng category (nếu có)
+        if (targetMedicine.category) {
+          orConditions.push({ category: targetMedicine.category });
+          console.log(`   Priority 1: Searching by category: "${targetMedicine.category}"`);
         }
         
-        // Ưu tiên 2: Cùng activeIngredient (nếu có)
+        // Ưu tiên 2: Cùng subcategory (nếu có)
+        if (targetMedicine.subcategory) {
+          orConditions.push({ subcategory: targetMedicine.subcategory });
+          console.log(`   Priority 2: Searching by subcategory: "${targetMedicine.subcategory}"`);
+        }
+        
+        // Ưu tiên 3: Cùng activeIngredient (nếu có)
         if (targetMedicine.activeIngredient) {
           const escapedActiveIngredient = targetMedicine.activeIngredient.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
           orConditions.push({ activeIngredient: { $regex: escapedActiveIngredient, $options: 'i' } });
-          console.log(`   Priority 2: Searching by activeIngredient: "${targetMedicine.activeIngredient}"`);
+          console.log(`   Priority 3: Searching by activeIngredient: "${targetMedicine.activeIngredient}"`);
         }
         
-        // Ưu tiên 3: Cùng groupTherapeutic (nếu có)
+        // Ưu tiên 4: Cùng dosageForm (nếu có)
+        if (targetMedicine.dosageForm) {
+          orConditions.push({ dosageForm: targetMedicine.dosageForm });
+          console.log(`   Priority 4: Searching by dosageForm: "${targetMedicine.dosageForm}"`);
+        }
+        
+        // Ưu tiên 5: Cùng groupTherapeutic (nếu có)
         if (targetMedicine.groupTherapeutic) {
           orConditions.push({ groupTherapeutic: targetMedicine.groupTherapeutic });
-          console.log(`   Priority 3: Searching by groupTherapeutic: "${targetMedicine.groupTherapeutic}"`);
+          console.log(`   Priority 5: Searching by groupTherapeutic: "${targetMedicine.groupTherapeutic}"`);
         }
         
-        // Ưu tiên 4: Cùng indication (nếu có)
+        // Ưu tiên 6: Cùng indication (nếu có)
         if (targetMedicine.indication) {
           orConditions.push({ indication: targetMedicine.indication });
-          console.log(`   Priority 4: Searching by indication: "${targetMedicine.indication}"`);
+          console.log(`   Priority 6: Searching by indication: "${targetMedicine.indication}"`);
         }
         
         if (orConditions.length > 0) {
@@ -572,9 +584,13 @@ export async function findSimilarMedicines(
             );
             
             if (!alreadyAdded) {
-              // Xác định matchReason và confidence dựa trên subcategory, activeIngredient, và dosage
+              // Xác định matchReason và confidence dựa trên category, subcategory, activeIngredient, dosageForm, và dosage
               let matchReason = '';
               let confidence = 0.70;
+              
+              // Kiểm tra cùng category
+              const sameCategory = targetMedicine.category && medicine.category && 
+                targetMedicine.category.toLowerCase() === medicine.category.toLowerCase();
               
               // Kiểm tra cùng subcategory
               const sameSubcategory = targetMedicine.subcategory && medicine.subcategory && 
@@ -584,35 +600,66 @@ export async function findSimilarMedicines(
               const sameActiveIngredient = targetMedicine.activeIngredient && medicine.activeIngredient &&
                 normalizeForComparison(targetMedicine.activeIngredient) === normalizeForComparison(medicine.activeIngredient);
               
+              // Kiểm tra cùng dosageForm
+              const sameDosageForm = targetMedicine.dosageForm && medicine.dosageForm && 
+                targetMedicine.dosageForm.toLowerCase() === medicine.dosageForm.toLowerCase();
+              
               // Kiểm tra cùng dosage
               const sameDosage = normalizedInputDosage && normalizedProductDosage && 
                 normalizedInputDosage === normalizedProductDosage;
               
-              // Xác định matchReason và confidence
-              if (sameSubcategory && sameActiveIngredient && sameDosage) {
-                matchReason = 'same_subcategory_same_activeIngredient_same_dosage';
-                confidence = 0.95; // Độ chính xác cao nhất
-              } else if (sameSubcategory && sameActiveIngredient) {
-                matchReason = 'same_subcategory_same_activeIngredient';
+              // Xác định matchReason và confidence - ưu tiên: category > subcategory > activeIngredient > dosageForm > dosage
+              if (sameCategory && sameSubcategory && sameActiveIngredient && sameDosageForm && sameDosage) {
+                matchReason = 'same_category_same_subcategory_same_activeIngredient_same_dosageForm_same_dosage';
+                confidence = 0.98; // Độ chính xác cao nhất
+              } else if (sameCategory && sameSubcategory && sameActiveIngredient && sameDosageForm) {
+                matchReason = 'same_category_same_subcategory_same_activeIngredient_same_dosageForm';
+                confidence = 0.95;
+              } else if (sameCategory && sameSubcategory && sameActiveIngredient && sameDosage) {
+                matchReason = 'same_category_same_subcategory_same_activeIngredient_same_dosage';
+                confidence = 0.93;
+              } else if (sameSubcategory && sameActiveIngredient && sameDosageForm && sameDosage) {
+                matchReason = 'same_subcategory_same_activeIngredient_same_dosageForm_same_dosage';
+                confidence = 0.92;
+              } else if (sameCategory && sameSubcategory && sameActiveIngredient) {
+                matchReason = 'same_category_same_subcategory_same_activeIngredient';
                 confidence = 0.90;
-              } else if (sameSubcategory && sameDosage) {
-                matchReason = 'same_subcategory_same_dosage';
+              } else if (sameSubcategory && sameActiveIngredient && sameDosageForm) {
+                matchReason = 'same_subcategory_same_activeIngredient_same_dosageForm';
                 confidence = 0.88;
+              } else if (sameSubcategory && sameActiveIngredient && sameDosage) {
+                matchReason = 'same_subcategory_same_activeIngredient_same_dosage';
+                confidence = 0.87;
+              } else if (sameCategory && sameSubcategory) {
+                matchReason = 'same_category_same_subcategory';
+                confidence = 0.85;
+              } else if (sameSubcategory && sameDosageForm) {
+                matchReason = 'same_subcategory_same_dosageForm';
+                confidence = 0.83;
+              } else if (sameActiveIngredient && sameDosageForm && sameDosage) {
+                matchReason = 'same_activeIngredient_same_dosageForm_same_dosage';
+                confidence = 0.82;
               } else if (sameActiveIngredient && sameDosage) {
                 matchReason = 'same_activeIngredient_same_dosage';
-                confidence = 0.85;
+                confidence = 0.80;
               } else if (sameSubcategory) {
                 matchReason = 'same_subcategory';
-                confidence = 0.80;
+                confidence = 0.75;
+              } else if (sameActiveIngredient && sameDosageForm) {
+                matchReason = 'same_activeIngredient_same_dosageForm';
+                confidence = 0.73;
               } else if (sameActiveIngredient) {
                 matchReason = 'same_activeIngredient';
-                confidence = 0.75;
+                confidence = 0.70;
+              } else if (sameDosageForm && sameDosage) {
+                matchReason = 'same_dosageForm_same_dosage';
+                confidence = 0.68;
               } else if (sameDosage) {
                 matchReason = 'same_dosage';
-                confidence = 0.70;
+                confidence = 0.65;
               } else {
                 matchReason = 'same_indication_different_dosage';
-                confidence = 0.65;
+                confidence = 0.60;
               }
               
               const medicineData = {
