@@ -511,20 +511,29 @@ export default function PrescriptionAnalysisResultPage() {
                                                 <span className="font-medium">Hàm lượng:</span> {suggestion.dosage}
                                               </p>
                                             )}
-                                            {/* Hiển thị nhóm thuốc (groupTherapeutic) nếu có */}
-                                            {suggestion.groupTherapeutic && (
+                                            {/* Hiển thị danh mục (category) nếu có */}
+                                            {suggestion.category && (
                                               <p className="text-sm text-gray-600 mb-1">
-                                                <span className="font-medium">Nhóm:</span> {suggestion.groupTherapeutic}
+                                                <span className="font-medium">Danh mục:</span> {suggestion.category}
                                               </p>
                                             )}
-                                            {/* Hiển thị công dụng (indication) rõ ràng nếu có */}
-                                            {suggestion.indication && (
-                                              <div className="mb-2">
-                                                <p className="text-sm font-medium text-gray-700 mb-1">Công dụng:</p>
-                                                <p className="text-sm text-gray-600 leading-relaxed">
-                                                  {suggestion.indication}
-                                                </p>
-                                              </div>
+                                            {/* Hiển thị nhóm thuốc (subcategory) nếu có */}
+                                            {suggestion.subcategory && (
+                                              <p className="text-sm text-gray-600 mb-1">
+                                                <span className="font-medium">Nhóm thuốc:</span> {suggestion.subcategory}
+                                              </p>
+                                            )}
+                                            {/* Hiển thị dạng bào chế (dosageForm) nếu có */}
+                                            {suggestion.dosageForm && (
+                                              <p className="text-sm text-gray-600 mb-1">
+                                                <span className="font-medium">Dạng bào chế:</span> {suggestion.dosageForm}
+                                              </p>
+                                            )}
+                                            {/* Hiển thị cách dùng (route) nếu có */}
+                                            {suggestion.route && (
+                                              <p className="text-sm text-gray-600 mb-1">
+                                                <span className="font-medium">Cách dùng:</span> {suggestion.route}
+                                              </p>
                                             )}
                                             {/* Hiển thị chống chỉ định nếu có */}
                                             {suggestion.contraindication && (
@@ -568,14 +577,24 @@ export default function PrescriptionAnalysisResultPage() {
                                                   💡 {suggestion.matchExplanation}
                                                 </Badge>
                                               )}
-                                              {suggestion.groupTherapeutic && (
-                                                <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
-                                                  🏷️ Nhóm: {suggestion.groupTherapeutic}
+                                              {suggestion.category && (
+                                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                                  📁 Danh mục: {suggestion.category}
                                                 </Badge>
                                               )}
-                                              {suggestion.indication && (
-                                                <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                                                  📋 Công dụng: {suggestion.indication.length > 80 ? suggestion.indication.substring(0, 80) + '...' : suggestion.indication}
+                                              {suggestion.subcategory && (
+                                                <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                                                  🏷️ Nhóm thuốc: {suggestion.subcategory}
+                                                </Badge>
+                                              )}
+                                              {suggestion.dosageForm && (
+                                                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                                  💊 Dạng bào chế: {suggestion.dosageForm}
+                                                </Badge>
+                                              )}
+                                              {suggestion.route && (
+                                                <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                                  📍 Cách dùng: {suggestion.route}
                                                 </Badge>
                                               )}
                                             </div>
