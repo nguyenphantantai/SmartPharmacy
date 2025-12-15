@@ -2155,6 +2155,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             let targetGroupTherapeutic = '';
             let targetIndication = '';
             let targetActiveIngredient = '';
+            let targetSubcategory = '';
             
             // Tìm với nhiều pattern hơn - không chỉ firstWord
             for (const searchTerm of searchTerms) {
@@ -2188,10 +2189,12 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     targetGroupTherapeutic = targetMedicine.groupTherapeutic || '';
                     targetIndication = targetMedicine.indication || targetMedicine.description || targetMedicine.uses || targetMedicine.congDung || '';
                     targetActiveIngredient = targetMedicine.activeIngredient || '';
+                    targetSubcategory = targetMedicine.subcategory || '';
                     console.log(`🔍 Found target medicine in medicines collection: ${targetMedicine.name}`);
                     console.log(`   Indication: ${targetIndication}`);
                     console.log(`   GroupTherapeutic: ${targetGroupTherapeutic}`);
                     console.log(`   ActiveIngredient: ${targetActiveIngredient}`);
+                    console.log(`   Subcategory: ${targetSubcategory || 'N/A'}`);
                     break;
                   } else {
                     // Match sai - bỏ qua và tiếp tục tìm
@@ -2350,28 +2353,25 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                   }
                   
                   const orConditions: any[] = [];
-                  if (targetIndication) {
-                    // Tìm exact match
-                    orConditions.push({ indication: targetIndication });
-                    // Tìm partial match (chứa indication) - escape ký tự đặc biệt
-                    const escapedTargetIndication = targetIndication.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                    orConditions.push({ indication: { $regex: escapedTargetIndication, $options: 'i' } });
-                    
-                    // Tìm các từ khóa quan trọng trong indication
-                    const indicationKeywords = targetIndication
-                      .toLowerCase()
-                      .split(/[,\s;]+/)
-                      .filter(word => word.length > 3 && !['điều', 'trị', 'các', 'bệnh', 'và', 'cho'].includes(word));
-                    
-                    for (const keyword of indicationKeywords.slice(0, 5)) { // Lấy 5 từ khóa đầu tiên
-                      // Escape ký tự đặc biệt trong keyword
-                      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                      orConditions.push({ indication: { $regex: escapedKeyword, $options: 'i' } });
-                      orConditions.push({ description: { $regex: escapedKeyword, $options: 'i' } });
-                      orConditions.push({ uses: { $regex: escapedKeyword, $options: 'i' } });
-                      orConditions.push({ congDung: { $regex: escapedKeyword, $options: 'i' } });
+                  
+                  // ƯU TIÊN 1: Tìm cùng subcategory (nếu có) - độ chính xác cao nhất
+                  if (targetSubcategory) {
+                    orConditions.push({ subcategory: targetSubcategory });
+                    console.log(`   Priority 1: Searching by subcategory: "${targetSubcategory}"`);
+                  }
+                  
+                  // ƯU TIÊN 2: Tìm cùng activeIngredient (nếu có)
+                  if (targetActiveIngredient) {
+                    const mainActiveIngredient = targetActiveIngredient.split(/[,;]/)[0]?.trim();
+                    if (mainActiveIngredient && mainActiveIngredient.length > 3) {
+                      const escapedMainActiveIngredient = mainActiveIngredient.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                      orConditions.push({ activeIngredient: { $regex: escapedMainActiveIngredient, $options: 'i' } });
+                      orConditions.push({ genericName: { $regex: escapedMainActiveIngredient, $options: 'i' } });
+                      console.log(`   Priority 2: Searching by activeIngredient: "${mainActiveIngredient}"`);
                     }
                   }
+                  
+                  // ƯU TIÊN 3: Tìm cùng groupTherapeutic (nếu có)
                   if (targetGroupTherapeutic) {
                     // Tìm exact match
                     orConditions.push({ groupTherapeutic: targetGroupTherapeutic });
@@ -2403,15 +2403,29 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     }
                   }
                   
-                  // Nếu có activeIngredient, cũng tìm theo activeIngredient
-                  if (targetActiveIngredient) {
-                    const mainActiveIngredient = targetActiveIngredient.split(/[,;]/)[0]?.trim();
-                    if (mainActiveIngredient && mainActiveIngredient.length > 3) {
-                      // Escape ký tự đặc biệt trong regex
-                      const escapedMainActiveIngredient = mainActiveIngredient.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                      orConditions.push({ activeIngredient: { $regex: escapedMainActiveIngredient, $options: 'i' } });
-                      orConditions.push({ genericName: { $regex: escapedMainActiveIngredient, $options: 'i' } });
+                  // ƯU TIÊN 4: Tìm cùng indication (nếu có)
+                  if (targetIndication) {
+                    // Tìm exact match
+                    orConditions.push({ indication: targetIndication });
+                    // Tìm partial match (chứa indication) - escape ký tự đặc biệt
+                    const escapedTargetIndication = targetIndication.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    orConditions.push({ indication: { $regex: escapedTargetIndication, $options: 'i' } });
+                    
+                    // Tìm các từ khóa quan trọng trong indication
+                    const indicationKeywords = targetIndication
+                      .toLowerCase()
+                      .split(/[,\s;]+/)
+                      .filter(word => word.length > 3 && !['điều', 'trị', 'các', 'bệnh', 'và', 'cho'].includes(word));
+                    
+                    for (const keyword of indicationKeywords.slice(0, 5)) { // Lấy 5 từ khóa đầu tiên
+                      // Escape ký tự đặc biệt trong keyword
+                      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                      orConditions.push({ indication: { $regex: escapedKeyword, $options: 'i' } });
+                      orConditions.push({ description: { $regex: escapedKeyword, $options: 'i' } });
+                      orConditions.push({ uses: { $regex: escapedKeyword, $options: 'i' } });
+                      orConditions.push({ congDung: { $regex: escapedKeyword, $options: 'i' } });
                     }
+                    console.log(`   Priority 4: Searching by indication: "${targetIndication}"`);
                   }
                   
                   if (orConditions.length > 0) {
@@ -2577,40 +2591,49 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                           const productParsed = parseMedicineName(product.name);
                           const normalizedProductDosage = productParsed.dosage ? normalizeDosageForComparison(productParsed.dosage) : null;
                           
-                          // Xác định matchReason: ưu tiên cùng hoạt chất > cùng nhóm > cùng công dụng
+                          // Xác định matchReason: ưu tiên cùng subcategory > cùng hoạt chất > cùng nhóm > cùng công dụng
+                          const isSameSubcategory = targetSubcategory && medicine.subcategory && 
+                            targetSubcategory.toLowerCase() === medicine.subcategory.toLowerCase();
                           const isSameActiveIngredient = medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(medicine._id));
+                          const isSameDosage = normalizedInputDosage && normalizedProductDosage && 
+                            normalizedInputDosage === normalizedProductDosage;
+                          const isSameGroupTherapeutic = targetGroupTherapeutic && medicine.groupTherapeutic && 
+                            (targetGroupTherapeutic.toLowerCase() === medicine.groupTherapeutic.toLowerCase() ||
+                             (targetGroupTherapeutic.toLowerCase().includes('nsaid') && medicine.groupTherapeutic.toLowerCase().includes('nsaid')) ||
+                             (targetGroupTherapeutic.toLowerCase().includes('kháng viêm') && medicine.groupTherapeutic.toLowerCase().includes('kháng viêm')));
+                          
                           let matchReason = '';
                           let confidence = 0.70;
                           
-                          if (isSameActiveIngredient) {
-                            // Cùng hoạt chất
-                            if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
-                              matchReason = 'same_active_ingredient_same_dosage';
-                              confidence = 0.90;
-                            } else {
-                              matchReason = 'same_active_ingredient_different_dosage';
-                              confidence = 0.85;
-                            }
+                          // Ưu tiên theo thứ tự: subcategory > activeIngredient > dosage > groupTherapeutic
+                          if (isSameSubcategory && isSameActiveIngredient && isSameDosage) {
+                            matchReason = 'same_subcategory_same_activeIngredient_same_dosage';
+                            confidence = 0.95; // Độ chính xác cao nhất
+                          } else if (isSameSubcategory && isSameActiveIngredient) {
+                            matchReason = 'same_subcategory_same_activeIngredient';
+                            confidence = 0.90;
+                          } else if (isSameSubcategory && isSameDosage) {
+                            matchReason = 'same_subcategory_same_dosage';
+                            confidence = 0.88;
+                          } else if (isSameActiveIngredient && isSameDosage) {
+                            matchReason = 'same_active_ingredient_same_dosage';
+                            confidence = 0.85;
+                          } else if (isSameSubcategory) {
+                            matchReason = 'same_subcategory';
+                            confidence = 0.80;
+                          } else if (isSameActiveIngredient) {
+                            matchReason = 'same_active_ingredient_different_dosage';
+                            confidence = 0.75;
+                          } else if (isSameGroupTherapeutic && isSameDosage) {
+                            matchReason = 'same_group_therapeutic_same_dosage';
+                            confidence = 0.75;
+                          } else if (isSameGroupTherapeutic) {
+                            matchReason = 'same_group_therapeutic';
+                            confidence = 0.70;
                           } else {
-                            // Chỉ đề xuất nếu cùng nhóm điều trị
-                            const isSameGroupTherapeutic = targetGroupTherapeutic && medicine.groupTherapeutic && 
-                              (targetGroupTherapeutic.toLowerCase() === medicine.groupTherapeutic.toLowerCase() ||
-                               (targetGroupTherapeutic.toLowerCase().includes('nsaid') && medicine.groupTherapeutic.toLowerCase().includes('nsaid')) ||
-                               (targetGroupTherapeutic.toLowerCase().includes('kháng viêm') && medicine.groupTherapeutic.toLowerCase().includes('kháng viêm')));
-                            
-                            if (isSameGroupTherapeutic) {
-                              if (normalizedInputDosage && normalizedProductDosage && normalizedInputDosage === normalizedProductDosage) {
-                                matchReason = 'same_group_therapeutic';
-                                confidence = 0.80;
-                              } else {
-                                matchReason = 'same_group_therapeutic';
-                                confidence = 0.75;
-                              }
-                            } else {
-                              // Không đề xuất nếu khác nhóm điều trị
-                              console.log(`   ⚠️ Skipping medicine with different groupTherapeutic: ${product.name} (${medicine.groupTherapeutic} vs ${targetGroupTherapeutic})`);
-                              continue;
-                            }
+                            // Không đề xuất nếu khác nhóm điều trị
+                            console.log(`   ⚠️ Skipping medicine with different groupTherapeutic: ${product.name} (${medicine.groupTherapeutic} vs ${targetGroupTherapeutic})`);
+                            continue;
                           }
                           
                           // Lấy indication đầy đủ từ medicine (ưu tiên indication, sau đó description, uses, congDung)

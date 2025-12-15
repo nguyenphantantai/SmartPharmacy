@@ -511,6 +511,12 @@ export default function PrescriptionAnalysisResultPage() {
                                                 <span className="font-medium">Hàm lượng:</span> {suggestion.dosage}
                                               </p>
                                             )}
+                                            {/* Hiển thị nhóm thuốc (groupTherapeutic) nếu có */}
+                                            {suggestion.groupTherapeutic && (
+                                              <p className="text-sm text-gray-600 mb-1">
+                                                <span className="font-medium">Nhóm:</span> {suggestion.groupTherapeutic}
+                                              </p>
+                                            )}
                                             {/* Hiển thị công dụng (indication) rõ ràng nếu có */}
                                             {suggestion.indication && (
                                               <div className="mb-2">
@@ -560,6 +566,11 @@ export default function PrescriptionAnalysisResultPage() {
                                               {suggestion.matchExplanation && (
                                                 <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                                                   💡 {suggestion.matchExplanation}
+                                                </Badge>
+                                              )}
+                                              {suggestion.groupTherapeutic && (
+                                                <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                                                  🏷️ Nhóm: {suggestion.groupTherapeutic}
                                                 </Badge>
                                               )}
                                               {suggestion.indication && (
@@ -660,6 +671,11 @@ export default function PrescriptionAnalysisResultPage() {
                                     <p className="text-sm text-gray-600 mb-1">
                                       <span className="font-medium">Hàm lượng:</span> {item.dosage}
                                   </p>
+                                  )}
+                                  {item.groupTherapeutic && (
+                                    <p className="text-sm text-gray-600 mb-1">
+                                      <span className="font-medium">Nhóm:</span> {item.groupTherapeutic}
+                                    </p>
                                   )}
                                   {item.description && 
                                    // Không hiển thị description nếu nó chỉ là hàm lượng (chỉ chứa số và đơn vị)
