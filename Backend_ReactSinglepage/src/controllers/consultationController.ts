@@ -56,6 +56,23 @@ async function isDosageFormEquivalent(form1: string, form2: string): Promise<boo
   if (!normalized1 || normalized1 === '') return true;
   if (!normalized2 || normalized2 === '') return true;
   
+  // Kiểm tra nếu một chuỗi chứa từ khóa chính của chuỗi kia
+  // Ví dụ: "Gel bôi" chứa "gel", nên match với "Gel"
+  const keyWords1 = normalized1.split(/\s+/).filter(w => w.length > 2);
+  const keyWords2 = normalized2.split(/\s+/).filter(w => w.length > 2);
+  
+  // Nếu một trong hai chuỗi chứa từ khóa chính của chuỗi kia
+  for (const keyword of keyWords1) {
+    if (normalized2.includes(keyword) && keyword.length > 2) {
+      return true;
+    }
+  }
+  for (const keyword of keyWords2) {
+    if (normalized1.includes(keyword) && keyword.length > 2) {
+      return true;
+    }
+  }
+  
   // Ưu tiên: Sử dụng service để tìm từ database
   try {
     const result = await medicineMetadataService.areDosageFormsEquivalent(form1, form2);
@@ -68,26 +85,26 @@ async function isDosageFormEquivalent(form1: string, form2: string): Promise<boo
   const equivalentForms: { [key: string]: string[] } = {
     'tablet': ['viên nén', 'tablet', 'viên', 'viên nén bao phim', 'tablet film-coated'],
     'capsule': ['nang', 'capsule', 'viên nang', 'viên con nhộng'],
-    'gel': ['gel', 'kem gel', 'emulgel'],
-    'cream': ['cream', 'kem', 'kem bôi'],
-    'ointment': ['ointment', 'mỡ', 'thuốc mỡ'],
+    'gel': ['gel', 'kem gel', 'emulgel', 'gel bôi', 'gelboi'],
+    'cream': ['cream', 'kem', 'kem bôi', 'kemboi'],
+    'ointment': ['ointment', 'mỡ', 'thuốc mỡ', 'thuocmo'],
     'solution': ['dung dịch', 'solution'],
     'syrup': ['siro', 'syrup'],
     'injection': ['tiêm', 'injection', 'chích'],
     'tube': ['tuýp', 'tuyp', 'tube']
   };
   
-  // Tìm group chứa form1
-  for (const group of Object.values(equivalentForms)) {
-    if (group.some(f => normalizeMedicineValue(f) === normalized1)) {
-      return group.some(f => normalizeMedicineValue(f) === normalized2);
+  // Tìm group chứa form1 (kiểm tra exact match và partial match)
+  for (const [key, group] of Object.entries(equivalentForms)) {
+    if (group.some(f => normalizeMedicineValue(f) === normalized1) || normalized1.includes(key)) {
+      return group.some(f => normalizeMedicineValue(f) === normalized2) || normalized2.includes(key);
     }
   }
   
   // Tìm group chứa form2 (kiểm tra ngược lại)
-  for (const group of Object.values(equivalentForms)) {
-    if (group.some(f => normalizeMedicineValue(f) === normalized2)) {
-      return group.some(f => normalizeMedicineValue(f) === normalized1);
+  for (const [key, group] of Object.entries(equivalentForms)) {
+    if (group.some(f => normalizeMedicineValue(f) === normalized2) || normalized2.includes(key)) {
+      return group.some(f => normalizeMedicineValue(f) === normalized1) || normalized1.includes(key);
     }
   }
   
@@ -106,6 +123,23 @@ async function isSubcategoryEquivalent(sub1: string, sub2: string): Promise<bool
   if (!normalized1 || normalized1 === 'n/a' || normalized1 === 'na' || normalized1 === '') return true;
   if (!normalized2 || normalized2 === 'n/a' || normalized2 === 'na' || normalized2 === '') return true;
   
+  // Kiểm tra nếu một chuỗi chứa từ khóa của chuỗi kia (linh hoạt hơn)
+  // Ví dụ: "NSAIDs điều trị xương khớp" chứa "nsaid", nên match với "NSAID"
+  const keyWords1 = normalized1.split(/\s+/).filter(w => w.length > 2);
+  const keyWords2 = normalized2.split(/\s+/).filter(w => w.length > 2);
+  
+  // Nếu một trong hai chuỗi chứa các từ khóa quan trọng của chuỗi kia
+  for (const keyword of keyWords1) {
+    if (normalized2.includes(keyword) && keyword.length > 3) {
+      return true;
+    }
+  }
+  for (const keyword of keyWords2) {
+    if (normalized1.includes(keyword) && keyword.length > 3) {
+      return true;
+    }
+  }
+  
   // Ưu tiên: Sử dụng service để tìm từ database
   try {
     const result = await medicineMetadataService.areSubcategoriesEquivalent(sub1, sub2);
@@ -116,22 +150,22 @@ async function isSubcategoryEquivalent(sub1: string, sub2: string): Promise<bool
   
   // Fallback: Mapping các giá trị tương đương (hardcode)
   const equivalentSubs: { [key: string]: string[] } = {
-    'nsaid': ['nsaid', 'kháng viêm', 'anti-inflammatory', 'non-steroidal anti-inflammatory', 'nonsteroidal anti-inflammatory'],
+    'nsaid': ['nsaid', 'nsaids', 'kháng viêm', 'anti-inflammatory', 'non-steroidal anti-inflammatory', 'nonsteroidal anti-inflammatory', 'điều trị xương khớp'],
     'paracetamol': ['paracetamol', 'acetaminophen'],
     'corticosteroid': ['corticosteroid', 'cortico', 'steroid']
   };
   
-  // Tìm group chứa sub1
-  for (const group of Object.values(equivalentSubs)) {
-    if (group.some(s => normalizeMedicineValue(s) === normalized1)) {
-      return group.some(s => normalizeMedicineValue(s) === normalized2);
+  // Tìm group chứa sub1 (kiểm tra nếu sub1 chứa từ khóa của group)
+  for (const [key, group] of Object.entries(equivalentSubs)) {
+    if (group.some(s => normalizeMedicineValue(s) === normalized1) || normalized1.includes(key)) {
+      return group.some(s => normalizeMedicineValue(s) === normalized2) || normalized2.includes(key);
     }
   }
   
-  // Tìm group chứa sub2
-  for (const group of Object.values(equivalentSubs)) {
-    if (group.some(s => normalizeMedicineValue(s) === normalized2)) {
-      return group.some(s => normalizeMedicineValue(s) === normalized1);
+  // Tìm group chứa sub2 (kiểm tra nếu sub2 chứa từ khóa của group)
+  for (const [key, group] of Object.entries(equivalentSubs)) {
+    if (group.some(s => normalizeMedicineValue(s) === normalized2) || normalized2.includes(key)) {
+      return group.some(s => normalizeMedicineValue(s) === normalized1) || normalized1.includes(key);
     }
   }
   
@@ -159,9 +193,55 @@ async function matchesAll4Conditions(
   // Sử dụng service để đọc từ database
   const hasDosageForm = await isDosageFormEquivalent(targetDosageForm, medicine.dosageForm || '');
   
-  // Route: So sánh chính xác (có thể linh hoạt hơn nếu cần)
-  const hasRoute = targetRoute && medicine.route && 
-    normalizeMedicineValue(targetRoute) === normalizeMedicineValue(medicine.route);
+  // Route: So sánh linh hoạt (Bôi ngoài = Dùng ngoài, Uống = Oral, v.v.)
+  const normalizedRoute1 = normalizeMedicineValue(targetRoute);
+  const normalizedRoute2 = normalizeMedicineValue(medicine.route || '');
+  
+  let hasRoute = false;
+  if (normalizedRoute1 && normalizedRoute2) {
+    // Exact match
+    if (normalizedRoute1 === normalizedRoute2) {
+      hasRoute = true;
+    } else {
+      // Kiểm tra partial match (ví dụ: "Bôi ngoài" chứa "ngoài", match với "Dùng ngoài")
+      const keyWords1 = normalizedRoute1.split(/\s+/).filter(w => w.length > 2);
+      const keyWords2 = normalizedRoute2.split(/\s+/).filter(w => w.length > 2);
+      
+      for (const keyword of keyWords1) {
+        if (normalizedRoute2.includes(keyword) && keyword.length > 2) {
+          hasRoute = true;
+          break;
+        }
+      }
+      if (!hasRoute) {
+        for (const keyword of keyWords2) {
+          if (normalizedRoute1.includes(keyword) && keyword.length > 2) {
+            hasRoute = true;
+            break;
+          }
+        }
+      }
+      
+      // Mapping các giá trị tương đương
+      if (!hasRoute) {
+        const equivalentRoutes: { [key: string]: string[] } = {
+          'uống': ['uống', 'oral', 'đường uống', 'duong uong'],
+          'ngoài': ['bôi ngoài', 'dùng ngoài', 'topical', 'boi ngoai', 'dung ngoai', 'ngoài'],
+          'tiêm': ['tiêm', 'injection', 'chích', 'chich'],
+          'nhỏ': ['nhỏ mắt', 'nhỏ mũi', 'eye drops', 'nasal drops']
+        };
+        
+        for (const [key, routes] of Object.entries(equivalentRoutes)) {
+          if (routes.some(r => normalizedRoute1.includes(normalizeMedicineValue(r))) || normalizedRoute1.includes(key)) {
+            if (routes.some(r => normalizedRoute2.includes(normalizeMedicineValue(r))) || normalizedRoute2.includes(key)) {
+              hasRoute = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
   
   return {
     matches: hasCategory && hasSubcategory && hasDosageForm && hasRoute,
@@ -2899,6 +2979,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                       console.log(`✅ All 4 target conditions available - will only suggest medicines matching ALL 4 conditions`);
                     }
                     
+                    // BƯỚC 1: Lọc từ medicinesWithSameIndication
                     for (const m of medicinesWithSameIndication) {
                       // CHỈ lấy thuốc có CẢ 4 điều kiện khớp (sử dụng hàm helper để so sánh linh hoạt)
                       const matchResult = await matchesAll4Conditions(m, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
@@ -2906,6 +2987,36 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                       // CHỈ thêm vào nếu có CẢ 4 điều kiện
                       if (matchResult.matches) {
                         medicinesWithAll4Conditions.push(m);
+                        console.log(`   ✅ Added medicine matching all 4 conditions: ${m.name || m.productName}`);
+                      } else {
+                        console.log(`   ⚠️ Medicine does not match all 4 conditions: ${m.name || m.productName}`);
+                        console.log(`      Category: ${matchResult.details.category ? '✅' : '❌'} (${m.category || 'N/A'} vs ${targetCategory})`);
+                        console.log(`      Subcategory: ${matchResult.details.subcategory ? '✅' : '❌'} (${m.subcategory || 'N/A'} vs ${targetSubcategory})`);
+                        console.log(`      DosageForm: ${matchResult.details.dosageForm ? '✅' : '❌'} (${m.dosageForm || 'N/A'} vs ${targetDosageForm})`);
+                        console.log(`      Route: ${matchResult.details.route ? '✅' : '❌'} (${m.route || 'N/A'} vs ${targetRoute})`);
+                      }
+                    }
+                    
+                    // BƯỚC 2: Kiểm tra các thuốc trong medicinesWithSameActiveIngredient (như Voltaren Emulgel)
+                    // Các thuốc này có thể không có trong medicinesWithSameIndication nhưng vẫn phù hợp
+                    for (const ai of medicinesWithSameActiveIngredient) {
+                      // Kiểm tra xem đã có trong medicinesWithAll4Conditions chưa
+                      const alreadyIncluded = medicinesWithAll4Conditions.some(m => String(m._id) === String(ai._id));
+                      
+                      if (!alreadyIncluded) {
+                        // Kiểm tra 4 điều kiện
+                        const matchResult = await matchesAll4Conditions(ai, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
+                        
+                        if (matchResult.matches) {
+                          medicinesWithAll4Conditions.push(ai);
+                          console.log(`   ✅ Added medicine from same activeIngredient matching all 4 conditions: ${ai.name || ai.productName}`);
+                        } else {
+                          console.log(`   ⚠️ Medicine from same activeIngredient does not match all 4 conditions: ${ai.name || ai.productName}`);
+                          console.log(`      Category: ${matchResult.details.category ? '✅' : '❌'} (${ai.category || 'N/A'} vs ${targetCategory})`);
+                          console.log(`      Subcategory: ${matchResult.details.subcategory ? '✅' : '❌'} (${ai.subcategory || 'N/A'} vs ${targetSubcategory})`);
+                          console.log(`      DosageForm: ${matchResult.details.dosageForm ? '✅' : '❌'} (${ai.dosageForm || 'N/A'} vs ${targetDosageForm})`);
+                          console.log(`      Route: ${matchResult.details.route ? '✅' : '❌'} (${ai.route || 'N/A'} vs ${targetRoute})`);
+                        }
                       }
                     }
                     
