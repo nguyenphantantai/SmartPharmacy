@@ -4018,10 +4018,10 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             inStock: product.inStock !== undefined ? product.inStock : (Number(product.stockQuantity || 0) > 0),
             stockQuantity: Number(product.stockQuantity || 0),
             requiresPrescription: product.isPrescription || false,
-          imageUrl: imageUrl,
-          description: description,
-          brand: product.brand || '',
-          dosage: parseMedicineName(product.name || '').dosage
+            imageUrl: imageUrl,
+            description: description,
+            brand: product.brand || '',
+            dosage: parseMedicineName(product.name || '').dosage
           });
         }
       }
