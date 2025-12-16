@@ -2319,21 +2319,38 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                                         (targetMedicine.activeIngredient || '').toLowerCase().includes(searchTermLower);
                   
                   if (isCorrectMatch) {
-                    targetGroupTherapeutic = targetMedicine.groupTherapeutic || '';
-                    targetIndication = targetMedicine.indication || targetMedicine.description || targetMedicine.uses || targetMedicine.congDung || '';
-                    targetActiveIngredient = targetMedicine.activeIngredient || '';
-                    targetSubcategory = targetMedicine.subcategory || '';
-                    targetCategory = targetMedicine.category || '';
-                    targetDosageForm = targetMedicine.dosageForm || '';
-                    targetRoute = targetMedicine.route || '';
+                    // CHỈ dùng dữ liệu từ medicines collection nếu AI chưa có hoặc không đầy đủ
+                    // ƯU TIÊN: Dữ liệu từ AI analysis (đã được set ở trên)
+                    if (!targetGroupTherapeutic) {
+                      targetGroupTherapeutic = targetMedicine.groupTherapeutic || '';
+                    }
+                    if (!targetIndication) {
+                      targetIndication = targetMedicine.indication || targetMedicine.description || targetMedicine.uses || targetMedicine.congDung || '';
+                    }
+                    if (!targetActiveIngredient) {
+                      targetActiveIngredient = targetMedicine.activeIngredient || '';
+                    }
+                    // CHỈ ghi đè subcategory, category, dosageForm, route nếu AI chưa có
+                    if (!targetSubcategory && targetMedicine.subcategory) {
+                      targetSubcategory = targetMedicine.subcategory;
+                    }
+                    if (!targetCategory && targetMedicine.category) {
+                      targetCategory = targetMedicine.category;
+                    }
+                    if (!targetDosageForm && targetMedicine.dosageForm) {
+                      targetDosageForm = targetMedicine.dosageForm;
+                    }
+                    if (!targetRoute && targetMedicine.route) {
+                      targetRoute = targetMedicine.route;
+                    }
                     console.log(`🔍 Found target medicine in medicines collection: ${targetMedicine.name}`);
                     console.log(`   Indication: ${targetIndication}`);
                     console.log(`   GroupTherapeutic: ${targetGroupTherapeutic}`);
                     console.log(`   ActiveIngredient: ${targetActiveIngredient}`);
-                    console.log(`   Subcategory: ${targetSubcategory || 'N/A'}`);
-                    console.log(`   Category: ${targetCategory || 'N/A'}`);
-                    console.log(`   DosageForm: ${targetDosageForm || 'N/A'}`);
-                    console.log(`   Route: ${targetRoute || 'N/A'}`);
+                    console.log(`   Subcategory: ${targetSubcategory || 'N/A'} ${aiAnalysis?.subcategory ? '(from AI)' : '(from DB)'}`);
+                    console.log(`   Category: ${targetCategory || 'N/A'} ${aiAnalysis?.category ? '(from AI)' : '(from DB)'}`);
+                    console.log(`   DosageForm: ${targetDosageForm || 'N/A'} ${aiAnalysis?.dosageForm ? '(from AI)' : '(from DB)'}`);
+                    console.log(`   Route: ${targetRoute || 'N/A'} ${aiAnalysis?.route ? '(from AI)' : '(from DB)'}`);
                     break;
                   } else {
                     // Match sai - bỏ qua và tiếp tục tìm
@@ -2351,43 +2368,61 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             const isTopicalOriginal = /%\/\s*g|\bgel\b|\bemulgel\b|\bcream\b|\bkem\b|\bthuốc\s*bôi\b|\bthuoc\s*boi\b|\btuýp\b|\btuyp\b|\bointment\b|\bmỡ\b|\bmo\b/i
               .test(originalTextLower);
             
-            // Parse route từ đơn thuốc nếu chưa có từ targetMedicine
-            if (!targetRoute) {
+            // Parse route từ đơn thuốc nếu chưa có từ AI hoặc targetMedicine
+            // CHỈ parse nếu AI chưa có (ưu tiên AI)
+            if (!targetRoute || !aiAnalysis?.route) {
               // Tìm trong medicineText hoặc cleanedText (bao gồm cả phần cách dùng nếu có)
               const fullText = ((medicineText || '') + ' ' + (cleanedText || '')).toLowerCase();
               
               // Kiểm tra "Dùng ngoài" hoặc các từ khóa topical (ưu tiên)
               if (/dùng\s+ngoài|dung\s+ngoai|topical/i.test(fullText) || isTopicalOriginal) {
-                targetRoute = 'Dùng ngoài';
-                console.log(`   🔍 Detected route from prescription text: "Dùng ngoài"`);
+                if (!targetRoute) {
+                  targetRoute = 'Dùng ngoài';
+                  console.log(`   🔍 Detected route from prescription text: "Dùng ngoài"`);
+                }
               } 
               // Kiểm tra "Uống" hoặc các từ khóa oral
               else if (/uống|uong|oral/i.test(fullText)) {
-                targetRoute = 'Uống';
-                console.log(`   🔍 Detected route from prescription text: "Uống"`);
+                if (!targetRoute) {
+                  targetRoute = 'Uống';
+                  console.log(`   🔍 Detected route from prescription text: "Uống"`);
+                }
               }
             }
             
-            // Parse dosageForm từ đơn thuốc nếu chưa có từ targetMedicine
-            if (!targetDosageForm) {
+            // Parse dosageForm từ đơn thuốc nếu chưa có từ AI hoặc targetMedicine
+            // CHỈ parse nếu AI chưa có (ưu tiên AI)
+            if (!targetDosageForm || !aiAnalysis?.dosageForm) {
               const fullText = (medicineText || cleanedText || '').toLowerCase();
               
               // Kiểm tra các dạng bào chế (ưu tiên các pattern rõ ràng)
               if (/gel|emulgel/i.test(fullText)) {
-                targetDosageForm = 'Gel';
+                if (!targetDosageForm) {
+                  targetDosageForm = 'Gel';
+                }
               } else if (/cream|kem/i.test(fullText)) {
-                targetDosageForm = 'Cream';
+                if (!targetDosageForm) {
+                  targetDosageForm = 'Cream';
+                }
               } else if (/ointment|mỡ|mo/i.test(fullText)) {
-                targetDosageForm = 'Ointment';
+                if (!targetDosageForm) {
+                  targetDosageForm = 'Ointment';
+                }
               } else if (/viên|vien|tablet/i.test(fullText)) {
-                targetDosageForm = 'Tablet';
+                if (!targetDosageForm) {
+                  targetDosageForm = 'Tablet';
+                }
               } else if (/capsule|nang/i.test(fullText)) {
-                targetDosageForm = 'Capsule';
+                if (!targetDosageForm) {
+                  targetDosageForm = 'Capsule';
+                }
               } else if (/tuýp|tuyp|tube/i.test(fullText)) {
-                targetDosageForm = 'Tube';
+                if (!targetDosageForm) {
+                  targetDosageForm = 'Tube';
+                }
               }
               
-              if (targetDosageForm) {
+              if (targetDosageForm && !aiAnalysis?.dosageForm) {
                 console.log(`   🔍 Detected dosageForm from prescription text: "${targetDosageForm}"`);
               }
             }
