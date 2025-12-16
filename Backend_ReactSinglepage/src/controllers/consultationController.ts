@@ -2155,6 +2155,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
         let matchedSearchTerm: string | null = null;
         // Keep similarMedicines scoped for this medicine across all fallback strategies
         let similarMedicines: any[] = [];
+        // Initialize aiAnalysis to avoid undefined errors
+        let aiAnalysis: { category: string; subcategory: string; dosageForm: string; route: string; analysisText: string } | null = null;
         
         for (const searchTerm of uniqueSearchTerms) {
           console.log(`🔍 [${uniqueSearchTerms.indexOf(searchTerm) + 1}/${uniqueSearchTerms.length}] Searching for exact match: "${searchTerm}"`);
@@ -2224,7 +2226,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
           
           // BƯỚC 1: Sử dụng AI để phân tích tên thuốc và tìm ra 4 điều kiện
           console.log(`🤖 Using AI to analyze medicine: "${medicineNameOnly}"`);
-          const aiAnalysis = await analyzeMedicineWithAI(medicineNameOnly, extractedDosage || null);
+          aiAnalysis = await analyzeMedicineWithAI(medicineNameOnly, extractedDosage || null);
           console.log(`🤖 AI Analysis Result:`, aiAnalysis);
           
           // Reset similarMedicines before running fallback strategies
@@ -3388,7 +3390,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                   originalText: cleanOcrText(medicineNameOnly),
                   originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
                   suggestions: [],
-                  aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
+                  aiAnalysis: aiAnalysis || null // Lưu kết quả AI analysis
                 });
               }
             } else {
@@ -3527,7 +3529,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
               originalText: cleanOcrText(medicineNameOnly), // Only medicine name, not usage instructions (cleaned)
               originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
               suggestions,
-              aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
+              aiAnalysis: aiAnalysis || null // Lưu kết quả AI analysis
             });
           } else {
               console.log(`ℹ️ Medicine already in notFoundMedicines, skipping: "${medicineNameOnly}"`);
@@ -3780,7 +3782,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 originalText: cleanOcrText(medicineNameOnly), // Cleaned OCR text
               originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
                 suggestions,
-                aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
+                aiAnalysis: aiAnalysis || null // Lưu kết quả AI analysis
               });
               
               console.log(`✅ Added ${suggestions.length} fallback suggestions`);
@@ -3800,7 +3802,7 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 originalText: cleanOcrText(medicineNameOnly), // Cleaned OCR text
                 originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
                 suggestions: [],
-                aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
+                aiAnalysis: aiAnalysis || null // Lưu kết quả AI analysis
               });
             } else {
               console.log(`ℹ️ Medicine already in notFoundMedicines, skipping empty: "${medicineNameOnly}"`);
