@@ -3034,12 +3034,29 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     );
                     const filteredActiveIngredientMedicines = medicinesWithSameActiveIngredientAnd4Conditions.filter(m => m !== null) as any[];
                     
+                    // Lấy tất cả medicines từ medicinesWithAll4Conditions, đảm bảo không bỏ sót
+                    // Bao gồm cả những cái từ medicinesWithSameActiveIngredient nhưng không có trong medicinesWithSameIndication
+                    const allMedicinesFrom4Conditions = medicinesWithAll4Conditions.filter(m => 
+                      !filteredActiveIngredientMedicines.some(fm => String(fm._id) === String(m._id))
+                    );
+                    
                     const allMedicinesToCheck = [
-                      ...filteredActiveIngredientMedicines, // Ưu tiên 1: cùng hoạt chất VÀ có CẢ 4 điều kiện
-                      ...medicinesWithAll4Conditions.filter(m => 
-                        !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id))
-                      ) // Ưu tiên 2: có cả 4 điều kiện (không trùng với cùng hoạt chất)
+                      ...filteredActiveIngredientMedicines, // Ưu tiên 1: cùng hoạt chất VÀ có CẢ 4 điều kiện (có trong medicinesWithSameIndication)
+                      ...allMedicinesFrom4Conditions // Ưu tiên 2: có cả 4 điều kiện (bao gồm cả những cái chỉ có trong medicinesWithSameActiveIngredient)
                     ];
+                    
+                    console.log(`📋 allMedicinesToCheck: ${allMedicinesToCheck.length} medicines`);
+                    console.log(`   - filteredActiveIngredientMedicines: ${filteredActiveIngredientMedicines.length}`);
+                    console.log(`   - allMedicinesFrom4Conditions: ${allMedicinesFrom4Conditions.length}`);
+                    if (allMedicinesToCheck.length > 0) {
+                      console.log(`   Medicines in allMedicinesToCheck:`, allMedicinesToCheck.map(m => m.name || m.productName || 'Unknown'));
+                    } else {
+                      console.log(`   ⚠️ allMedicinesToCheck is empty - this should not happen if medicinesWithAll4Conditions has items`);
+                      console.log(`   medicinesWithAll4Conditions: ${medicinesWithAll4Conditions.length} items`);
+                      if (medicinesWithAll4Conditions.length > 0) {
+                        console.log(`   Items in medicinesWithAll4Conditions:`, medicinesWithAll4Conditions.map(m => m.name || m.productName || 'Unknown'));
+                      }
+                    }
                     
                     // Lọc và ưu tiên thuốc cùng hàm lượng
                     const normalizedInputDosage = extractedDosage ? normalizeDosageForComparison(extractedDosage) : null;
@@ -3134,7 +3151,10 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     }
                     
                     // Tìm products tương ứng và phân loại theo hàm lượng
+                    console.log(`📋 Processing ${allMedicinesToCheck.length} medicines from allMedicinesToCheck`);
                     for (const medicine of allMedicinesToCheck) {
+                      console.log(`   🔍 Processing medicine: ${medicine.name || medicine.productName || 'Unknown'}`);
+                      
                       // Tìm product theo nhiều cách: name, description, hoặc brand
                       const medicineNameForSearch = medicine.name?.split('(')[0].trim() || medicine.name || '';
                       const product = await Product.findOne({
@@ -3146,6 +3166,12 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                           ...(medicine.brand ? [{ name: { $regex: medicine.brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }] : [])
                         ]
                       });
+                      
+                      if (product) {
+                        console.log(`   ✅ Found product for ${medicine.name}: ${product.name}`);
+                      } else {
+                        console.log(`   ⚠️ No product found for ${medicine.name}, will create from medicine data`);
+                      }
                       
                       if (product) {
                         // Kiểm tra xem thuốc này đã có trong đơn (foundMedicines) chưa
