@@ -2220,6 +2220,85 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             // Xác định dạng dùng ban đầu của thuốc trong đơn (ví dụ: "1%/20g", "gel", "emulgel", "tuýp", "kem bôi", "mỡ")
             const isTopicalOriginal = /%\/\s*g|\bgel\b|\bemulgel\b|\bcream\b|\bkem\b|\bthuốc\s*bôi\b|\bthuoc\s*boi\b|\btuýp\b|\btuyp\b|\bointment\b|\bmỡ\b|\bmo\b/i
               .test(originalTextLower);
+            
+            // Parse route từ đơn thuốc nếu chưa có từ targetMedicine
+            if (!targetRoute) {
+              // Tìm trong medicineText hoặc cleanedText (bao gồm cả phần cách dùng nếu có)
+              const fullText = ((medicineText || '') + ' ' + (cleanedText || '')).toLowerCase();
+              
+              // Kiểm tra "Dùng ngoài" hoặc các từ khóa topical (ưu tiên)
+              if (/dùng\s+ngoài|dung\s+ngoai|topical/i.test(fullText)) {
+                // Thử tìm trong database để xem giá trị thực tế là gì
+                const db = mongoose.connection.db;
+                if (db) {
+                  const medicinesCollection = db.collection('medicines');
+                  const sampleTopical = await medicinesCollection.findOne({ 
+                    route: { $regex: /dùng\s+ngoài|topical/i } 
+                  });
+                  if (sampleTopical && sampleTopical.route) {
+                    targetRoute = sampleTopical.route;
+                    console.log(`   🔍 Detected route from prescription text: "${targetRoute}" (from DB sample)`);
+                  } else {
+                    // Fallback: thử cả hai cách
+                    targetRoute = 'Dùng ngoài'; // Thử tiếng Việt trước
+                    console.log(`   🔍 Detected route from prescription text: "Dùng ngoài" (fallback)`);
+                  }
+                } else {
+                  targetRoute = 'Dùng ngoài';
+                  console.log(`   🔍 Detected route from prescription text: "Dùng ngoài" (fallback)`);
+                }
+              } 
+              // Kiểm tra "Uống" hoặc các từ khóa oral
+              else if (/uống|uong|oral/i.test(fullText)) {
+                // Thử tìm trong database để xem giá trị thực tế là gì
+                const db = mongoose.connection.db;
+                if (db) {
+                  const medicinesCollection = db.collection('medicines');
+                  const sampleOral = await medicinesCollection.findOne({ 
+                    route: { $regex: /uống|oral/i } 
+                  });
+                  if (sampleOral && sampleOral.route) {
+                    targetRoute = sampleOral.route;
+                    console.log(`   🔍 Detected route from prescription text: "${targetRoute}" (from DB sample)`);
+                  } else {
+                    targetRoute = 'Uống'; // Thử tiếng Việt trước
+                    console.log(`   🔍 Detected route from prescription text: "Uống" (fallback)`);
+                  }
+                } else {
+                  targetRoute = 'Uống';
+                  console.log(`   🔍 Detected route from prescription text: "Uống" (fallback)`);
+                }
+              }
+              // Nếu có isTopicalOriginal thì là topical
+              else if (isTopicalOriginal) {
+                targetRoute = 'Dùng ngoài';
+                console.log(`   🔍 Detected route from medicine name pattern: "Dùng ngoài"`);
+              }
+            }
+            
+            // Parse dosageForm từ đơn thuốc nếu chưa có từ targetMedicine
+            if (!targetDosageForm) {
+              const fullText = (medicineText || cleanedText || '').toLowerCase();
+              
+              // Kiểm tra các dạng bào chế (ưu tiên các pattern rõ ràng)
+              if (/gel|emulgel/i.test(fullText)) {
+                targetDosageForm = 'Gel';
+              } else if (/cream|kem/i.test(fullText)) {
+                targetDosageForm = 'Cream';
+              } else if (/ointment|mỡ|mo/i.test(fullText)) {
+                targetDosageForm = 'Ointment';
+              } else if (/viên|vien|tablet/i.test(fullText)) {
+                targetDosageForm = 'Tablet';
+              } else if (/capsule|nang/i.test(fullText)) {
+                targetDosageForm = 'Capsule';
+              } else if (/tuýp|tuyp|tube/i.test(fullText)) {
+                targetDosageForm = 'Tube';
+              }
+              
+              if (targetDosageForm) {
+                console.log(`   🔍 Detected dosageForm from prescription text: "${targetDosageForm}"`);
+              }
+            }
 
             // LUÔN chạy hardcoded mapping để đảm bảo targetGroupTherapeutic được set đúng
             // Điều này quan trọng để tìm được các thuốc tương tự như Etoricoxib cho Celecoxib
@@ -2528,88 +2607,50 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     }
                     
                     // Lọc thuốc dựa trên 4 điều kiện: category, subcategory, dosageForm, route
-                    // Ưu tiên: thuốc có CẢ 4 điều kiện > có 3 điều kiện > có 2 điều kiện > có 1 điều kiện
+                    // QUAN TRỌNG: CHỈ đề xuất thuốc có CẢ 4 điều kiện (bắt buộc)
                     const medicinesWithAll4Conditions: any[] = [];
-                    const medicinesWith3Conditions: any[] = [];
-                    const medicinesWith2Conditions: any[] = [];
-                    const medicinesWith1Condition: any[] = [];
-                    const medicinesWithGroupTherapeutic: any[] = [];
+                    
+                    // Kiểm tra xem có đủ 4 điều kiện để tìm kiếm không
+                    const hasAll4TargetConditions = targetCategory && targetSubcategory && targetDosageForm && targetRoute;
+                    
+                    if (!hasAll4TargetConditions) {
+                      console.log(`⚠️  Missing target conditions - Category: ${targetCategory || 'N/A'}, Subcategory: ${targetSubcategory || 'N/A'}, DosageForm: ${targetDosageForm || 'N/A'}, Route: ${targetRoute || 'N/A'}`);
+                      console.log(`   ⚠️  Cannot suggest medicines - need ALL 4 conditions: category, subcategory, dosageForm, route`);
+                    } else {
+                      console.log(`✅ All 4 target conditions available - will only suggest medicines matching ALL 4 conditions`);
+                    }
                     
                     for (const m of medicinesWithSameIndication) {
-                      // Đếm số điều kiện khớp
-                      let matchCount = 0;
+                      // CHỈ lấy thuốc có CẢ 4 điều kiện khớp
                       const hasCategory = targetCategory && m.category && targetCategory.toLowerCase() === m.category.toLowerCase();
                       const hasSubcategory = targetSubcategory && m.subcategory && targetSubcategory.toLowerCase() === m.subcategory.toLowerCase();
                       const hasDosageForm = targetDosageForm && m.dosageForm && targetDosageForm.toLowerCase() === m.dosageForm.toLowerCase();
                       const hasRoute = targetRoute && m.route && targetRoute.toLowerCase() === m.route.toLowerCase();
                       
-                      if (hasCategory) matchCount++;
-                      if (hasSubcategory) matchCount++;
-                      if (hasDosageForm) matchCount++;
-                      if (hasRoute) matchCount;
-                      
-                      // Phân loại theo số điều kiện khớp
-                      if (matchCount === 4) {
+                      // CHỈ thêm vào nếu có CẢ 4 điều kiện
+                      if (hasCategory && hasSubcategory && hasDosageForm && hasRoute) {
                         medicinesWithAll4Conditions.push(m);
-                      } else if (matchCount === 3) {
-                        medicinesWith3Conditions.push(m);
-                      } else if (matchCount === 2) {
-                        medicinesWith2Conditions.push(m);
-                      } else if (matchCount === 1) {
-                        medicinesWith1Condition.push(m);
-                      } else {
-                        // Nếu không có điều kiện nào khớp, kiểm tra groupTherapeutic (fallback)
-                      if (targetGroupTherapeutic && m.groupTherapeutic) {
-                        const targetGroupLower = targetGroupTherapeutic.toLowerCase();
-                        const medicineGroupLower = m.groupTherapeutic.toLowerCase();
-                          if (targetGroupLower === medicineGroupLower || 
-                               (targetGroupLower.includes('nsaid') && medicineGroupLower.includes('nsaid')) ||
-                              (targetGroupLower.includes('kháng viêm') && medicineGroupLower.includes('kháng viêm'))) {
-                            medicinesWithGroupTherapeutic.push(m);
-                      }
-                        }
                       }
                     }
                     
-                    console.log(`📊 Filtered medicines by conditions: All4=${medicinesWithAll4Conditions.length}, 3=${medicinesWith3Conditions.length}, 2=${medicinesWith2Conditions.length}, 1=${medicinesWith1Condition.length}, GroupTherapeutic=${medicinesWithGroupTherapeutic.length}`);
+                    console.log(`📊 Filtered medicines by ALL 4 conditions: ${medicinesWithAll4Conditions.length} medicines found`);
                     
-                    // Kết hợp: ưu tiên thuốc cùng hoạt chất trước, sau đó mới đến các điều kiện khác
+                    // CHỈ đề xuất thuốc có CẢ 4 điều kiện
                     const allMedicinesToCheck = [
                       ...medicinesWithSameActiveIngredient.filter(ai => {
-                        // Kiểm tra xem thuốc này có thỏa mãn ít nhất 1 trong 4 điều kiện không
+                        // Kiểm tra xem thuốc này có CẢ 4 điều kiện không
                         const m = medicinesWithSameIndication.find(med => String(med._id) === String(ai._id));
                         if (!m) return false;
                         const hasCategory = targetCategory && m.category && targetCategory.toLowerCase() === m.category.toLowerCase();
                         const hasSubcategory = targetSubcategory && m.subcategory && targetSubcategory.toLowerCase() === m.subcategory.toLowerCase();
                         const hasDosageForm = targetDosageForm && m.dosageForm && targetDosageForm.toLowerCase() === m.dosageForm.toLowerCase();
                         const hasRoute = targetRoute && m.route && targetRoute.toLowerCase() === m.route.toLowerCase();
-                        return hasCategory || hasSubcategory || hasDosageForm || hasRoute;
-                      }), // Ưu tiên 1: cùng hoạt chất VÀ có ít nhất 1 trong 4 điều kiện
+                        // CHỈ trả về true nếu có CẢ 4 điều kiện
+                        return hasCategory && hasSubcategory && hasDosageForm && hasRoute;
+                      }), // Ưu tiên 1: cùng hoạt chất VÀ có CẢ 4 điều kiện
                       ...medicinesWithAll4Conditions.filter(m => 
                         !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id))
-                      ), // Ưu tiên 2: có cả 4 điều kiện
-                      ...medicinesWith3Conditions.filter(m => 
-                        !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id)) &&
-                        !medicinesWithAll4Conditions.some(m4 => String(m4._id) === String(m._id))
-                      ), // Ưu tiên 3: có 3 điều kiện
-                      ...medicinesWith2Conditions.filter(m => 
-                        !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id)) &&
-                        !medicinesWithAll4Conditions.some(m4 => String(m4._id) === String(m._id)) &&
-                        !medicinesWith3Conditions.some(m3 => String(m3._id) === String(m._id))
-                      ), // Ưu tiên 4: có 2 điều kiện
-                      ...medicinesWith1Condition.filter(m => 
-                        !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id)) &&
-                        !medicinesWithAll4Conditions.some(m4 => String(m4._id) === String(m._id)) &&
-                        !medicinesWith3Conditions.some(m3 => String(m3._id) === String(m._id)) &&
-                        !medicinesWith2Conditions.some(m2 => String(m2._id) === String(m._id))
-                      ), // Ưu tiên 5: có 1 điều kiện
-                      ...medicinesWithGroupTherapeutic.filter(m => 
-                        !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id)) &&
-                        !medicinesWithAll4Conditions.some(m4 => String(m4._id) === String(m._id)) &&
-                        !medicinesWith3Conditions.some(m3 => String(m3._id) === String(m._id)) &&
-                        !medicinesWith2Conditions.some(m2 => String(m2._id) === String(m._id)) &&
-                        !medicinesWith1Condition.some(m1 => String(m1._id) === String(m._id))
-                      ) // Ưu tiên 6: cùng nhóm điều trị (fallback)
+                      ) // Ưu tiên 2: có cả 4 điều kiện (không trùng với cùng hoạt chất)
                     ];
                     
                     // Lọc và ưu tiên thuốc cùng hàm lượng
