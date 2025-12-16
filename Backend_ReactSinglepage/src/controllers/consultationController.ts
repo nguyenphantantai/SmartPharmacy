@@ -3804,7 +3804,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 groupTherapeutic = med.groupTherapeutic;
               }
               
-              // Lấy từ med object trước (đã có từ similarMedicines)
+              // Lấy từ med object trước (đã có từ similarMedicines) - ƯU TIÊN CAO NHẤT
+              // QUAN TRỌNG: Đảm bảo tất cả 4 trường đều được lấy để hiển thị cho khách hàng
               if (med.category) {
                 category = med.category;
               }
@@ -3818,17 +3819,37 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 route = med.route;
               }
               
+              // Log để debug nếu thiếu bất kỳ trường nào
+              if (!category || !subcategory || !dosageForm || !route) {
+                console.log(`   ⚠️ Missing fields for ${med.name}: category=${category || 'N/A'}, subcategory=${subcategory || 'N/A'}, dosageForm=${dosageForm || 'N/A'}, route=${route || 'N/A'}`);
+              }
+              
               // Try to get from medicines collection if not found
                 const db = mongoose.connection.db;
                 if (db) {
                   const medicinesCollection = db.collection('medicines');
+                  const searchName = med.name?.split('(')[0].trim() || '';
+                  // Tìm kiếm linh hoạt hơn: tìm theo name, brand, genericName, hoặc activeIngredient
                   medicineInfo = await medicinesCollection.findOne({
                     $or: [
-                      { name: { $regex: med.name?.split('(')[0].trim() || '', $options: 'i' } },
-                      { brand: { $regex: med.name?.split('(')[0].trim() || '', $options: 'i' } },
-                      { genericName: { $regex: med.name?.split('(')[0].trim() || '', $options: 'i' } }
+                      { name: { $regex: searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+                      { brand: { $regex: searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+                      { genericName: { $regex: searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+                      { activeIngredient: { $regex: searchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
                     ]
                   });
+                  
+                  // Nếu không tìm được, thử tìm với các từ khóa chính (ví dụ: "Voltaren" từ "Voltaren Emulgel")
+                  if (!medicineInfo && searchName) {
+                    const keywords = searchName.split(/\s+/).filter((k: string) => k.length > 3);
+                    if (keywords.length > 0) {
+                      medicineInfo = await medicinesCollection.findOne({
+                        $or: keywords.map((kw: string) => ({
+                          name: { $regex: kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' }
+                        }))
+                      });
+                    }
+                  }
                 if (medicineInfo) {
                   if (medicineInfo.indication && !indication) {
                     indication = medicineInfo.indication;
@@ -3836,11 +3857,16 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                   if (medicineInfo.groupTherapeutic && !groupTherapeutic) {
                     groupTherapeutic = medicineInfo.groupTherapeutic;
                   }
-                  // Lấy category, subcategory, dosageForm, route từ medicines collection
+                  // Lấy category, subcategory, dosageForm, route từ medicines collection (chỉ khi chưa có từ med object)
+                  // QUAN TRỌNG: Đảm bảo tất cả 4 trường đều được lấy để hiển thị cho khách hàng
                   if (medicineInfo.category && !category) {
                     category = medicineInfo.category;
                   }
+                  // QUAN TRỌNG: Lấy subcategory từ medicineInfo nếu chưa có từ med object
                   if (medicineInfo.subcategory && !subcategory) {
+                    subcategory = medicineInfo.subcategory;
+                  } else if (!subcategory && medicineInfo.subcategory) {
+                    // Fallback: nếu subcategory rỗng, lấy từ medicineInfo
                     subcategory = medicineInfo.subcategory;
                   }
                   if (medicineInfo.dosageForm && !dosageForm) {
@@ -3848,6 +3874,15 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                   }
                   if (medicineInfo.route && !route) {
                     route = medicineInfo.route;
+                  }
+                  
+                  // Log để debug nếu vẫn thiếu sau khi lấy từ medicineInfo
+                  if (medicineInfo && (!category || !subcategory || !dosageForm || !route)) {
+                    console.log(`   ⚠️ Still missing fields after medicineInfo lookup for ${med.name}:`);
+                    console.log(`      medicineInfo.category: ${medicineInfo.category || 'N/A'}`);
+                    console.log(`      medicineInfo.subcategory: ${medicineInfo.subcategory || 'N/A'}`);
+                    console.log(`      medicineInfo.dosageForm: ${medicineInfo.dosageForm || 'N/A'}`);
+                    console.log(`      medicineInfo.route: ${medicineInfo.route || 'N/A'}`);
                   }
                   // Lấy chống chỉ định từ medicines collection
                   if (!contraindication) {
@@ -3866,6 +3901,34 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 contraindication = await getContraindicationFromMedicines(medicineName, finalGroupTherapeutic, medicineInfo);
               }
 
+              // QUAN TRỌNG: Đảm bảo tất cả 4 trường đều có giá trị (với fallback từ AI analysis nếu cần)
+              // Điều này giúp khách hàng nhận diện được thuốc tương tự với thuốc trong đơn
+              if (!category && aiAnalysis?.category) {
+                category = aiAnalysis.category;
+                console.log(`   ℹ️ Using AI category as fallback: ${category}`);
+              }
+              if (!subcategory && aiAnalysis?.subcategory) {
+                subcategory = aiAnalysis.subcategory;
+                console.log(`   ℹ️ Using AI subcategory as fallback: ${subcategory}`);
+              }
+              if (!dosageForm && aiAnalysis?.dosageForm) {
+                dosageForm = aiAnalysis.dosageForm;
+                console.log(`   ℹ️ Using AI dosageForm as fallback: ${dosageForm}`);
+              }
+              if (!route && aiAnalysis?.route) {
+                route = aiAnalysis.route;
+                console.log(`   ℹ️ Using AI route as fallback: ${route}`);
+              }
+              
+              // Log cảnh báo nếu vẫn thiếu bất kỳ trường nào (sau tất cả fallback)
+              if (!category || !subcategory || !dosageForm || !route) {
+                console.log(`   ⚠️ WARNING: Missing fields for ${med.name || medicineNameOnly} after all fallbacks:`);
+                console.log(`      category: ${category || 'MISSING'}`);
+                console.log(`      subcategory: ${subcategory || 'MISSING'}`);
+                console.log(`      dosageForm: ${dosageForm || 'MISSING'}`);
+                console.log(`      route: ${route || 'MISSING'}`);
+              }
+              
               return {
                 productId: med._id ? String(med._id) : (med.id ? String(med.id) : 'unknown'),
                 productName: med.name || medicineNameOnly,
@@ -3883,10 +3946,10 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 dosage: parseMedicineName(med.name || '').dosage,
                 indication: indication, // Thêm indication để giải thích tại sao đề xuất
                 groupTherapeutic: groupTherapeutic, // Thêm groupTherapeutic để giải thích nhóm thuốc
-                category: category, // Thêm category (danh mục)
-                subcategory: subcategory, // Thêm subcategory (nhóm thuốc)
-                dosageForm: dosageForm, // Thêm dosageForm (dạng bào chế)
-                route: route, // Thêm route (cách dùng)
+                category: category || '', // Thêm category (danh mục) - BẮT BUỘC phải có
+                subcategory: subcategory || medicineInfo?.subcategory || '', // Thêm subcategory (nhóm thuốc) - BẮT BUỘC phải có
+                dosageForm: dosageForm || '', // Thêm dosageForm (dạng bào chế) - BẮT BUỘC phải có
+                route: route || '', // Thêm route (cách dùng) - BẮT BUỘC phải có
                 contraindication: contraindication, // Thêm chống chỉ định
                 matchExplanation: getMatchExplanation(med.matchReason || 'similar', med.confidence || 0.6) // Giải thích tại sao đề xuất
               };
