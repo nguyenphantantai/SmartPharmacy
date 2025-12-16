@@ -195,10 +195,93 @@ async function getContraindicationFromMedicines(
 // Helper function to format professional suggestion text for "Thuốc đề xuất"
 // Format: rõ ràng, chuẩn dược, không dài dòng
 // Tách từng thông tin: tên – công dụng – hàm lượng – lý do đề xuất
+// Function để AI phân tích tên thuốc và tìm ra 4 điều kiện: category, subcategory, dosageForm, route
+async function analyzeMedicineWithAI(medicineName: string, dosage?: string): Promise<{
+  category: string;
+  subcategory: string;
+  dosageForm: string;
+  route: string;
+  analysisText: string;
+}> {
+  // Default values
+  let category = '';
+  let subcategory = '';
+  let dosageForm = '';
+  let route = '';
+  let analysisText = '';
+
+  try {
+    // Import AI service
+    const { generateAIResponseWithGemini } = await import('../services/aiService.js');
+    
+    // Tạo prompt cho AI
+    const prompt = `Bạn là chuyên gia dược học. Hãy phân tích tên thuốc sau và trả lời CHỈ bằng JSON format:
+
+Tên thuốc: "${medicineName}"
+${dosage ? `Hàm lượng: ${dosage}` : ''}
+
+Yêu cầu: Phân tích và trả lời CHỈ bằng JSON với format sau (KHÔNG có text nào khác, CHỈ JSON):
+{
+  "category": "danh mục thuốc (ví dụ: Thuốc cơ xương khớp, Giảm đau hạ sốt, Thuốc da liễu)",
+  "subcategory": "nhóm thuốc (ví dụ: NSAID, Paracetamol, Corticosteroid)",
+  "dosageForm": "dạng bào chế (ví dụ: Viên nén, Gel, Cream, Ointment, Tablet, Capsule, Tube)",
+  "route": "cách dùng (ví dụ: Uống, Dùng ngoài, Tiêm, Nhỏ mắt)",
+  "analysis": "phân tích ngắn gọn về thuốc này"
+}
+
+Lưu ý quan trọng:
+- Nếu tên thuốc có "1%/20g", "gel", "cream", "tuýp", "bôi" → route = "Dùng ngoài", dosageForm = "Gel" hoặc "Cream"
+- Nếu tên thuốc có "viên", "tablet", "capsule" → route = "Uống", dosageForm = "Tablet" hoặc "Capsule"
+- Phân tích dựa trên tên thuốc và hàm lượng để xác định chính xác 4 thông tin trên.`;
+
+    const aiResponse = await generateAIResponseWithGemini({
+      userMessage: prompt,
+      conversationHistory: [],
+      context: {}
+    });
+
+    if (aiResponse) {
+      try {
+        // Parse JSON response từ AI
+        // Loại bỏ markdown code blocks nếu có
+        let jsonText = aiResponse.trim();
+        if (jsonText.startsWith('```json')) {
+          jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        } else if (jsonText.startsWith('```')) {
+          jsonText = jsonText.replace(/```\n?/g, '');
+        }
+        
+        const parsed = JSON.parse(jsonText);
+        category = parsed.category || '';
+        subcategory = parsed.subcategory || '';
+        dosageForm = parsed.dosageForm || '';
+        route = parsed.route || '';
+        analysisText = parsed.analysis || '';
+
+        console.log(`🤖 AI Analysis for "${medicineName}":`, { category, subcategory, dosageForm, route });
+      } catch (parseError) {
+        console.error('Error parsing AI response:', parseError);
+        // Fallback: thử extract từ text response
+        const lowerResponse = aiResponse.toLowerCase();
+        if (lowerResponse.includes('dùng ngoài') || lowerResponse.includes('bôi') || lowerResponse.includes('gel') || lowerResponse.includes('cream')) {
+          route = 'Dùng ngoài';
+        } else if (lowerResponse.includes('uống') || lowerResponse.includes('oral') || lowerResponse.includes('viên')) {
+          route = 'Uống';
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error in AI analysis:', error);
+  }
+
+  return { category, subcategory, dosageForm, route, analysisText };
+}
+
 async function formatSuggestionText(
   originalMedicineName: string,
   originalDosage: string | null,
-  suggestedMedicines: any[] // Nhận array of suggestions
+  suggestedMedicines: any[], // Nhận array of suggestions
+  aiAnalysis?: { category: string; subcategory: string; dosageForm: string; route: string; analysisText: string }
 ): Promise<string> {
   if (!suggestedMedicines || suggestedMedicines.length === 0) {
     return `Không tìm thấy chính xác tên thuốc "${originalMedicineName}" trong hệ thống. Vui lòng liên hệ dược sĩ để được tư vấn.`;
@@ -206,6 +289,27 @@ async function formatSuggestionText(
   
   const db = mongoose.connection.db;
   let suggestionText = `Không tìm thấy chính xác tên thuốc trong đơn.\n\n`;
+  
+  // Thêm phần AI phân tích nếu có
+  if (aiAnalysis && (aiAnalysis.category || aiAnalysis.subcategory || aiAnalysis.dosageForm || aiAnalysis.route)) {
+    suggestionText += `📋 Phân tích thuốc "${originalMedicineName}":\n`;
+    if (aiAnalysis.category) {
+      suggestionText += `   - Danh mục: ${aiAnalysis.category}\n`;
+    }
+    if (aiAnalysis.subcategory) {
+      suggestionText += `   - Nhóm thuốc: ${aiAnalysis.subcategory}\n`;
+    }
+    if (aiAnalysis.dosageForm) {
+      suggestionText += `   - Dạng bào chế: ${aiAnalysis.dosageForm}\n`;
+    }
+    if (aiAnalysis.route) {
+      suggestionText += `   - Cách dùng: ${aiAnalysis.route}\n`;
+    }
+    if (aiAnalysis.analysisText) {
+      suggestionText += `   - Phân tích: ${aiAnalysis.analysisText}\n`;
+    }
+    suggestionText += `\n`;
+  }
   
   // Format tất cả suggestions - rõ ràng, chuẩn dược, không dài dòng
   // Tách từng thông tin: tên – công dụng – hàm lượng – lý do đề xuất
@@ -2118,6 +2222,11 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
           console.log(`⚠️ Searching for similar medicines...`);
           console.log(`⚠️ =========================================\n`);
           
+          // BƯỚC 1: Sử dụng AI để phân tích tên thuốc và tìm ra 4 điều kiện
+          console.log(`🤖 Using AI to analyze medicine: "${medicineNameOnly}"`);
+          const aiAnalysis = await analyzeMedicineWithAI(medicineNameOnly, extractedDosage || null);
+          console.log(`🤖 AI Analysis Result:`, aiAnalysis);
+          
           // Reset similarMedicines before running fallback strategies
           similarMedicines = [];
           
@@ -2159,6 +2268,24 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             let targetCategory = '';
             let targetDosageForm = '';
             let targetRoute = '';
+            
+            // ƯU TIÊN: Sử dụng kết quả từ AI analysis nếu có
+            if (aiAnalysis.category) {
+              targetCategory = aiAnalysis.category;
+              console.log(`   ✅ Using AI category: "${targetCategory}"`);
+            }
+            if (aiAnalysis.subcategory) {
+              targetSubcategory = aiAnalysis.subcategory;
+              console.log(`   ✅ Using AI subcategory: "${targetSubcategory}"`);
+            }
+            if (aiAnalysis.dosageForm) {
+              targetDosageForm = aiAnalysis.dosageForm;
+              console.log(`   ✅ Using AI dosageForm: "${targetDosageForm}"`);
+            }
+            if (aiAnalysis.route) {
+              targetRoute = aiAnalysis.route;
+              console.log(`   ✅ Using AI route: "${targetRoute}"`);
+            }
             
             // Tìm với nhiều pattern hơn - không chỉ firstWord
             for (const searchTerm of searchTerms) {
@@ -3260,7 +3387,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                 notFoundMedicines.push({
                   originalText: cleanOcrText(medicineNameOnly),
                   originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
-                  suggestions: []
+                  suggestions: [],
+                  aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
                 });
               }
             } else {
@@ -3398,7 +3526,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             notFoundMedicines.push({
               originalText: cleanOcrText(medicineNameOnly), // Only medicine name, not usage instructions (cleaned)
               originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
-              suggestions
+              suggestions,
+              aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
             });
           } else {
               console.log(`ℹ️ Medicine already in notFoundMedicines, skipping: "${medicineNameOnly}"`);
@@ -3650,7 +3779,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             notFoundMedicines.push({
                 originalText: cleanOcrText(medicineNameOnly), // Cleaned OCR text
               originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
-                suggestions
+                suggestions,
+                aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
               });
               
               console.log(`✅ Added ${suggestions.length} fallback suggestions`);
@@ -3669,7 +3799,8 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
               notFoundMedicines.push({
                 originalText: cleanOcrText(medicineNameOnly), // Cleaned OCR text
                 originalDosage: extractedDosage || parseMedicineName(cleanedText).dosage,
-                suggestions: []
+                suggestions: [],
+                aiAnalysis: aiAnalysis // Lưu kết quả AI analysis
               });
             } else {
               console.log(`ℹ️ Medicine already in notFoundMedicines, skipping empty: "${medicineNameOnly}"`);
@@ -3766,11 +3897,12 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
       // Get the best suggestion (first one, usually highest confidence)
       const bestSuggestion = med.suggestions[0];
       
-      // Format professional suggestion text - truyền tất cả suggestions
+      // Format professional suggestion text - truyền tất cả suggestions và AI analysis
       const suggestionText = await formatSuggestionText(
         med.originalText,
         med.originalDosage,
-        med.suggestions
+        med.suggestions,
+        med.aiAnalysis // Truyền kết quả AI analysis
       );
       
       prescriptionMedicines.push({
