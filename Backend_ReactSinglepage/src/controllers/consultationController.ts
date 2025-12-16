@@ -5,6 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import mongoose from 'mongoose';
 import { findExactMatch, findSimilarMedicines, parseMedicineName, normalizeDosageForComparison } from '../services/medicineMatchingService.js';
+import { medicineMetadataService } from '../services/medicineMetadataService.js';
 
 // Helper function to normalize for comparison (duplicate from medicineMatchingService for local use)
 function normalizeForComparison(name: string): string {
@@ -34,6 +35,138 @@ function getMatchExplanation(matchReason: string, confidence: number): string {
   };
   
   return explanations[matchReason] || `Đề xuất dựa trên độ tương tự ${Math.round(confidence * 100)}%`;
+}
+
+// Helper function to normalize and compare medicine properties
+// Chuẩn hóa và so sánh các thuộc tính thuốc một cách linh hoạt
+function normalizeMedicineValue(value: string | null | undefined): string {
+  if (!value) return '';
+  return value.trim().toLowerCase();
+}
+
+// Helper function to check if two dosage forms are equivalent
+// Sử dụng medicineMetadataService để đọc từ database, fallback về hardcode mapping
+async function isDosageFormEquivalent(form1: string, form2: string): Promise<boolean> {
+  const normalized1 = normalizeMedicineValue(form1);
+  const normalized2 = normalizeMedicineValue(form2);
+  
+  if (normalized1 === normalized2) return true;
+  
+  // Bỏ qua nếu một trong hai là rỗng - database có thể thiếu dữ liệu
+  if (!normalized1 || normalized1 === '') return true;
+  if (!normalized2 || normalized2 === '') return true;
+  
+  // Ưu tiên: Sử dụng service để tìm từ database
+  try {
+    const result = await medicineMetadataService.areDosageFormsEquivalent(form1, form2);
+    if (result) return true;
+  } catch (error) {
+    console.warn('⚠️ Error using medicineMetadataService for dosage form comparison, falling back to hardcode:', error);
+  }
+  
+  // Fallback: Mapping các giá trị tương đương (hardcode)
+  const equivalentForms: { [key: string]: string[] } = {
+    'tablet': ['viên nén', 'tablet', 'viên', 'viên nén bao phim', 'tablet film-coated'],
+    'capsule': ['nang', 'capsule', 'viên nang', 'viên con nhộng'],
+    'gel': ['gel', 'kem gel', 'emulgel'],
+    'cream': ['cream', 'kem', 'kem bôi'],
+    'ointment': ['ointment', 'mỡ', 'thuốc mỡ'],
+    'solution': ['dung dịch', 'solution'],
+    'syrup': ['siro', 'syrup'],
+    'injection': ['tiêm', 'injection', 'chích'],
+    'tube': ['tuýp', 'tuyp', 'tube']
+  };
+  
+  // Tìm group chứa form1
+  for (const group of Object.values(equivalentForms)) {
+    if (group.some(f => normalizeMedicineValue(f) === normalized1)) {
+      return group.some(f => normalizeMedicineValue(f) === normalized2);
+    }
+  }
+  
+  // Tìm group chứa form2 (kiểm tra ngược lại)
+  for (const group of Object.values(equivalentForms)) {
+    if (group.some(f => normalizeMedicineValue(f) === normalized2)) {
+      return group.some(f => normalizeMedicineValue(f) === normalized1);
+    }
+  }
+  
+  return false;
+}
+
+// Helper function to check if two subcategories are equivalent
+// Sử dụng medicineMetadataService để đọc từ database, fallback về hardcode mapping
+async function isSubcategoryEquivalent(sub1: string, sub2: string): Promise<boolean> {
+  const normalized1 = normalizeMedicineValue(sub1);
+  const normalized2 = normalizeMedicineValue(sub2);
+  
+  if (normalized1 === normalized2) return true;
+  
+  // Bỏ qua nếu một trong hai là "N/A" hoặc rỗng - cho phép match (database có thể thiếu dữ liệu)
+  if (!normalized1 || normalized1 === 'n/a' || normalized1 === 'na' || normalized1 === '') return true;
+  if (!normalized2 || normalized2 === 'n/a' || normalized2 === 'na' || normalized2 === '') return true;
+  
+  // Ưu tiên: Sử dụng service để tìm từ database
+  try {
+    const result = await medicineMetadataService.areSubcategoriesEquivalent(sub1, sub2);
+    if (result) return true;
+  } catch (error) {
+    console.warn('⚠️ Error using medicineMetadataService for subcategory comparison, falling back to hardcode:', error);
+  }
+  
+  // Fallback: Mapping các giá trị tương đương (hardcode)
+  const equivalentSubs: { [key: string]: string[] } = {
+    'nsaid': ['nsaid', 'kháng viêm', 'anti-inflammatory', 'non-steroidal anti-inflammatory', 'nonsteroidal anti-inflammatory'],
+    'paracetamol': ['paracetamol', 'acetaminophen'],
+    'corticosteroid': ['corticosteroid', 'cortico', 'steroid']
+  };
+  
+  // Tìm group chứa sub1
+  for (const group of Object.values(equivalentSubs)) {
+    if (group.some(s => normalizeMedicineValue(s) === normalized1)) {
+      return group.some(s => normalizeMedicineValue(s) === normalized2);
+    }
+  }
+  
+  // Tìm group chứa sub2
+  for (const group of Object.values(equivalentSubs)) {
+    if (group.some(s => normalizeMedicineValue(s) === normalized2)) {
+      return group.some(s => normalizeMedicineValue(s) === normalized1);
+    }
+  }
+  
+  return false;
+}
+
+// Helper function to check if medicine matches all 4 conditions (with flexible comparison)
+// Sử dụng medicineMetadataService để so sánh từ database
+async function matchesAll4Conditions(
+  medicine: any,
+  targetCategory: string,
+  targetSubcategory: string,
+  targetDosageForm: string,
+  targetRoute: string
+): Promise<{ matches: boolean; details: { category: boolean; subcategory: boolean; dosageForm: boolean; route: boolean } }> {
+  // Category: So sánh chính xác (có thể linh hoạt hơn nếu cần)
+  const hasCategory = targetCategory && medicine.category && 
+    normalizeMedicineValue(targetCategory) === normalizeMedicineValue(medicine.category);
+  
+  // Subcategory: So sánh linh hoạt (cho phép N/A, và các giá trị tương đương)
+  // Sử dụng service để đọc từ database
+  const hasSubcategory = await isSubcategoryEquivalent(targetSubcategory, medicine.subcategory || '');
+  
+  // DosageForm: So sánh linh hoạt (Viên nén = Tablet, v.v.)
+  // Sử dụng service để đọc từ database
+  const hasDosageForm = await isDosageFormEquivalent(targetDosageForm, medicine.dosageForm || '');
+  
+  // Route: So sánh chính xác (có thể linh hoạt hơn nếu cần)
+  const hasRoute = targetRoute && medicine.route && 
+    normalizeMedicineValue(targetRoute) === normalizeMedicineValue(medicine.route);
+  
+  return {
+    matches: hasCategory && hasSubcategory && hasDosageForm && hasRoute,
+    details: { category: hasCategory, subcategory: hasSubcategory, dosageForm: hasDosageForm, route: hasRoute }
+  };
 }
 
 // Helper function to check if a medicine is already in the prescription (foundMedicines)
@@ -2767,14 +2900,11 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     }
                     
                     for (const m of medicinesWithSameIndication) {
-                      // CHỈ lấy thuốc có CẢ 4 điều kiện khớp
-                      const hasCategory = targetCategory && m.category && targetCategory.toLowerCase() === m.category.toLowerCase();
-                      const hasSubcategory = targetSubcategory && m.subcategory && targetSubcategory.toLowerCase() === m.subcategory.toLowerCase();
-                      const hasDosageForm = targetDosageForm && m.dosageForm && targetDosageForm.toLowerCase() === m.dosageForm.toLowerCase();
-                      const hasRoute = targetRoute && m.route && targetRoute.toLowerCase() === m.route.toLowerCase();
+                      // CHỈ lấy thuốc có CẢ 4 điều kiện khớp (sử dụng hàm helper để so sánh linh hoạt)
+                      const matchResult = await matchesAll4Conditions(m, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
                       
                       // CHỈ thêm vào nếu có CẢ 4 điều kiện
-                      if (hasCategory && hasSubcategory && hasDosageForm && hasRoute) {
+                      if (matchResult.matches) {
                         medicinesWithAll4Conditions.push(m);
                       }
                     }
@@ -2782,18 +2912,19 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     console.log(`📊 Filtered medicines by ALL 4 conditions: ${medicinesWithAll4Conditions.length} medicines found`);
                     
                     // CHỈ đề xuất thuốc có CẢ 4 điều kiện
-                    const allMedicinesToCheck = [
-                      ...medicinesWithSameActiveIngredient.filter(ai => {
-                        // Kiểm tra xem thuốc này có CẢ 4 điều kiện không
+                    // Filter async với Promise.all
+                    const medicinesWithSameActiveIngredientAnd4Conditions = await Promise.all(
+                      medicinesWithSameActiveIngredient.map(async (ai) => {
                         const m = medicinesWithSameIndication.find(med => String(med._id) === String(ai._id));
-                        if (!m) return false;
-                        const hasCategory = targetCategory && m.category && targetCategory.toLowerCase() === m.category.toLowerCase();
-                        const hasSubcategory = targetSubcategory && m.subcategory && targetSubcategory.toLowerCase() === m.subcategory.toLowerCase();
-                        const hasDosageForm = targetDosageForm && m.dosageForm && targetDosageForm.toLowerCase() === m.dosageForm.toLowerCase();
-                        const hasRoute = targetRoute && m.route && targetRoute.toLowerCase() === m.route.toLowerCase();
-                        // CHỈ trả về true nếu có CẢ 4 điều kiện
-                        return hasCategory && hasSubcategory && hasDosageForm && hasRoute;
-                      }), // Ưu tiên 1: cùng hoạt chất VÀ có CẢ 4 điều kiện
+                        if (!m) return null;
+                        const matchResult = await matchesAll4Conditions(m, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
+                        return matchResult.matches ? ai : null;
+                      })
+                    );
+                    const filteredActiveIngredientMedicines = medicinesWithSameActiveIngredientAnd4Conditions.filter(m => m !== null) as any[];
+                    
+                    const allMedicinesToCheck = [
+                      ...filteredActiveIngredientMedicines, // Ưu tiên 1: cùng hoạt chất VÀ có CẢ 4 điều kiện
                       ...medicinesWithAll4Conditions.filter(m => 
                         !medicinesWithSameActiveIngredient.some(ai => String(ai._id) === String(m._id))
                       ) // Ưu tiên 2: có cả 4 điều kiện (không trùng với cùng hoạt chất)
@@ -2830,24 +2961,17 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                           }
                         }
                         
-                        // Kiểm tra 4 điều kiện: category, subcategory, dosageForm, route
+                        // Kiểm tra 4 điều kiện: category, subcategory, dosageForm, route (sử dụng hàm helper)
                         if (hasAll4TargetConditions && medicineInfo) {
-                          const hasCategory = targetCategory && medicineInfo.category && 
-                            targetCategory.toLowerCase() === medicineInfo.category.toLowerCase();
-                          const hasSubcategory = targetSubcategory && medicineInfo.subcategory && 
-                            targetSubcategory.toLowerCase() === medicineInfo.subcategory.toLowerCase();
-                          const hasDosageForm = targetDosageForm && medicineInfo.dosageForm && 
-                            targetDosageForm.toLowerCase() === medicineInfo.dosageForm.toLowerCase();
-                          const hasRoute = targetRoute && medicineInfo.route && 
-                            targetRoute.toLowerCase() === medicineInfo.route.toLowerCase();
+                          const matchResult = await matchesAll4Conditions(medicineInfo, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
                           
                           // CHỈ thêm nếu có CẢ 4 điều kiện
-                          if (!(hasCategory && hasSubcategory && hasDosageForm && hasRoute)) {
+                          if (!matchResult.matches) {
                             console.log(`   ⚠️ Skipping product from Products collection: ${product.name} - does not match all 4 conditions`);
-                            console.log(`      Category: ${hasCategory ? '✅' : '❌'} (${medicineInfo.category || 'N/A'} vs ${targetCategory})`);
-                            console.log(`      Subcategory: ${hasSubcategory ? '✅' : '❌'} (${medicineInfo.subcategory || 'N/A'} vs ${targetSubcategory})`);
-                            console.log(`      DosageForm: ${hasDosageForm ? '✅' : '❌'} (${medicineInfo.dosageForm || 'N/A'} vs ${targetDosageForm})`);
-                            console.log(`      Route: ${hasRoute ? '✅' : '❌'} (${medicineInfo.route || 'N/A'} vs ${targetRoute})`);
+                            console.log(`      Category: ${matchResult.details.category ? '✅' : '❌'} (${medicineInfo.category || 'N/A'} vs ${targetCategory})`);
+                            console.log(`      Subcategory: ${matchResult.details.subcategory ? '✅' : '❌'} (${medicineInfo.subcategory || 'N/A'} vs ${targetSubcategory})`);
+                            console.log(`      DosageForm: ${matchResult.details.dosageForm ? '✅' : '❌'} (${medicineInfo.dosageForm || 'N/A'} vs ${targetDosageForm})`);
+                            console.log(`      Route: ${matchResult.details.route ? '✅' : '❌'} (${medicineInfo.route || 'N/A'} vs ${targetRoute})`);
                             continue; // Bỏ qua thuốc này
                           }
                         } else if (hasAll4TargetConditions) {
@@ -3105,24 +3229,17 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                           continue;
                         }
                         
-                        // QUAN TRỌNG: CHỈ đề xuất nếu có CẢ 4 điều kiện khớp (category, subcategory, dosageForm, route)
+                        // QUAN TRỌNG: CHỈ đề xuất nếu có CẢ 4 điều kiện khớp (sử dụng hàm helper để so sánh linh hoạt)
                         // Đây là yêu cầu bắt buộc để đảm bảo thuốc đề xuất hợp lý và đúng nhất
-                        const hasCategory = targetCategory && medicine.category && 
-                          targetCategory.toLowerCase() === medicine.category.toLowerCase();
-                        const hasSubcategory = targetSubcategory && medicine.subcategory && 
-                          targetSubcategory.toLowerCase() === medicine.subcategory.toLowerCase();
-                        const hasDosageForm = targetDosageForm && medicine.dosageForm && 
-                          targetDosageForm.toLowerCase() === medicine.dosageForm.toLowerCase();
-                        const hasRoute = targetRoute && medicine.route && 
-                          targetRoute.toLowerCase() === medicine.route.toLowerCase();
+                        const matchResult = await matchesAll4Conditions(medicine, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
                         
                         // CHỈ thêm nếu có CẢ 4 điều kiện
-                        if (!(hasCategory && hasSubcategory && hasDosageForm && hasRoute)) {
+                        if (!matchResult.matches) {
                           console.log(`   ⚠️ Skipping medicine - does not match all 4 conditions: ${medicine.name}`);
-                          console.log(`      Category: ${hasCategory ? '✅' : '❌'} (${medicine.category || 'N/A'} vs ${targetCategory})`);
-                          console.log(`      Subcategory: ${hasSubcategory ? '✅' : '❌'} (${medicine.subcategory || 'N/A'} vs ${targetSubcategory})`);
-                          console.log(`      DosageForm: ${hasDosageForm ? '✅' : '❌'} (${medicine.dosageForm || 'N/A'} vs ${targetDosageForm})`);
-                          console.log(`      Route: ${hasRoute ? '✅' : '❌'} (${medicine.route || 'N/A'} vs ${targetRoute})`);
+                          console.log(`      Category: ${matchResult.details.category ? '✅' : '❌'} (${medicine.category || 'N/A'} vs ${targetCategory})`);
+                          console.log(`      Subcategory: ${matchResult.details.subcategory ? '✅' : '❌'} (${medicine.subcategory || 'N/A'} vs ${targetSubcategory})`);
+                          console.log(`      DosageForm: ${matchResult.details.dosageForm ? '✅' : '❌'} (${medicine.dosageForm || 'N/A'} vs ${targetDosageForm})`);
+                          console.log(`      Route: ${matchResult.details.route ? '✅' : '❌'} (${medicine.route || 'N/A'} vs ${targetRoute})`);
                           continue;
                         }
                         
@@ -3241,23 +3358,16 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                     for (const med of prioritizedMedicines) {
                       if (similarMedicines.length >= 5) break;
                       
-                      // BẮT BUỘC: Kiểm tra 4 điều kiện - CHỈ thêm nếu có CẢ 4 điều kiện
-                        const hasCategory = targetCategory && med.category && 
-                          targetCategory.toLowerCase() === med.category.toLowerCase();
-                        const hasSubcategory = targetSubcategory && med.subcategory && 
-                          targetSubcategory.toLowerCase() === med.subcategory.toLowerCase();
-                        const hasDosageForm = targetDosageForm && med.dosageForm && 
-                          targetDosageForm.toLowerCase() === med.dosageForm.toLowerCase();
-                        const hasRoute = targetRoute && med.route && 
-                          targetRoute.toLowerCase() === med.route.toLowerCase();
+                      // BẮT BUỘC: Kiểm tra 4 điều kiện - CHỈ thêm nếu có CẢ 4 điều kiện (sử dụng hàm helper)
+                      const matchResult = await matchesAll4Conditions(med, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
                         
                         // CHỈ thêm nếu có CẢ 4 điều kiện
-                        if (!(hasCategory && hasSubcategory && hasDosageForm && hasRoute)) {
+                      if (!matchResult.matches) {
                           console.log(`   ⚠️ Skipping medicine: ${med.name || med.productName} - does not match all 4 conditions`);
-                          console.log(`      Category: ${hasCategory ? '✅' : '❌'} (${med.category || 'N/A'} vs ${targetCategory})`);
-                          console.log(`      Subcategory: ${hasSubcategory ? '✅' : '❌'} (${med.subcategory || 'N/A'} vs ${targetSubcategory})`);
-                          console.log(`      DosageForm: ${hasDosageForm ? '✅' : '❌'} (${med.dosageForm || 'N/A'} vs ${targetDosageForm})`);
-                          console.log(`      Route: ${hasRoute ? '✅' : '❌'} (${med.route || 'N/A'} vs ${targetRoute})`);
+                        console.log(`      Category: ${matchResult.details.category ? '✅' : '❌'} (${med.category || 'N/A'} vs ${targetCategory})`);
+                        console.log(`      Subcategory: ${matchResult.details.subcategory ? '✅' : '❌'} (${med.subcategory || 'N/A'} vs ${targetSubcategory})`);
+                        console.log(`      DosageForm: ${matchResult.details.dosageForm ? '✅' : '❌'} (${med.dosageForm || 'N/A'} vs ${targetDosageForm})`);
+                        console.log(`      Route: ${matchResult.details.route ? '✅' : '❌'} (${med.route || 'N/A'} vs ${targetRoute})`);
                           continue; // Bỏ qua thuốc này
                       }
                       
@@ -3446,25 +3556,24 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                             }
                           }
                           
-                          // QUAN TRỌNG: BẮT BUỘC kiểm tra 4 điều kiện - CHỈ thêm nếu có CẢ 4 điều kiện
+                          // QUAN TRỌNG: BẮT BUỘC kiểm tra 4 điều kiện - CHỈ thêm nếu có CẢ 4 điều kiện (sử dụng hàm helper)
                           // Đây là yêu cầu bắt buộc để đảm bảo thuốc đề xuất hợp lý và đúng nhất
-                            const hasCategory = targetCategory && medicineInfo?.category && 
-                              targetCategory.toLowerCase() === medicineInfo.category.toLowerCase();
-                            const hasSubcategory = targetSubcategory && medicineInfo?.subcategory && 
-                              targetSubcategory.toLowerCase() === medicineInfo.subcategory.toLowerCase();
-                            const hasDosageForm = targetDosageForm && medicineInfo?.dosageForm && 
-                              targetDosageForm.toLowerCase() === medicineInfo.dosageForm.toLowerCase();
-                            const hasRoute = targetRoute && medicineInfo?.route && 
-                              targetRoute.toLowerCase() === medicineInfo.route.toLowerCase();
+                          if (medicineInfo) {
+                            const matchResult = await matchesAll4Conditions(medicineInfo, targetCategory, targetSubcategory, targetDosageForm, targetRoute);
                             
-                          // CHỈ thêm nếu có CẢ 4 điều kiện - không có exception
-                            if (!(hasCategory && hasSubcategory && hasDosageForm && hasRoute)) {
+                            // CHỈ thêm nếu có CẢ 4 điều kiện - không có exception
+                            if (!matchResult.matches) {
                               console.log(`   ⚠️ Skipping NSAID product: ${product.name} - does not match all 4 conditions`);
-                              console.log(`      Category: ${hasCategory ? '✅' : '❌'} (${medicineInfo?.category || 'N/A'} vs ${targetCategory})`);
-                              console.log(`      Subcategory: ${hasSubcategory ? '✅' : '❌'} (${medicineInfo?.subcategory || 'N/A'} vs ${targetSubcategory})`);
-                              console.log(`      DosageForm: ${hasDosageForm ? '✅' : '❌'} (${medicineInfo?.dosageForm || 'N/A'} vs ${targetDosageForm})`);
-                              console.log(`      Route: ${hasRoute ? '✅' : '❌'} (${medicineInfo?.route || 'N/A'} vs ${targetRoute})`);
+                              console.log(`      Category: ${matchResult.details.category ? '✅' : '❌'} (${medicineInfo.category || 'N/A'} vs ${targetCategory})`);
+                              console.log(`      Subcategory: ${matchResult.details.subcategory ? '✅' : '❌'} (${medicineInfo.subcategory || 'N/A'} vs ${targetSubcategory})`);
+                              console.log(`      DosageForm: ${matchResult.details.dosageForm ? '✅' : '❌'} (${medicineInfo.dosageForm || 'N/A'} vs ${targetDosageForm})`);
+                              console.log(`      Route: ${matchResult.details.route ? '✅' : '❌'} (${medicineInfo.route || 'N/A'} vs ${targetRoute})`);
                               continue; // Bỏ qua thuốc này
+                            }
+                          } else {
+                            // Nếu không có medicineInfo, không thể kiểm tra 4 điều kiện
+                            console.log(`   ⚠️ Skipping NSAID product: ${product.name} - no medicineInfo found to check 4 conditions`);
+                            continue;
                           }
                           
                           similarMedicines.push({

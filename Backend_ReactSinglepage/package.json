@@ -39,7 +39,8 @@
     "test:supabase-url": "tsx test-supabase-url.ts",
     "test:medicines-folder": "tsx test-medicines-folder-url.ts",
     "db:check-supabase-files": "tsx check-supabase-files.ts",
-    "db:fix-medicines-path": "tsx fix-medicines-path-urls.ts"
+    "db:fix-medicines-path": "tsx fix-medicines-path-urls.ts",
+    "db:read-metadata": "tsx src/utils/readMetadataCollections.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
