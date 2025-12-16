@@ -2227,52 +2227,14 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
               const fullText = ((medicineText || '') + ' ' + (cleanedText || '')).toLowerCase();
               
               // Kiểm tra "Dùng ngoài" hoặc các từ khóa topical (ưu tiên)
-              if (/dùng\s+ngoài|dung\s+ngoai|topical/i.test(fullText)) {
-                // Thử tìm trong database để xem giá trị thực tế là gì
-                const db = mongoose.connection.db;
-                if (db) {
-                  const medicinesCollection = db.collection('medicines');
-                  const sampleTopical = await medicinesCollection.findOne({ 
-                    route: { $regex: /dùng\s+ngoài|topical/i } 
-                  });
-                  if (sampleTopical && sampleTopical.route) {
-                    targetRoute = sampleTopical.route;
-                    console.log(`   🔍 Detected route from prescription text: "${targetRoute}" (from DB sample)`);
-                  } else {
-                    // Fallback: thử cả hai cách
-                    targetRoute = 'Dùng ngoài'; // Thử tiếng Việt trước
-                    console.log(`   🔍 Detected route from prescription text: "Dùng ngoài" (fallback)`);
-                  }
-                } else {
-                  targetRoute = 'Dùng ngoài';
-                  console.log(`   🔍 Detected route from prescription text: "Dùng ngoài" (fallback)`);
-                }
+              if (/dùng\s+ngoài|dung\s+ngoai|topical/i.test(fullText) || isTopicalOriginal) {
+                targetRoute = 'Dùng ngoài';
+                console.log(`   🔍 Detected route from prescription text: "Dùng ngoài"`);
               } 
               // Kiểm tra "Uống" hoặc các từ khóa oral
               else if (/uống|uong|oral/i.test(fullText)) {
-                // Thử tìm trong database để xem giá trị thực tế là gì
-                const db = mongoose.connection.db;
-                if (db) {
-                  const medicinesCollection = db.collection('medicines');
-                  const sampleOral = await medicinesCollection.findOne({ 
-                    route: { $regex: /uống|oral/i } 
-                  });
-                  if (sampleOral && sampleOral.route) {
-                    targetRoute = sampleOral.route;
-                    console.log(`   🔍 Detected route from prescription text: "${targetRoute}" (from DB sample)`);
-                  } else {
-                    targetRoute = 'Uống'; // Thử tiếng Việt trước
-                    console.log(`   🔍 Detected route from prescription text: "Uống" (fallback)`);
-                  }
-                } else {
-                  targetRoute = 'Uống';
-                  console.log(`   🔍 Detected route from prescription text: "Uống" (fallback)`);
-                }
-              }
-              // Nếu có isTopicalOriginal thì là topical
-              else if (isTopicalOriginal) {
-                targetRoute = 'Dùng ngoài';
-                console.log(`   🔍 Detected route from medicine name pattern: "Dùng ngoài"`);
+                targetRoute = 'Uống';
+                console.log(`   🔍 Detected route from prescription text: "Uống"`);
               }
             }
             
@@ -2436,13 +2398,16 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                   
                   // Tìm thuốc dựa trên 4 điều kiện: category, subcategory, dosageForm, route
                   // ƯU TIÊN: Tìm thuốc có CẢ 4 điều kiện (nếu có đầy đủ), sau đó mới đến các điều kiện khác
+                  const db = mongoose.connection.db;
+                  if (db) {
+                    const medicinesCollection = db.collection('medicines');
                   const searchCriteria: any = {};
                   if (targetMedicine) {
                     searchCriteria._id = { $ne: targetMedicine._id };
                   }
                   
-                  // Tạo điều kiện AND cho 4 tiêu chí chính: category, subcategory, dosageForm, route
-                  const andConditions: any[] = [];
+                    // Tạo điều kiện AND cho 4 tiêu chí chính: category, subcategory, dosageForm, route
+                    const andConditions: any[] = [];
                   const orConditions: any[] = [];
                   
                   // ƯU TIÊN 1: Tìm thuốc có CẢ 4 điều kiện (category, subcategory, dosageForm, route) - độ chính xác cao nhất
@@ -3241,9 +3206,9 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
                       }
                     }
                   } // Đóng if (orConditions.length > 0)
+                  } // Đóng if (db)
                 }
               } // Đóng if (targetGroupTherapeutic || targetIndication)
-            } // Đóng if (db)
           
           // Nếu vẫn không có suggestions và đây là thuốc thực sự (có tên thuốc hợp lệ), tìm suggestions mặc định
           if (similarMedicines.length === 0 && genericName && genericName.length > 3 && /^[a-zA-ZÀ-ỹ]+$/.test(genericName)) {
@@ -4018,10 +3983,10 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
             inStock: product.inStock !== undefined ? product.inStock : (Number(product.stockQuantity || 0) > 0),
             stockQuantity: Number(product.stockQuantity || 0),
             requiresPrescription: product.isPrescription || false,
-            imageUrl: imageUrl,
-            description: description,
-            brand: product.brand || '',
-            dosage: parseMedicineName(product.name || '').dosage
+          imageUrl: imageUrl,
+          description: description,
+          brand: product.brand || '',
+          dosage: parseMedicineName(product.name || '').dosage
           });
         }
       }
