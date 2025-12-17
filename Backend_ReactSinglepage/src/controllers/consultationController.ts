@@ -17,6 +17,148 @@ function normalizeForComparison(name: string): string {
     .replace(/[^a-z0-9]/g, '') // Remove everything except lowercase letters and numbers
     .trim();
 }
+
+// Helper function to extract base active ingredient (removing salt/ester forms)
+// Ví dụ: "Prednisolon acetat" -> "prednisolon", "Diclofenac sodium" -> "diclofenac"
+function extractBaseActiveIngredient(medicineName: string): string {
+  if (!medicineName || typeof medicineName !== 'string') return '';
+  
+  const normalized = medicineName.toLowerCase().trim();
+  
+  // Danh sách các dạng muối/ester phổ biến (cần loại bỏ)
+  const saltForms = [
+    'acetat', 'acetate', 'natri', 'sodium', 'phosphate', 'phosphat',
+    'hydrochloride', 'hcl', 'sulfate', 'sulphate', 'maleate', 'tartrate',
+    'citrate', 'fumarate', 'succinate', 'gluconate', 'lactate', 'pamoate',
+    'mesylate', 'tosylate', 'besylate', 'diethylamine', 'potassium', 'calcium',
+    'magnesium', 'zinc', 'aluminum', 'aluminium', 'ester', 'esterified'
+  ];
+  
+  // Loại bỏ các phần trong ngoặc đơn (thường là brand name hoặc thông tin bổ sung)
+  const withoutParentheses = normalized.replace(/\([^)]*\)/g, '').trim();
+  
+  // Tách tên thuốc thành các từ
+  const words = withoutParentheses.split(/\s+/);
+  
+  // Tìm từ đầu tiên không phải là muối/ester (thường là hoạt chất gốc)
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i].replace(/[^a-z0-9]/g, ''); // Loại bỏ ký tự đặc biệt
+    if (word.length > 3 && !saltForms.some(salt => word.includes(salt))) {
+      return word;
+    }
+  }
+  
+  // Nếu không tìm được, trả về từ đầu tiên
+  return words[0]?.replace(/[^a-z0-9]/g, '') || normalized;
+}
+
+// Helper function to check if two base active ingredients are similar (handles variations like prednisolon vs prednisolone)
+function areBaseIngredientsSimilar(base1: string, base2: string): boolean {
+  if (!base1 || !base2) return false;
+  
+  const normalized1 = normalizeForComparison(base1);
+  const normalized2 = normalizeForComparison(base2);
+  
+  // Exact match
+  if (normalized1 === normalized2) return true;
+  
+  // Check if one contains the other (handles prednisolon vs prednisolone)
+  if (normalized1.length > 5 && normalized2.length > 5) {
+    // Get the first 8 characters (most of the base name)
+    const prefix1 = normalized1.substring(0, Math.min(8, normalized1.length));
+    const prefix2 = normalized2.substring(0, Math.min(8, normalized2.length));
+    
+    if (prefix1 === prefix2) return true;
+    
+    // Check if one is contained in the other (with tolerance for 1-2 character difference)
+    if (normalized1.includes(prefix2) || normalized2.includes(prefix1)) {
+      // Additional check: length difference should be small (0-2 characters)
+      const lengthDiff = Math.abs(normalized1.length - normalized2.length);
+      if (lengthDiff <= 2) return true;
+    }
+  }
+  
+  return false;
+}
+
+// Helper function to extract salt/ester form from medicine name
+function extractSaltForm(medicineName: string): string[] {
+  if (!medicineName || typeof medicineName !== 'string') return [];
+  
+  const normalized = normalizeForComparison(medicineName);
+  const saltIndicators = [
+    'acetat', 'acetate', 'natri', 'sodium', 'phosphate', 'phosphat',
+    'hydrochloride', 'hcl', 'sulfate', 'sulphate', 'maleate', 'tartrate',
+    'citrate', 'fumarate', 'succinate', 'gluconate', 'lactate', 'pamoate',
+    'mesylate', 'tosylate', 'besylate', 'diethylamine', 'potassium', 'calcium',
+    'magnesium', 'zinc', 'aluminum', 'aluminium'
+  ];
+  
+  const foundSalts: string[] = [];
+  for (const salt of saltIndicators) {
+    if (normalized.includes(salt)) {
+      foundSalts.push(salt);
+    }
+  }
+  
+  return foundSalts;
+}
+
+// Helper function to check if two medicines have the same base active ingredient but different salt forms
+// Ví dụ: "Prednisolon acetat" và "Prednisolone" -> cùng base "prednisolon" nhưng khác dạng muối
+function hasSameBaseActiveIngredientButDifferentSaltForm(
+  medicine1: string,
+  medicine2: string
+): boolean {
+  const base1 = extractBaseActiveIngredient(medicine1);
+  const base2 = extractBaseActiveIngredient(medicine2);
+  
+  // Kiểm tra xem có cùng hoạt chất gốc không (so sánh linh hoạt)
+  if (!areBaseIngredientsSimilar(base1, base2)) {
+    return false;
+  }
+  
+  // Lấy danh sách muối/ester trong mỗi thuốc
+  const salts1 = extractSaltForm(medicine1);
+  const salts2 = extractSaltForm(medicine2);
+  
+  // Nếu một có muối/ester và một không có → khác dạng muối
+  if (salts1.length > 0 && salts2.length === 0) {
+    console.log(`   🔍 Detected same base active ingredient but different salt form:`);
+    console.log(`      Base1: "${base1}" -> Base2: "${base2}"`);
+    console.log(`      Medicine1: "${medicine1}" (has salts: ${salts1.join(', ')})`);
+    console.log(`      Medicine2: "${medicine2}" (no salt - base form)`);
+    return true;
+  }
+  
+  // Nếu một không có muối/ester và một có → khác dạng muối
+  if (salts1.length === 0 && salts2.length > 0) {
+    console.log(`   🔍 Detected same base active ingredient but different salt form:`);
+    console.log(`      Base1: "${base1}" -> Base2: "${base2}"`);
+    console.log(`      Medicine1: "${medicine1}" (no salt - base form)`);
+    console.log(`      Medicine2: "${medicine2}" (has salts: ${salts2.join(', ')})`);
+    return true;
+  }
+  
+  // Nếu cả hai đều có muối/ester nhưng khác nhau → khác dạng muối
+  if (salts1.length > 0 && salts2.length > 0) {
+    const salts1Set = new Set(salts1);
+    const salts2Set = new Set(salts2);
+    const areSameSalts = salts1.length === salts2.length && 
+                         salts1.every(salt => salts2Set.has(salt)) &&
+                         salts2.every(salt => salts1Set.has(salt));
+    
+    if (!areSameSalts) {
+      console.log(`   🔍 Detected same base active ingredient but different salt form:`);
+      console.log(`      Base1: "${base1}" -> Base2: "${base2}"`);
+      console.log(`      Medicine1: "${medicine1}" (has salts: ${salts1.join(', ')})`);
+      console.log(`      Medicine2: "${medicine2}" (has salts: ${salts2.join(', ')})`);
+      return true;
+    }
+  }
+  
+  return false;
+}
 import { extractTextFromImage } from '../services/ocrService.js';
 
 // Helper function to get match explanation
@@ -2387,52 +2529,73 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
         }
         
         if (exactMatch && exactMatch.product) {
-          console.log(`\n✅ ========== EXACT MATCH FOUND ==========`);
-          console.log(`✅ Matched search term: "${matchedSearchTerm}"`);
-          console.log(`✅ Product name: ${exactMatch.product.name}`);
-          console.log(`✅ Match type: ${exactMatch.matchType}`);
-          console.log(`✅ Confidence: ${exactMatch.confidence}`);
-          console.log(`✅ ======================================\n`);
+          // QUAN TRỌNG: Kiểm tra xem có phải là cùng hoạt chất nhưng khác dạng muối/ester không
+          // Nếu có, không coi là exact match mà đưa vào suggestions (Thuốc đề xuất)
+          const isSameBaseButDifferentSalt = hasSameBaseActiveIngredientButDifferentSaltForm(
+            medicineNameOnly,
+            exactMatch.product.name
+          );
           
-          // Found exact match!
-          const product = exactMatch.product;
-          const productId = product._id ? String(product._id) : (product.id ? String(product.id) : 'unknown');
-          
-          // Get description from medicines collection if product doesn't have it
-          const description = await getProductDescription(product);
-          
-          const productData = {
-            productId,
-            productName: product.name || medicineText,
-            price: product.price || 0,
-            originalPrice: product.originalPrice || product.price || 0,
-            unit: product.unit || 'đơn vị',
-            inStock: product.inStock !== undefined ? product.inStock : (product.stockQuantity > 0),
-            stockQuantity: product.stockQuantity || 0,
-            requiresPrescription: product.isPrescription || false,
-            imageUrl: product.imageUrl || '/medicine-images/default-medicine.jpg',
-            description: description,
-            brand: product.brand || '',
-            confidence: exactMatch.confidence,
-            matchType: exactMatch.matchType,
-            originalText: cleanOcrText(medicineNameOnly), // Only medicine name, not usage instructions (cleaned)
-            dosage: extractedDosage || parseMedicineName(cleanedText).dosage
-          };
-          
-          foundMedicines.push(productData);
-          totalEstimatedPrice += productData.price;
-          
-          console.log(`✅ Added to foundMedicines: ${productData.productName} (Total found: ${foundMedicines.length})`);
-          
-          if (productData.requiresPrescription) {
-            analysisNotes.push(`⚠️ ${productData.productName} cần đơn bác sĩ`);
-            requiresConsultation = true;
+          if (isSameBaseButDifferentSalt) {
+            console.log(`\n⚠️ ========== SAME BASE ACTIVE INGREDIENT BUT DIFFERENT SALT FORM ==========`);
+            console.log(`⚠️ Original: "${medicineNameOnly}"`);
+            console.log(`⚠️ Found: "${exactMatch.product.name}"`);
+            console.log(`⚠️ Cùng hoạt chất gốc nhưng khác dạng muối/ester - Đưa vào Thuốc đề xuất`);
+            console.log(`⚠️ =========================================\n`);
+            
+            // Không coi là exact match, đưa vào suggestions với confidence cao
+            // Sẽ được xử lý ở phần "No exact match found"
+            exactMatch = null;
+          } else {
+            console.log(`\n✅ ========== EXACT MATCH FOUND ==========`);
+            console.log(`✅ Matched search term: "${matchedSearchTerm}"`);
+            console.log(`✅ Product name: ${exactMatch.product.name}`);
+            console.log(`✅ Match type: ${exactMatch.matchType}`);
+            console.log(`✅ Confidence: ${exactMatch.confidence}`);
+            console.log(`✅ ======================================\n`);
+            
+            // Found exact match!
+            const product = exactMatch.product;
+            const productId = product._id ? String(product._id) : (product.id ? String(product.id) : 'unknown');
+            
+            // Get description from medicines collection if product doesn't have it
+            const description = await getProductDescription(product);
+            
+            const productData = {
+              productId,
+              productName: product.name || medicineText,
+              price: product.price || 0,
+              originalPrice: product.originalPrice || product.price || 0,
+              unit: product.unit || 'đơn vị',
+              inStock: product.inStock !== undefined ? product.inStock : (product.stockQuantity > 0),
+              stockQuantity: product.stockQuantity || 0,
+              requiresPrescription: product.isPrescription || false,
+              imageUrl: product.imageUrl || '/medicine-images/default-medicine.jpg',
+              description: description,
+              brand: product.brand || '',
+              confidence: exactMatch.confidence,
+              matchType: exactMatch.matchType,
+              originalText: cleanOcrText(medicineNameOnly), // Only medicine name, not usage instructions (cleaned)
+              dosage: extractedDosage || parseMedicineName(cleanedText).dosage
+            };
+            
+            foundMedicines.push(productData);
+            totalEstimatedPrice += productData.price;
+            
+            console.log(`✅ Added to foundMedicines: ${productData.productName} (Total found: ${foundMedicines.length})`);
+            
+            if (productData.requiresPrescription) {
+              analysisNotes.push(`⚠️ ${productData.productName} cần đơn bác sĩ`);
+              requiresConsultation = true;
+            }
+            
+            if (productData.stockQuantity < 10) {
+              analysisNotes.push(`⚠️ ${productData.productName} sắp hết hàng (còn ${productData.stockQuantity} hộp)`);
+            }
           }
-          
-          if (productData.stockQuantity < 10) {
-            analysisNotes.push(`⚠️ ${productData.productName} sắp hết hàng (còn ${productData.stockQuantity} hộp)`);
-          }
-        } else {
+        }
+        
+        if (!exactMatch || !exactMatch.product) {
           // No exact match found, find similar medicines
           console.log(`\n⚠️ ========== NO EXACT MATCH FOUND ==========`);
           console.log(`⚠️ Tried ${uniqueSearchTerms.length} search terms, none matched`);
@@ -4342,4 +4505,3 @@ async function performAIAnalysis(prescriptionText?: string, prescriptionImage?: 
     aiModel: 'pharmacy-v1.0' // Mock model name
   };
 }
-

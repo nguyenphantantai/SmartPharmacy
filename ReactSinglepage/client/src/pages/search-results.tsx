@@ -301,11 +301,6 @@ export default function SearchResultsPage() {
                               {formatPrice(product.originalPrice)}
                             </span>
                           )}
-                          {product.discountPercentage && (
-                            <span className="bg-red-100 text-red-600 text-xs px-2 py-1 rounded">
-                              -{product.discountPercentage}%
-                            </span>
-                          )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-500">
                           <span>{product.brand}</span>

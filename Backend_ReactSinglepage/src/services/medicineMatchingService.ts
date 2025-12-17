@@ -443,16 +443,20 @@ export async function findSimilarMedicines(
   }
 
   // If not enough results, search by first word (broader search)
+  // QUAN TRỌNG: Chỉ match khi tên thực sự tương tự, không chỉ vì cùng prefix
+  // Ví dụ: "Acetyl leucin" KHÔNG nên match "Acetylcysteine" vì đây là 2 hoạt chất khác nhau
   if (similarProducts.length < limit) {
     const firstWord = baseName.split(/\s+/)[0];
-    if (firstWord && firstWord.length > 2) {
+    // Chỉ search theo first word nếu first word có ít nhất 5 ký tự (tránh match quá rộng)
+    // Với tên ngắn hơn, dễ gây false positive
+    if (firstWord && firstWord.length >= 5) {
       const escapedFirstWord = firstWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const normalizedFirstWord = normalizeForComparison(firstWord);
       
       const moreProducts = await Product.find({
         $or: [
-          { name: { $regex: `^${escapedFirstWord}`, $options: 'i' } },
-          { name: { $regex: escapedFirstWord, $options: 'i' } },
-          { description: { $regex: escapedFirstWord, $options: 'i' } },
+          { name: { $regex: `^${escapedFirstWord}\\s`, $options: 'i' } }, // Phải có khoảng trắng sau first word để tránh match "Acetylcysteine" với "Acetyl"
+          { name: { $regex: `^${escapedFirstWord}[^a-z]`, $options: 'i' } }, // Hoặc ký tự không phải chữ cái (như số, dấu câu)
         ]
       })
       .limit((limit - similarProducts.length) * 2);
@@ -467,12 +471,29 @@ export async function findSimilarMedicines(
           const productParsed = parseMedicineName(product.name);
           const normalizedProductBaseName = normalizeForComparison(productParsed.baseName);
           
-          // Only add if it's somewhat similar (at least first word matches)
-          if (normalizedProductBaseName.startsWith(normalizeForComparison(firstWord))) {
+          // CHẶT CHẼ HƠN: Kiểm tra xem first word có phải là từ đầy đủ không (không phải prefix)
+          // Ví dụ: "acetyl leucin" có first word là "acetyl" (5 ký tự)
+          // "Acetylcysteine" có baseName normalized là "acetylcysteine" - KHÔNG match vì không có khoảng trắng sau "acetyl"
+          // Chỉ match nếu:
+          // 1. Base name bắt đầu bằng first word VÀ có thêm ký tự (tức là có từ tiếp theo)
+          // 2. Hoặc sử dụng namesAreSimilar để kiểm tra độ tương đồng thực sự
+          const productFirstWord = productParsed.baseName.split(/\s+/)[0];
+          const normalizedProductFirstWord = normalizeForComparison(productFirstWord);
+          
+          // Chỉ match nếu first word khớp chính xác (không phải prefix của từ dài hơn)
+          if (normalizedProductFirstWord === normalizedFirstWord && 
+              (normalizedProductBaseName.length <= normalizedBaseName.length + 10)) { // Cho phép sai lệch nhỏ do OCR
             similarProducts.push({
               ...product.toObject(),
               matchReason: 'similar_name',
               confidence: 0.6
+            });
+          } else if (namesAreSimilar(normalizedProductBaseName, normalizedBaseName)) {
+            // Hoặc nếu thực sự tương tự (theo hàm namesAreSimilar)
+            similarProducts.push({
+              ...product.toObject(),
+              matchReason: 'similar_name',
+              confidence: 0.65
             });
           }
         }

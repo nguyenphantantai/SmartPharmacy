@@ -22,8 +22,6 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
     return new Intl.NumberFormat("vi-VN").format(numPrice);
   };
 
-  const discount = product.discountPercentage ?? 0;
-
   // Stock and expiration info
   const getStockInfo = () => {
     const stockQuantity = product.stockQuantity || 0;
@@ -96,12 +94,6 @@ export default function ProductCard({ product, variant = "default" }: ProductCar
             className="w-full h-32 object-cover rounded-lg mb-3 transition-transform duration-300 hover:scale-105"
             loading="lazy"
           />
-          {discount > 0 && (
-            <div className="text-xs mb-1 text-shadow">Giảm {discount}%</div>
-          )}
-          <div className="bg-yellow-300 text-red-600 text-center font-bold text-lg rounded-full py-1 mb-2 floating-animation shadow-lg">
-            {discount}%
-          </div>
           <h3 className="font-semibold text-sm mb-2 text-shadow break-words min-h-[2.5rem]" data-testid={`text-product-name-${product.id}`}>
             {product.name}
           </h3>

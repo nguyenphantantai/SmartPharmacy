@@ -65,10 +65,8 @@ export default function ProductSelectionPopup({
     return new Intl.NumberFormat("vi-VN").format(parseInt(price));
   };
 
-  const originalPrice = parseInt(product.originalPrice || "0");
   const currentPrice = parseInt(product.price);
-  const discount = originalPrice > currentPrice ? originalPrice - currentPrice : 0;
-  const discountPercent = originalPrice > 0 ? Math.round((discount / originalPrice) * 100) : 0;
+  // Bỏ tính toán discount vì là dữ liệu ảo
 
   const handleAddToCart = () => {
     // Check stock availability
@@ -200,11 +198,6 @@ export default function ProductSelectionPopup({
                 alt={product.name}
                 className="w-full h-48 object-cover rounded-lg"
               />
-              {discountPercent > 0 && (
-                <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                  GIẢM {discountPercent}%
-                </div>
-              )}
             </div>
           </div>
 

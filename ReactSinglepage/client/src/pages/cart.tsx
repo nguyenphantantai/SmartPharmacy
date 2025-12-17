@@ -25,20 +25,15 @@ export default function CartPage() {
     categoryId: product.categoryId ? String(product.categoryId) : (product.category ? String(product.category) : undefined)
   }));
   
-  // Calculate totals with discount
+  // Calculate totals (bỏ phần discount vì là dữ liệu ảo)
   const totals = items.reduce((acc, item) => {
-    const originalPrice = toNum(item.product.originalPrice || "0");
     const currentPrice = toNum(item.product.price);
-    const hasDiscount = originalPrice > currentPrice && originalPrice > 0;
-    
     const itemSubtotal = currentPrice * item.quantity;
-    const itemOriginalTotal = hasDiscount ? originalPrice * item.quantity : itemSubtotal;
-    const itemSavings = itemOriginalTotal - itemSubtotal;
     
     return {
       subtotal: acc.subtotal + itemSubtotal,
-      originalTotal: acc.originalTotal + itemOriginalTotal,
-      totalSavings: acc.totalSavings + itemSavings
+      originalTotal: acc.subtotal + itemSubtotal,
+      totalSavings: 0
     };
   }, { subtotal: 0, originalTotal: 0, totalSavings: 0 });
 
@@ -68,11 +63,8 @@ export default function CartPage() {
             ) : (
               <div className="space-y-4">
                 {items.map(({ product, quantity }) => {
-                  const originalPrice = toNum(product.originalPrice || "0");
                   const currentPrice = toNum(product.price);
-                  const hasDiscount = originalPrice > currentPrice && originalPrice > 0;
-                  const discountAmount = originalPrice - currentPrice;
-                  const discountPercent = originalPrice > 0 ? Math.round((discountAmount / originalPrice) * 100) : 0;
+                  // Bỏ tính toán discount vì là dữ liệu ảo
                   
                   // Parse product name to extract dosage/strength if present
                   // Example: "MALTAGIT_2500mg_500mg" -> name: "MALTAGIT", dosage: "2500mg/500mg"
@@ -130,15 +122,7 @@ export default function CartPage() {
                           {/* Giá */}
                           <div className="text-sm">
                             <div className="text-muted-foreground mb-1">Giá</div>
-                            {hasDiscount ? (
-                              <div>
-                                <div className="text-red-500 font-semibold">{format(currentPrice)} đ</div>
-                                <div className="text-gray-400 line-through text-xs">{format(originalPrice)} đ</div>
-                                <div className="text-xs bg-red-100 text-red-600 px-1 rounded inline-block mt-1">-{discountPercent}%</div>
-                              </div>
-                            ) : (
-                              <div className="font-semibold">{format(currentPrice)} đ</div>
-                            )}
+                            <div className="font-semibold">{format(currentPrice)} đ</div>
                           </div>
                           
                           {/* Số lượng */}
@@ -172,9 +156,6 @@ export default function CartPage() {
                           <div className="text-right">
                             <div className="text-xs text-muted-foreground mb-1">Thành tiền</div>
                             <div className="font-semibold text-lg text-red-500">{format(currentPrice * quantity)} đ</div>
-                            {hasDiscount && (
-                              <div className="text-xs text-gray-400 line-through">{format(originalPrice * quantity)} đ</div>
-                            )}
                           </div>
                           <Button 
                             variant="ghost" 
@@ -199,19 +180,13 @@ export default function CartPage() {
           <aside className="bg-card rounded-2xl border p-8 h-max">
             <h3 className="font-semibold mb-4">Thành tiền</h3>
             <div className="space-y-2 text-sm">
-              {totals.totalSavings > 0 && (
-                <div className="flex justify-between text-gray-500">
-                  <span>Tổng giá gốc</span>
-                  <span className="line-through">{format(totals.originalTotal)}đ</span>
-                </div>
-              )}
               <div className="flex justify-between text-gray-600">
                 <span>Tổng tiền</span>
                 <span className="font-semibold">{format(totals.subtotal)}đ</span>
               </div>
               {discountAmount > 0 && (
                 <div className="flex justify-between text-green-600">
-                  <span>Giảm giá</span>
+                  <span>Giảm giá (mã giảm giá)</span>
                   <span className="font-semibold">-{format(discountAmount)}đ</span>
                 </div>
               )}
@@ -221,12 +196,6 @@ export default function CartPage() {
                   <span className="text-red-500">{format(Math.max(0, currentFinalTotal))}đ</span>
                 </div>
               </div>
-              {totals.totalSavings > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Tiết kiệm</span>
-                  <span className="font-semibold">-{format(totals.totalSavings)}đ</span>
-                </div>
-              )}
             </div>
             <div className="mt-4">
               <CheckoutSavings
