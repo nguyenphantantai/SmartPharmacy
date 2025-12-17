@@ -253,10 +253,10 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   const namePatterns = [
     // Pattern 0: "Họ tên NB: HUỲNH THỊ PHƯỢNG" (format for BV ĐKKV CAI LẬY) - MOST PRIORITIZED (specific format)
     // Handle OCR errors: "NB" might be read as "N8", "N B", "N8", etc.
-    // Improved: Capture more characters, stop at "Số định danh" or similar patterns
-    /Họ\s+tên\s+N[8B][:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s|$|Số\s+định\s+danh|Số\s+căn\s+cước|số\s+định|Ngày\s+sinh|Năm\s*sinh|Tuổi|Giới|Địa|Mạch|Huyết|Nhiệt|Chẩn|Cân)/i,
+    // SIMPLIFIED: Use simpler pattern - only stop at clear keywords
+    /Họ\s+tên\s+N[8B][:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s+(?:Số\s+định\s+danh|Số\s+căn\s+cước|số\s+định\s+danh|Ngày\s+sinh|Năm\s*sinh|Tuổi|Giới\s+tính|Địa\s+chỉ|Mạch|Huyết\s+áp|Nhiệt\s+độ|Chẩn\s+đoán|Cân\s+nặng)|$)/i,
     // Pattern 0b: "Họ tên N B: HUỲNH THỊ PHƯỢNG" (OCR error - space between N and B)
-    /Họ\s+tên\s+N\s+B[:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s|$|Số\s+định\s+danh|Số\s+căn\s+cước|số\s+định|Ngày\s+sinh|Năm\s*sinh|Tuổi|Giới|Địa|Mạch|Huyết|Nhiệt|Chẩn|Cân)/i,
+    /Họ\s+tên\s+N\s+B[:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s+(?:Số\s+định\s+danh|Số\s+căn\s+cước|số\s+định\s+danh|Ngày\s+sinh|Năm\s*sinh|Tuổi|Giới\s+tính|Địa\s+chỉ|Mạch|Huyết\s+áp|Nhiệt\s+độ|Chẩn\s+đoán|Cân\s+nặng)|$)/i,
     // Pattern 1: "Họ tên: Trần Văn B" or "Họ tên: HUỲNH THỊ PHƯỢNG" (with colon, supports lowercase) - most common format
     // Improved: Capture full name until "số định danh" or semicolon, allow more characters
     /Họ\s+tên[:\s]+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]+?)(?:\s*;|$|Số\s+định\s+danh|Số\s+căn\s+cước|số\s+định|Năm\s*sinh|Tuổi|Giới|Địa|Mạch|Huyết|Nhiệt|Chẩn|Cân)/i,
@@ -300,14 +300,22 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
       let name = match[1].trim();
       // Clean up common OCR errors in names
       name = name.replace(/\s+/g, ' '); // Normalize spaces
-      // Remove trailing OCR artifacts and invalid characters (like "Ầ" at the end)
-      name = name.replace(/[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+$/i, ''); // Remove trailing invalid Vietnamese characters
-      name = name.replace(/\s+(?:sa|Cosh|seins|ie|\.|—).*$/, ''); // Remove OCR artifacts like "sa 28 Cosh seins ie sa"
+      // QUAN TRỌNG: KHÔNG xóa các ký tự tiếng Việt hợp lệ - chỉ xóa OCR artifacts rõ ràng
+      // Remove OCR artifacts nhưng giữ lại các ký tự tiếng Việt hợp lệ
+      name = name.replace(/\s+(?:sa\s+\d+|Cosh|seins|ie|—).*$/, ''); // Remove OCR artifacts nhưng không xóa ký tự tiếng Việt
       // Remove semicolon and anything after it (common separator before "số định danh")
       name = name.replace(/[;].*$/, '').trim();
       name = name.replace(/[.,:]+$/, '').trim();
+      // Remove các từ khóa không phải là tên (nếu vô tình bị capture) - chỉ remove nếu là từ đơn lẻ
+      name = name.replace(/\s+(?:Số\s+định\s+danh|Ngày\s+sinh|Năm\s*sinh|Tuổi).*$/i, '').trim();
       // Limit to 6 words to capture full Vietnamese names (e.g., "HUỲNH THỊ PHƯỢNG")
-      const words = name.split(/\s+/).filter(w => w.length > 0);
+      // QUAN TRỌNG: Chỉ filter các từ khóa đơn lẻ, không filter nếu nó là phần của từ lớn hơn
+      const words = name.split(/\s+/).filter(w => {
+        if (!w || w.length === 0) return false;
+        // Chỉ filter nếu từ đó là từ khóa đơn lẻ (không phải phần của từ lớn hơn)
+        const isKeyword = /^(?:Số|Ngày|Năm|Tuổi|Giới|Địa|Mạch|Huyết|Nhiệt|Chẩn|Cân)$/i.test(w);
+        return !isKeyword;
+      });
       name = words.slice(0, 6).join(' ');
       if (process.env.DEBUG_OCR === 'true') {
         console.log(`   Cleaned name: "${name}" (length: ${name.length})`);
@@ -359,11 +367,11 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
     // Pattern 1: "ThS.BS. Nguyễn Minh A" (with dot after ThS.BS) - capture full name, handle OCR errors like "hoe Bgl"
     // Also match "BS. hoe Bgl" (OCR error for "ThS.BS. Nguyễn Minh A") - look for Vietnamese name pattern
     /(?:ThS\.BS\.|BS\.\s+hoe\s+Bgl)\s*([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]+?)(?:\s*(?:i\s*;|:|ar|nh|gi|ï|\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})|$)/i,
-    // Pattern 1b: "BS. Nguyễn Minh A" or "BS. Nguyễn Thanh Hải" (without ThS, format for BỆNH VIỆN ĐA KHOA TỈNH and BV ĐKKV) - prioritize for this format
+    // Pattern 1b: "BS. Nguyễn Minh A" or "BS. Nguyễn Thanh Danh" (without ThS, format for BỆNH VIỆN ĐA KHOA TỈNH and BV ĐKKV) - prioritize for this format
     // Look for Vietnamese name pattern after "BS." - stop at "Khám lại", date, or other stop words
-    // Improved: Capture more characters, allow up to 4 words for full names like "Nguyễn Thanh Hải"
-    // Fixed: Don't stop at "nh" if it's part of "Thanh" - use negative lookahead
-    /BS\.\s*([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]+?)(?:\s*(?:Khám\s+lại|Khám\s+lai|\.\s*:\s*Ni|i\s*;|:\s*ar|:\s*nh\s+(?!Hải|Hai|Haii)|gi|ï|Lời|Loi|Dặn|Dan|\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})|$)/i,
+    // Improved: Capture more characters, allow up to 4 words for full names like "Nguyễn Thanh Danh"
+    // SIMPLIFIED: Use simpler pattern - only stop at clear keywords, don't stop at partial words
+    /BS\.\s*([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]+?)(?:\s+(?:Khám\s+lại|Khám\s+lai|Lời\s+dặn|Loi\s+dan|\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})|$)/i,
     // Pattern 2: "BSCKI. Lê Thanh Trang" (with dot after BSCKI) - capture full name
     /BSCKI\.\s*([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐa-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ\s]+?)(?:\s*(?:i\s*;|:|ar|nh|gi|ï|\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}:\d{2})|$)/i,
     // Pattern 2b: "BSCKT. Lê Thanh Trang" (with dot after BSCKT) - OCR error for BSCKI - prioritize, capture full name
@@ -415,9 +423,16 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
       doctorName = doctorName.replace(/\s+(?:I\s+Mì|Mì|Le\s+den|in\s+mangitheo|\d{2}\/\d{2}\/\d{4}).*$/i, '');
       doctorName = doctorName.replace(/\s+(?:i\s*;|:|ar|gi|ï)(?:\s|$).*$/, ''); // Only remove if followed by space or end
       doctorName = doctorName.replace(/\s+/g, ' ');
-      // Allow up to 4 words for full Vietnamese names like "Nguyễn Thanh Hải"
-      doctorName = doctorName.split(/\s+/).slice(0, 4).join(' ');
-      // Remove trailing invalid characters but preserve "nh" in "Thanh", "Hải"
+      // Allow up to 4 words for full Vietnamese names like "Nguyễn Thanh Danh"
+      // QUAN TRỌNG: Không giới hạn số từ nếu tên có đúng 3 từ (ví dụ: "Nguyễn Thanh Danh")
+      // Chỉ slice nếu tên quá dài (trên 4 từ) để tránh lấy nhầm phần sau
+      const words = doctorName.split(/\s+/).filter(w => w.length > 0);
+      if (words.length > 4) {
+        doctorName = words.slice(0, 4).join(' ');
+      } else {
+        doctorName = words.join(' '); // Giữ nguyên nếu <= 4 từ
+      }
+      // Remove trailing invalid characters but preserve "nh" in "Thanh", "Danh"
       doctorName = doctorName.replace(/[.,;:]+$/, '').trim();
       if (process.env.DEBUG_OCR === 'true') {
         console.log(`   Cleaned doctor name: "${doctorName}" (length: ${doctorName.length})`);
@@ -480,9 +495,11 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
   // Extract hospital name (Bệnh viện, Phòng khám, PK) - Search in full text
   const hospitalPatterns = [
     // Pattern 0a: "SỞ Y TẾ TỈNH ĐỒNG THÁP - BV ĐKKV CAI LẬY" (format for BV ĐKKV) - MOST PRIORITIZED (specific format)
-    /(?:SỞ\s*Y\s*TẾ\s+[^-]+-\s*)?BV\s*ĐKKV\s+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s|$|Địa|Dia|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|phát|sang)/i,
+    // QUAN TRỌNG: Sử dụng lookahead để lấy đầy đủ tên, chỉ dừng khi gặp các từ khóa rõ ràng
+    /(?:SỞ\s*Y\s*TẾ\s+[^-]+-\s*)?BV\s*ĐKKV\s+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?=\s+(?:Địa\s+chỉ|Dia\s+chi|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|phát|sang)|$)/i,
     // Pattern 0b: "BV ĐKKV CAI LẬY" (standalone, format for BV ĐKKV) - MOST PRIORITIZED (specific format)
-    /BV\s*ĐKKV\s+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?:\s|$|Địa|Dia|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|phát|sang)/i,
+    // QUAN TRỌNG: Sử dụng lookahead để lấy đầy đủ tên, chỉ dừng khi gặp các từ khóa rõ ràng
+    /BV\s*ĐKKV\s+([A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ][A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\s]+?)(?=\s+(?:Địa\s+chỉ|Dia\s+chi|Số|So|Phone|ĐT|PK|Phòng|Mã|Ma|phát|sang)|$)/i,
     // Pattern 0: "SỞ Y TẾ TỈNH A - BỆNH VIỆN ĐA KHOA TỈNH" (format for BỆNH VIỆN ĐA KHOA TỈNH) - PRIORITIZED
     // This pattern should be checked after BV ĐKKV patterns to avoid matching wrong prescriptions
     /SỞ\s*Y\s*TẾ\s+TỈNH\s+[A-Z]\s*-\s*BỆNH\s*VIỆN\s+ĐA\s*KHOA\s*TỈNH/i,
@@ -2205,7 +2222,14 @@ Hãy trích xuất và trả về JSON với các trường sau (chỉ trả v�
 }
 
 Lưu ý CỰC KỲ QUAN TRỌNG:
-1. Ngày sinh/Năm sinh:
+1. Tên (customerName, doctorName, hospitalName):
+   - PHẢI lấy ĐẦY ĐỦ tên, KHÔNG được cắt ngắn
+   - customerName: Ví dụ "HUỲNH THỊ PHƯỢNG" - phải lấy cả 3 từ, không chỉ "HUỲNH"
+   - doctorName: Ví dụ "Nguyễn Thanh Danh" - phải lấy cả 3 từ, không chỉ "Nguyễn Thanh"
+   - hospitalName: Ví dụ "BV ĐKKV CAI LẬY" - phải lấy đầy đủ, không chỉ "BV ĐKKV CAI"
+   - Tất cả tên PHẢI có dấu tiếng Việt đầy đủ và chính xác
+
+2. Ngày sinh/Năm sinh:
    - Tìm kiếm KỸ LƯỠNG phần "Ngày sinh:" hoặc "Năm sinh:" trong ảnh
    - Ngày sinh có thể ở dạng: "01/01/1980", "01-01-1980", "01.01.1980", hoặc chỉ "1980"
    - Nếu chỉ có năm sinh (ví dụ: "1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
@@ -2271,7 +2295,14 @@ Hãy trích xuất và trả về JSON với các trường sau (chỉ trả v�
 }
 
 Lưu ý QUAN TRỌNG:
-1. Ngày sinh/Năm sinh:
+1. Tên (customerName, doctorName, hospitalName):
+   - PHẢI lấy ĐẦY ĐỦ tên, KHÔNG được cắt ngắn
+   - customerName: Ví dụ "HUỲNH THỊ PHƯỢNG" - phải lấy cả 3 từ, không chỉ "HUỲNH"
+   - doctorName: Ví dụ "Nguyễn Thanh Danh" - phải lấy cả 3 từ, không chỉ "Nguyễn Thanh"
+   - hospitalName: Ví dụ "BV ĐKKV CAI LẬY" - phải lấy đầy đủ, không chỉ "BV ĐKKV CAI"
+   - Tất cả tên PHẢI có dấu tiếng Việt đầy đủ và chính xác
+
+2. Ngày sinh/Năm sinh:
    - Tìm kiếm kỹ lưỡng phần "Ngày sinh:" hoặc "Năm sinh:" trong văn bản
    - Ngày sinh có thể ở dạng: "01/01/1980", "01-01-1980", "01.01.1980", hoặc chỉ "1980"
    - Nếu chỉ có năm sinh (ví dụ: "1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
@@ -2485,20 +2516,30 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
   const extractedInfo = extractPrescriptionInfo(ocrText);
   console.log('✅ Extracted prescription info using pattern matching');
   
-  // Merge Gemini results (prioritize Gemini if available and more complete)
+  // Merge Gemini results (PRIORITIZE Gemini AI - it's more accurate)
   if (geminiInfo) {
-    // Merge basic info (prioritize Gemini if more complete)
-    if (geminiInfo.customerName && geminiInfo.customerName.length > (extractedInfo.customerName?.length || 0)) {
-      extractedInfo.customerName = geminiInfo.customerName;
+    console.log('🔄 Merging Gemini AI results with pattern matching results...');
+    // QUAN TRỌNG: Ưu tiên Gemini AI vì nó chính xác hơn, đặc biệt với tiếng Việt có dấu
+    // Chỉ dùng pattern matching làm fallback nếu Gemini không có giá trị
+    if (geminiInfo.customerName && geminiInfo.customerName.trim().length > 0) {
+      extractedInfo.customerName = geminiInfo.customerName.trim();
       console.log('✅ Using Gemini-extracted customer name:', extractedInfo.customerName);
+    } else if (extractedInfo.customerName) {
+      console.log('ℹ️ Using pattern-matching customer name (Gemini did not provide):', extractedInfo.customerName);
     }
-    if (geminiInfo.doctorName && geminiInfo.doctorName.length > (extractedInfo.doctorName?.length || 0)) {
-      extractedInfo.doctorName = geminiInfo.doctorName;
+    
+    if (geminiInfo.doctorName && geminiInfo.doctorName.trim().length > 0) {
+      extractedInfo.doctorName = geminiInfo.doctorName.trim();
       console.log('✅ Using Gemini-extracted doctor name:', extractedInfo.doctorName);
+    } else if (extractedInfo.doctorName) {
+      console.log('ℹ️ Using pattern-matching doctor name (Gemini did not provide):', extractedInfo.doctorName);
     }
-    if (geminiInfo.hospitalName && geminiInfo.hospitalName.length > (extractedInfo.hospitalName?.length || 0)) {
-      extractedInfo.hospitalName = geminiInfo.hospitalName;
+    
+    if (geminiInfo.hospitalName && geminiInfo.hospitalName.trim().length > 0) {
+      extractedInfo.hospitalName = geminiInfo.hospitalName.trim();
       console.log('✅ Using Gemini-extracted hospital name:', extractedInfo.hospitalName);
+    } else if (extractedInfo.hospitalName) {
+      console.log('ℹ️ Using pattern-matching hospital name (Gemini did not provide):', extractedInfo.hospitalName);
     }
     
     // Merge additional personal info (Gemini is more accurate for these)
