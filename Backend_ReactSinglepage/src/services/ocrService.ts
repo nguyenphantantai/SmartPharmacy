@@ -300,10 +300,7 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
       let name = match[1].trim();
       // Clean up common OCR errors in names
       name = name.replace(/\s+/g, ' '); // Normalize spaces
-      // QUAN TRỌNG: Xóa các ký tự OCR lỗi rõ ràng ở cuối tên (như "Ầ", "Ấ", "Ậ" đơn lẻ)
-      // Chỉ xóa nếu là ký tự đơn lẻ ở cuối (không phải phần của từ hợp lệ)
-      name = name.replace(/\s+[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+(?:\s|$)/, ''); // Xóa ký tự tiếng Việt đơn lẻ ở cuối (OCR error)
-      name = name.replace(/[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+$/, ''); // Xóa ký tự đơn lẻ ở cuối (OCR error)
+      // QUAN TRỌNG: KHÔNG xóa các ký tự tiếng Việt hợp lệ - chỉ xóa OCR artifacts rõ ràng
       // Remove OCR artifacts nhưng giữ lại các ký tự tiếng Việt hợp lệ
       name = name.replace(/\s+(?:sa\s+\d+|Cosh|seins|ie|—).*$/, ''); // Remove OCR artifacts nhưng không xóa ký tự tiếng Việt
       // Remove semicolon and anything after it (common separator before "số định danh")
@@ -344,11 +341,6 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
         if (match && match[1]) {
           let name = match[1].trim();
           name = name.replace(/\s+/g, ' ');
-          // QUAN TRỌNG: Xóa các ký tự OCR lỗi rõ ràng ở cuối tên (như "Ầ", "Ấ", "Ậ" đơn lẻ)
-          name = name.replace(/\s+[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+(?:\s|$)/, ''); // Xóa ký tự tiếng Việt đơn lẻ ở cuối (OCR error)
-          name = name.replace(/[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+$/, ''); // Xóa ký tự đơn lẻ ở cuối (OCR error)
-          // Remove OCR artifacts
-          name = name.replace(/\s+(?:sa\s+\d+|Cosh|seins|ie|—).*$/, '');
           // Allow up to 6 words for full Vietnamese names (e.g., "HUỲNH THỊ PHƯỢNG")
           name = name.split(/\s+/).slice(0, 6).join(' ');
           // Remove semicolon and anything after it
@@ -632,9 +624,6 @@ export function extractPrescriptionInfo(ocrText: string): ExtractedPrescriptionI
         hospitalName = hospitalName.replace(/[Ñp\.mm~_]+$/i, '').trim();
       // Remove OCR artifacts like "LLL", "TTT", "an đơn vị"
       hospitalName = hospitalName.replace(/\s+(?:LLL|TTT|an\s+đơn\s+vị|an\s+don\s+vi).*$/i, '').trim();
-      // QUAN TRỌNG: Xóa các ký tự OCR lỗi ở cuối như "Ầ", "Ấ" nếu là ký tự đơn lẻ
-      hospitalName = hospitalName.replace(/\s+[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+(?:\s|$)/, '');
-      hospitalName = hospitalName.replace(/[ẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]+$/, '').trim();
       // Exclude invalid hospital names like "phát" (from "bệnh viện phát sang thuốc mới")
       if (hospitalName.toLowerCase() === 'phát' || hospitalName.toLowerCase() === 'phat' || hospitalName.length < 3) {
         console.log(`   ⚠️ Hospital name rejected: invalid name "${hospitalName}"`);
@@ -2034,48 +2023,6 @@ let geminiQuotaExceeded = false;
 let geminiQuotaResetTime: number | null = null;
 let lastGeminiApiKey: string | null = null; // Track API key to detect changes
 
-// Rate limiting để tránh vượt quá rate limit (gemini-2.5-flash-lite: 10 RPM free tier)
-let geminiRequestTimestamps: number[] = []; // Track timestamps of recent requests
-const GEMINI_RPM_LIMIT = 4; // Giữ ở 4/10 để có safety margin tốt hơn, tránh lỗi 503 (free tier: 10 RPM)
-const GEMINI_RATE_LIMIT_WINDOW = 60 * 1000; // 1 phút trong milliseconds
-
-/**
- * Reset rate limit tracking (dùng khi muốn reset thủ công)
- */
-export function resetGeminiRateLimit() {
-  geminiRequestTimestamps = [];
-  console.log('🔄 Gemini rate limit tracking đã được reset');
-}
-
-/**
- * Kiểm tra và đợi nếu cần để reset rate limit về dưới 10 RPM
- * QUAN TRỌNG: Rate limit của Google được track trên server, không phải local tracking
- * Chúng ta chỉ track local để tránh gửi quá nhiều requests cùng lúc
- */
-async function ensureRateLimitReset(): Promise<void> {
-  const now = Date.now();
-  
-  // Xóa các request cũ hơn 1 phút
-  geminiRequestTimestamps = geminiRequestTimestamps.filter(ts => now - ts < GEMINI_RATE_LIMIT_WINDOW);
-  
-  // Nếu đã có 4 requests (safety margin) trong window, đợi đủ 60 giây kể từ request đầu tiên
-  if (geminiRequestTimestamps.length >= GEMINI_RPM_LIMIT) {
-    const oldestRequest = geminiRequestTimestamps[0];
-    const timeSinceOldest = now - oldestRequest;
-    // Đợi đủ 60 giây + 3 giây buffer để chắc chắn Google server đã reset window
-    const waitTime = GEMINI_RATE_LIMIT_WINDOW - timeSinceOldest + 3000;
-    
-    if (waitTime > 0 && waitTime < 70000) { // Chỉ đợi nếu < 70s để tránh đợi quá lâu
-      console.log(`⏸️ Rate limit tracking: ${geminiRequestTimestamps.length}/10 RPM trong 60s gần nhất`);
-      console.log(`   Đợi ${(waitTime/1000).toFixed(1)}s để đảm bảo không vượt quá 10 RPM...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      // Sau khi đợi, xóa lại timestamps cũ
-      geminiRequestTimestamps = geminiRequestTimestamps.filter(ts => Date.now() - ts < GEMINI_RATE_LIMIT_WINDOW);
-      console.log(`✅ Đã đợi đủ, tiếp tục request (hiện tại: ${geminiRequestTimestamps.length}/10 RPM)`);
-    }
-  }
-}
-
 /**
  * Check if Gemini quota is exceeded
  */
@@ -2131,17 +2078,11 @@ function markGeminiQuotaExceeded() {
 }
 
 /**
- * Check if error is a quota/rate limit error (429)
- * NOTE: 503 Service Unavailable is NOT a quota error - it's a temporary server overload
+ * Check if error is a quota/rate limit error
  */
 function isQuotaError(error: any): boolean {
   const errorMessage = error?.message || '';
   const errorStatus = error?.status || error?.response?.status;
-  
-  // 503 is NOT a quota error - it's a temporary server issue
-  if (errorStatus === 503 || errorMessage.includes('503') || errorMessage.includes('Service Unavailable') || errorMessage.includes('overloaded')) {
-    return false;
-  }
   
   return (
     errorStatus === 429 ||
@@ -2155,192 +2096,67 @@ function isQuotaError(error: any): boolean {
 }
 
 /**
- * Check if error is a temporary server error (503)
- */
-function isServiceUnavailableError(error: any): boolean {
-  const errorMessage = error?.message || '';
-  const errorStatus = error?.status || error?.response?.status;
-  
-  return (
-    errorStatus === 503 ||
-    errorMessage.includes('503') ||
-    errorMessage.includes('Service Unavailable') ||
-    errorMessage.includes('overloaded') ||
-    errorMessage.includes('try again later')
-  );
-}
-
-/**
- * Rate limiting helper - đảm bảo không vượt quá RPM limit
- * Free tier: 10 requests/phút (gemini-2.5-flash-lite), chúng ta giữ ở 4 để có safety margin tốt hơn, tránh lỗi 503
- */
-async function waitForRateLimit(): Promise<void> {
-  // Đảm bảo rate limit đã reset về dưới 10 trước khi tiếp tục
-  await ensureRateLimitReset();
-  
-  const now = Date.now();
-  
-  // Xóa các request cũ hơn 1 phút
-  geminiRequestTimestamps = geminiRequestTimestamps.filter(ts => now - ts < GEMINI_RATE_LIMIT_WINDOW);
-  
-  // Nếu đã đạt limit (4), đợi đến khi có slot
-  if (geminiRequestTimestamps.length >= GEMINI_RPM_LIMIT) {
-    const oldestRequest = geminiRequestTimestamps[0];
-    const waitTime = GEMINI_RATE_LIMIT_WINDOW - (now - oldestRequest) + 2000; // Thêm 2s buffer
-    if (waitTime > 0) {
-      console.log(`⏸️ Rate limit: Đã đạt ${GEMINI_RPM_LIMIT} requests/phút, đợi ${(waitTime/1000).toFixed(1)}s...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      // Sau khi đợi, xóa lại timestamps cũ
-      geminiRequestTimestamps = geminiRequestTimestamps.filter(ts => Date.now() - ts < GEMINI_RATE_LIMIT_WINDOW);
-    }
-  }
-  
-  // Ghi lại timestamp của request này
-  geminiRequestTimestamps.push(Date.now());
-  console.log(`📊 Rate limit tracking: ${geminiRequestTimestamps.length}/10 RPM`);
-}
-
-/**
- * Retry mechanism with exponential backoff for Gemini API calls
- * This helps handle temporary server overloads (503 errors)
- * QUAN TRỌNG: Chỉ skip Gemini khi thực sự hết quota (429), còn lỗi 503 sẽ retry nhiều lần
- * 
- * NGUYÊN NHÂN LỖI 503:
- * - Gemini API (đặc biệt model gemini-2.5-flash-lite) đang quá tải do nhiều người dùng free tier
- * - Free tier có rate limit (10 RPM cho gemini-2.5-flash-lite), dễ bị quá tải vào giờ cao điểm
- * - Text-only API dễ bị quá tải hơn Vision API (có queue riêng)
- * - Khi retry nhiều lần trong cùng 1 phút → vượt quá 10 RPM → rate limit → 503
- * 
- * GIẢI PHÁP:
- * - Rate limiting: Đảm bảo không vượt quá 4 requests/phút (safety margin, 4/10)
- * - Retry với exponential backoff + jitter để tránh thundering herd
- * - Tăng delay giữa các retry để server có thời gian xử lý
- * - Cân nhắc upgrade lên paid tier để có rate limit cao hơn
- */
-async function retryGeminiCall<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 2, // Chỉ retry 2 lần (tổng 3 lần thử: 1 lần đầu + 2 retry)
-  initialDelay: number = 70000 // Delay ban đầu 70 giây (đủ để reset rate limit window 60s + 10s buffer)
-): Promise<T | null> {
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      // Đợi rate limit trước mỗi request
-      await waitForRateLimit();
-      return await fn();
-    } catch (error: any) {
-      // Nếu là lỗi quota (429), không retry - return null ngay
-      if (isQuotaError(error)) {
-        console.log(`❌ Gemini quota exceeded (429) - skipping retries`);
-        throw error; // Throw để xử lý quota error ở ngoài
-      }
-      
-      // Nếu là lỗi service unavailable (503), retry với delay đủ dài để reset rate limit window
-      // QUAN TRỌNG: Rate limit của Google là 5 RPM trong rolling window 60 giây
-      // Nếu gặp 503, có thể đã vượt quá 5 requests trong 60s, cần đợi đủ 60s để reset
-      if (isServiceUnavailableError(error) && attempt < maxRetries - 1) {
-        // Đợi ít nhất 65 giây (60s window + 5s buffer) để đảm bảo rate limit window đã reset hoàn toàn
-        const minWaitTime = 65000; // 65 giây
-        const baseDelay = Math.max(minWaitTime, initialDelay * Math.pow(2, attempt));
-        // Thêm random jitter nhỏ (0-10%) để tránh thundering herd
-        const jitter = Math.random() * baseDelay * 0.1;
-        const delay = baseDelay + jitter;
-        
-        console.log(`⚠️ Gemini API temporarily unavailable (503) - attempt ${attempt + 1}/${maxRetries}, retrying in ${(delay/1000).toFixed(1)}s...`);
-        console.log(`   📊 Nguyên nhân: Rate limit trên Google server (5 RPM trong 60s) hoặc server quá tải`);
-        console.log(`   💡 Giải pháp: Đợi ${(delay/1000).toFixed(1)}s để đảm bảo rate limit window (60s) đã reset hoàn toàn`);
-        console.log(`   ⚠️ LƯU Ý: Rate limit được track trên Google server, không phải local tracking`);
-        
-        // Reset local tracking để sau khi đợi xong, bắt đầu lại từ đầu
-        geminiRequestTimestamps = [];
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      // Với các lỗi khác (network, timeout, etc.), cũng retry nếu chưa hết số lần
-      if (attempt < maxRetries - 1) {
-        const delay = initialDelay * Math.pow(2, attempt);
-        console.log(`⚠️ Gemini API error (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay/1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      
-      // Nếu đã hết số lần retry, throw error
-      throw error;
-    }
-  }
-  return null;
-}
-
-/**
  * Use Gemini AI to correct OCR text and extract structured information
  */
 async function correctOCRWithGemini(ocrText: string): Promise<string | null> {
-  // Check if Gemini is available
-  if (!process.env.GEMINI_API_KEY) {
-    console.log('⚠️ Gemini API key not set');
-    return null;
-  }
-
-  // Check quota status (this will auto-reset if API key changed)
-  if (isGeminiQuotaExceeded()) {
-    console.log('⏭️ Skipping Gemini OCR correction - quota exceeded');
-    return null;
-  }
-  
-  console.log('🔄 Attempting Gemini OCR correction... (CRITICAL: Will retry multiple times if server is busy)');
-
   try {
-    return await retryGeminiCall(async () => {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-      const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-      const model = genAI.getGenerativeModel({ model: modelName });
+    // Check if Gemini is available
+    if (!process.env.GEMINI_API_KEY) {
+      console.log('⚠️ Gemini API key not set');
+      return null;
+    }
 
-      const prompt = `Bạn là chuyên gia xử lý văn bản tiếng Việt từ OCR. Nhiệm vụ của bạn là sửa lỗi OCR và trả về văn bản chính xác.
+    // Check quota status (this will auto-reset if API key changed)
+    if (isGeminiQuotaExceeded()) {
+      console.log('⏭️ Skipping Gemini OCR correction - quota exceeded');
+      return null;
+    }
+    
+    console.log('🔄 Attempting Gemini OCR correction...');
+
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = genAI.getGenerativeModel({ model: modelName });
+
+    const prompt = `Bạn là chuyên gia xử lý văn bản tiếng Việt từ OCR. Nhiệm vụ của bạn là sửa lỗi OCR và trả về văn bản chính xác.
 
 Văn bản OCR gốc (có thể có lỗi):
 ${ocrText}
 
-Yêu cầu CỰC KỲ QUAN TRỌNG:
-1. Sửa các lỗi OCR phổ biến (ví dụ: "HUYNH" -> "HUỲNH", "Nguyễn Tha" -> "Nguyễn Thanh Danh")
+Yêu cầu:
+1. Sửa các lỗi OCR phổ biến (ví dụ: "HUYNH" -> "HUỲNH", "Nguyễn Tha" -> "Nguyễn Thanh Hải")
 2. Khôi phục dấu tiếng Việt chính xác
 3. Giữ nguyên cấu trúc và định dạng của văn bản
 4. Đảm bảo tên người, tên bệnh viện, chẩn đoán được viết đúng
-5. KHÔNG thêm hoặc bớt thông tin, chỉ sửa lỗi
-6. ĐẶC BIỆT QUAN TRỌNG: Giữ NGUYÊN TÊN THUỐC ĐẦY ĐỦ, không được cắt ngắn
-   - Ví dụ: "Attapulgit mormoiron hoạt hóa + hỗn hợp magnesi carbonat-nhôm 10 Gói hydroxyd (Mezapulgit - 2,5g + 0,3g + 0,2g)" phải giữ NGUYÊN, không được cắt
-   - Nếu tên thuốc bị chia nhiều dòng, hãy ghép lại thành 1 dòng đầy đủ
-   - Đảm bảo tất cả thông tin về thuốc (tên, hàm lượng, số lượng) được giữ nguyên và đầy đủ
+5. Không thêm hoặc bớt thông tin, chỉ sửa lỗi
 
 Trả về văn bản đã được sửa chữa:`;
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const correctedText = response.text();
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const correctedText = response.text();
 
-      if (correctedText && correctedText.trim().length > 0) {
-        console.log('✅ Gemini OCR correction completed');
-        return correctedText.trim();
-      }
+    if (correctedText && correctedText.trim().length > 0) {
+      console.log('✅ Gemini OCR correction completed');
+      return correctedText.trim();
+    }
 
-      return null;
-    });
+    return null;
   } catch (error: any) {
-    // Xử lý sau khi retry hết - chỉ xử lý quota error
+    // Check if it's a quota error
     if (isQuotaError(error)) {
       const currentApiKey = process.env.GEMINI_API_KEY;
       const apiKeyPreview = currentApiKey ? `${currentApiKey.substring(0, 10)}...${currentApiKey.substring(currentApiKey.length - 4)}` : 'N/A';
       const errorDetails = error?.message || error?.toString() || 'Unknown error';
       markGeminiQuotaExceeded();
-      console.error(`❌ Gemini OCR correction - Quota exceeded (429) - Cannot use Gemini`);
+      console.error(`❌ Gemini OCR correction - Quota exceeded`);
       console.error(`   API Key: ${apiKeyPreview}`);
       console.error(`   Error: ${errorDetails.substring(0, 200)}`);
-      console.error('   ⚠️ Will use pattern matching only (may not be as accurate)');
+      console.error('   ⚠️ If this is a NEW API key, it may also be out of quota (20 requests/day for free tier)');
+      console.error('   💡 Solution: Check quota at https://aistudio.google.com/apikey or wait for daily reset');
     } else {
-      // Các lỗi khác đã được retry nhưng vẫn fail
-      console.error(`❌ Gemini OCR correction failed after all retries:`, error?.message || error);
-      console.error('   ⚠️ Will use pattern matching only (may not be as accurate)');
+      console.error('❌ Gemini OCR correction error:', error.message);
     }
     return null;
   }
@@ -2350,29 +2166,25 @@ Trả về văn bản đã được sửa chữa:`;
  * Use Gemini AI to extract structured prescription information
  */
 async function extractInfoWithGemini(ocrText: string, imagePath?: string): Promise<Partial<ExtractedPrescriptionInfo> | null> {
-  // Check if Gemini is available
-  if (!process.env.GEMINI_API_KEY) {
-    console.log('⚠️ Gemini API key not set');
-    return null;
-  }
-
-  // Check quota status (this will auto-reset if API key changed)
-  if (isGeminiQuotaExceeded()) {
-    console.log('⏭️ Skipping Gemini extraction - quota exceeded');
-    return null;
-  }
-  
-  // Đảm bảo rate limit đã reset về dưới 10 RPM trước khi bắt đầu
-  await ensureRateLimitReset();
-  
-  console.log('🔄 Attempting Gemini extraction... (CRITICAL: Will retry multiple times if server is busy)');
-
   try {
-    return await retryGeminiCall(async () => {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-      const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-      const model = genAI.getGenerativeModel({ model: modelName });
+    // Check if Gemini is available
+    if (!process.env.GEMINI_API_KEY) {
+      console.log('⚠️ Gemini API key not set');
+      return null;
+    }
+
+    // Check quota status (this will auto-reset if API key changed)
+    if (isGeminiQuotaExceeded()) {
+      console.log('⏭️ Skipping Gemini extraction - quota exceeded');
+      return null;
+    }
+    
+    console.log('🔄 Attempting Gemini extraction...');
+
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = genAI.getGenerativeModel({ model: modelName });
 
     let prompt = '';
     let parts: any[] = [];
@@ -2424,16 +2236,13 @@ Lưu ý CỰC KỲ QUAN TRỌNG:
    - Nếu có đầy đủ ngày tháng năm (ví dụ: "01/01/1980"), đặt dateOfBirth = "1980-01-01" và yearOfBirth = "1980"
    - PHẢI TÌM KỸ - ngày sinh có thể bị OCR miss nhưng vẫn có thể thấy trong ảnh
 
-2. Thuốc (medications) - CỰC KỲ QUAN TRỌNG:
+2. Thuốc (medications):
    - Tìm kiếm phần "Thuốc điều trị:" hoặc "Thuốc:" trong ảnh
    - Mỗi thuốc thường có format: "1) Tên thuốc (tên gốc) Liều lượng SL: Số lượng Đơn vị Cách dùng: Hướng dẫn"
    - Trích xuất TẤT CẢ thuốc trong đơn, không bỏ sót
-   - Tên thuốc: PHẢI lấy ĐẦY ĐỦ, KHÔNG được cắt ngắn
-     * Lấy cả tên thương mại và tên gốc nếu có (ví dụ: "Celecoxib (Celecoxib)")
-     * Nếu tên thuốc dài hoặc có nhiều thành phần, PHẢI lấy TẤT CẢ (ví dụ: "Attapulgit mormoiron hoạt hóa + hỗn hợp magnesi carbonat-nhôm hydroxyd (Mezapulgit - 2,5g + 0,3g + 0,2g)")
-     * KHÔNG được cắt tên thuốc, kể cả khi tên rất dài hoặc có nhiều thành phần
-   - Liều lượng: lấy đầy đủ, bao gồm tất cả các thành phần (ví dụ: "200mg", "500mg", "1%/20g", "2,5g + 0,3g + 0,2g")
-   - Số lượng: lấy cả số và đơn vị (ví dụ: "10 viên", "20 viên", "02 tuýp", "10 Gói")
+   - Tên thuốc: lấy cả tên thương mại và tên gốc nếu có (ví dụ: "Celecoxib (Celecoxib)")
+   - Liều lượng: lấy đầy đủ (ví dụ: "200mg", "500mg", "1%/20g")
+   - Số lượng: lấy cả số và đơn vị (ví dụ: "10 viên", "20 viên", "02 tuýp")
    - Cách dùng: lấy đầy đủ hướng dẫn (ví dụ: "Uống: SÁNG 1 Viên", "Dùng ngoài: Lời dan")
    - Tần suất: rút gọn từ cách dùng (ví dụ: "Sáng 1 viên, Chiều 1 viên")
 
@@ -2518,38 +2327,37 @@ Lưu ý QUAN TRỌNG:
       parts = [{ text: prompt }];
     }
 
-      const result = await model.generateContent(parts);
-      const response = await result.response;
-      const responseText = response.text();
+    const result = await model.generateContent(parts);
+    const response = await result.response;
+    const responseText = response.text();
 
-      // Extract JSON from response
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const extractedInfo = JSON.parse(jsonMatch[0]);
-        console.log('✅ Gemini extracted structured info');
-        if (imagePath) {
-          console.log('   📸 Extracted from image using Vision API');
-        }
-        return extractedInfo;
+    // Extract JSON from response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const extractedInfo = JSON.parse(jsonMatch[0]);
+      console.log('✅ Gemini extracted structured info');
+      if (imagePath) {
+        console.log('   📸 Extracted from image using Vision API');
       }
+      return extractedInfo;
+    }
 
-      return null;
-    });
+    return null;
   } catch (error: any) {
-    // Xử lý sau khi retry hết - chỉ xử lý quota error
+    // Check if it's a quota error
     if (isQuotaError(error)) {
       const currentApiKey = process.env.GEMINI_API_KEY;
       const apiKeyPreview = currentApiKey ? `${currentApiKey.substring(0, 10)}...${currentApiKey.substring(currentApiKey.length - 4)}` : 'N/A';
       const errorDetails = error?.message || error?.toString() || 'Unknown error';
       markGeminiQuotaExceeded();
-      console.error(`❌ Gemini extraction - Quota exceeded (429) - Cannot use Gemini`);
+      console.error(`❌ Gemini extraction - Quota exceeded`);
       console.error(`   API Key: ${apiKeyPreview}`);
       console.error(`   Error: ${errorDetails.substring(0, 200)}`);
-      console.error('   ⚠️ Will use pattern matching only (may not be as accurate)');
+      console.error('   ⚠️ If this is a NEW API key, it may also be out of quota (20 requests/day for free tier)');
+      console.error('   💡 Solution: Check quota at https://aistudio.google.com/apikey or wait for daily reset');
+      console.error('   Will use pattern matching extraction only.');
     } else {
-      // Các lỗi khác đã được retry nhưng vẫn fail
-      console.error(`❌ Gemini extraction failed after all retries:`, error?.message || error);
-      console.error('   ⚠️ Will use pattern matching only (may not be as accurate)');
+      console.error('❌ Gemini extraction error:', error.message);
     }
     return null;
   }
@@ -2771,4 +2579,3 @@ export async function processPrescriptionImage(imagePathOrBase64: string): Promi
   
   return extractedInfo;
 }
-

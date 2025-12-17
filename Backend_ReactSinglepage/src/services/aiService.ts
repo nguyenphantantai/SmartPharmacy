@@ -60,6 +60,13 @@ interface AIChatOptions {
     medicines?: any[];
     userHistory?: any[];
     symptoms?: string[];
+    queryType?: 'medical_consultation' | 'stock_inquiry' | 'price_inquiry' | 'alternative_inquiry' | 'symptom_based';
+    productInfo?: any;
+    originalProductName?: string;
+    alternatives?: any[];
+    instruction?: string;
+    userQuery?: string;
+    isFollowUpAnswer?: boolean;
   };
 }
 
@@ -231,14 +238,69 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
     // Build context information
     let contextInfo = '';
     
-    // Add instruction for recognizing various question formats
-    contextInfo += `\n=== HƯỚNG DẪN NHẬN DIỆN CÂU HỎI ===\n`;
-    contextInfo += `Người dùng có thể hỏi theo nhiều cách khác nhau:\n`;
-    contextInfo += `- Câu hỏi trực tiếp: "Tôi bị cảm cúm, có thuốc nào không?"\n`;
-    contextInfo += `- Mô tả triệu chứng mơ hồ: "Tôi mệt và nhức người", "Người tôi khó chịu quá"\n`;
-    contextInfo += `- Câu nói tự nhiên: "Bạn ơi tôi đang bị cảm", "Nay trời lạnh quá, tôi hơi cảm rồi"\n`;
-    contextInfo += `- Câu không rõ ý: "Uống cái gì cho khỏe vậy?", "Tôi mệt quá"\n`;
-    contextInfo += `Bạn PHẢI tự phân tích để hiểu đúng nhu cầu của họ và hỏi lại 4 thông tin an toàn nếu cần.\n`;
+    // Xử lý các loại câu hỏi khác nhau
+    if (context?.queryType === 'stock_inquiry' && context?.productInfo) {
+      // Câu hỏi về tồn kho
+      const product = context.productInfo;
+      contextInfo += `\n=== THÔNG TIN TỒN KHO TỪ HỆ THỐNG ===\n`;
+      contextInfo += `Khách hàng đang hỏi về tồn kho của sản phẩm.\n\n`;
+      contextInfo += `Dữ liệu sản phẩm từ hệ thống nhà thuốc:\n`;
+      contextInfo += `- Tên thuốc: ${product.name}\n`;
+      contextInfo += `- Số lượng tồn kho: ${product.stockQuantity} ${product.unit}\n`;
+      contextInfo += `- Giá bán: ${product.price.toLocaleString('vi-VN')}đ/${product.unit}\n`;
+      contextInfo += `- Tình trạng: ${product.inStock ? 'Còn hàng' : 'Hết hàng'}\n\n`;
+      contextInfo += `Hãy trả lời câu hỏi của khách hàng một cách lịch sự và dễ hiểu.\n`;
+      contextInfo += `Nếu còn hàng, hãy thông báo số lượng và giá. Nếu hết hàng, đề xuất tìm sản phẩm thay thế.\n`;
+      contextInfo += `CHỈ sử dụng thông tin được cung cấp ở trên, KHÔNG được bịa thông tin.\n`;
+    } else if (context?.queryType === 'price_inquiry' && context?.productInfo) {
+      // Câu hỏi về giá
+      const product = context.productInfo;
+      contextInfo += `\n=== THÔNG TIN GIÁ TỪ HỆ THỐNG ===\n`;
+      contextInfo += `Khách hàng đang hỏi về giá của sản phẩm.\n\n`;
+      contextInfo += `Dữ liệu sản phẩm từ hệ thống nhà thuốc:\n`;
+      contextInfo += `- Tên thuốc: ${product.name}\n`;
+      contextInfo += `- Giá bán: ${product.price.toLocaleString('vi-VN')}đ/${product.unit}\n`;
+      if (product.originalPrice && product.originalPrice > product.price) {
+        contextInfo += `- Giá gốc: ${product.originalPrice.toLocaleString('vi-VN')}đ\n`;
+        if (product.discountPercentage > 0) {
+          contextInfo += `- Giảm giá: ${product.discountPercentage}%\n`;
+        }
+      }
+      contextInfo += `- Tình trạng: ${product.inStock ? 'Còn hàng' : 'Hết hàng'}\n\n`;
+      contextInfo += `Hãy trả lời câu hỏi của khách hàng một cách lịch sự và dễ hiểu.\n`;
+      contextInfo += `CHỈ sử dụng thông tin giá được cung cấp ở trên, KHÔNG được bịa giá.\n`;
+    } else if (context?.queryType === 'alternative_inquiry' && context?.alternatives) {
+      // Câu hỏi về thuốc thay thế
+      contextInfo += `\n=== THÔNG TIN THUỐC THAY THẾ TỪ HỆ THỐNG ===\n`;
+      contextInfo += `Khách hàng đang tìm thuốc thay thế cho "${context.originalProductName}".\n\n`;
+      contextInfo += `Các sản phẩm tương tự hiện có trong kho:\n\n`;
+      context.alternatives.forEach((alt: any, idx: number) => {
+        contextInfo += `${idx + 1}. ${alt.name}\n`;
+        if (alt.indication || alt.description) {
+          contextInfo += `   - Hoạt chất/Công dụng: ${(alt.indication || alt.description).substring(0, 150)}\n`;
+        }
+        if (alt.price) {
+          contextInfo += `   - Giá: ${alt.price.toLocaleString('vi-VN')}đ/${alt.unit || 'sản phẩm'}\n`;
+        }
+        if (alt.stockQuantity) {
+          contextInfo += `   - Tồn kho: ${alt.stockQuantity} ${alt.unit || 'sản phẩm'}\n`;
+        }
+        contextInfo += '\n';
+      });
+      contextInfo += `Hãy gợi ý cho khách hàng các lựa chọn phù hợp, ngôn ngữ dễ hiểu.\n`;
+      contextInfo += `Không khẳng định thay thế hoàn toàn, chỉ gợi ý các lựa chọn tương tự.\n`;
+      contextInfo += `CHỈ gợi ý các sản phẩm trong danh sách trên, KHÔNG được gợi ý sản phẩm khác.\n`;
+    } else {
+      // Câu hỏi tư vấn y tế thông thường
+      // Add instruction for recognizing various question formats
+      contextInfo += `\n=== HƯỚNG DẪN NHẬN DIỆN CÂU HỎI ===\n`;
+      contextInfo += `Người dùng có thể hỏi theo nhiều cách khác nhau:\n`;
+      contextInfo += `- Câu hỏi trực tiếp: "Tôi bị cảm cúm, có thuốc nào không?"\n`;
+      contextInfo += `- Mô tả triệu chứng mơ hồ: "Tôi mệt và nhức người", "Người tôi khó chịu quá"\n`;
+      contextInfo += `- Câu nói tự nhiên: "Bạn ơi tôi đang bị cảm", "Nay trời lạnh quá, tôi hơi cảm rồi"\n`;
+      contextInfo += `- Câu không rõ ý: "Uống cái gì cho khỏe vậy?", "Tôi mệt quá"\n`;
+      contextInfo += `Bạn PHẢI tự phân tích để hiểu đúng nhu cầu của họ và hỏi lại 4 thông tin an toàn nếu cần.\n`;
+    }
     
     if (context?.medicines && context.medicines.length > 0) {
       contextInfo += `\n\n=== THÔNG TIN THUỐC CÓ SẴN TRONG HỆ THỐNG ===\n`;
