@@ -167,6 +167,31 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Gemini API usage stats endpoint (for debugging multiple instances)
+app.get('/api/gemini-usage', (req, res) => {
+  try {
+    const { getGeminiApiUsageStats } = require('./services/aiService.js');
+    const stats = getGeminiApiUsageStats();
+    res.json({
+      success: true,
+      ...stats,
+      warning: stats.requestsInLastMinute >= stats.maxRpmLimit 
+        ? '⚠️ Rate limit may be reached. Check if multiple instances are using the same API key.'
+        : null,
+      instructions: {
+        checkMultipleInstances: 'If you see multiple different instanceIds in logs, multiple instances are sharing the same API key.',
+        checkGoogleCloud: 'Go to Google Cloud Console > APIs & Services > Credentials > Your API Key > Usage to see all requests.',
+        recommendation: 'If multiple instances detected, consider using separate API keys or implementing a shared rate limiter.'
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // API routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/products', productRoutes);

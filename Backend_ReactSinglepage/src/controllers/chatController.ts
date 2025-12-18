@@ -1003,6 +1003,105 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
     if (isDigestiveCategory) score += 0.4; // Good score for digestive category
   }
   
+  // Allergy/antihistamine symptoms scoring (QUAN TRỌNG - thêm logic cho thuốc kháng dị ứng)
+  if (q.includes('dị ứng') || q.includes('di ung') || q.includes('kháng dị ứng') || q.includes('khang di ung') || q.includes('antihistamine')) {
+    const allergyKeywords = ['dị ứng', 'di ung', 'allergy', 'antihistamine', 'clorpheniramin', 'chlorpheniramine', 'cetirizine', 'loratadine', 'fexofenadine', 'mề đay', 'me day', 'urticaria', 'ngứa', 'ngua', 'itchy', 'phát ban', 'phat ban', 'rash'];
+    const isAllergy = allergyKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('dị ứng') || category.includes('allergy') || category.includes('antihistamine')
+    );
+    if (isAllergy) score += 0.5; // High score for allergy medicines
+  }
+  
+  if (q.includes('ngứa') || q.includes('ngua') || q.includes('itchy')) {
+    const itchKeywords = ['ngứa', 'ngua', 'itchy', 'pruritus', 'clorpheniramin', 'chlorpheniramine', 'cetirizine', 'loratadine', 'fexofenadine'];
+    const isItch = itchKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('dị ứng') || category.includes('allergy'));
+    if (isItch) score += 0.5;
+  }
+  
+  if (q.includes('mề đay') || q.includes('me day') || q.includes('urticaria')) {
+    const urticariaKeywords = ['mề đay', 'me day', 'urticaria', 'hives', 'clorpheniramin', 'chlorpheniramine', 'cetirizine', 'loratadine', 'fexofenadine'];
+    const isUrticaria = urticariaKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('dị ứng') || category.includes('allergy'));
+    if (isUrticaria) score += 0.5;
+  }
+  
+  if (q.includes('phát ban') || q.includes('phat ban') || q.includes('rash')) {
+    const rashKeywords = ['phát ban', 'phat ban', 'rash', 'clorpheniramin', 'chlorpheniramine', 'cetirizine', 'loratadine', 'fexofenadine'];
+    const isRash = rashKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('dị ứng') || category.includes('allergy'));
+    if (isRash) score += 0.5;
+  }
+  
+  // Anti-inflammatory medicines scoring (Thuốc kháng viêm)
+  if (q.includes('kháng viêm') || q.includes('khang viem') || q.includes('anti-inflammatory') || q.includes('chống viêm') || q.includes('chong viem')) {
+    const antiInflammatoryKeywords = ['kháng viêm', 'khang viem', 'anti-inflammatory', 'chống viêm', 'chong viem', 'prednisolone', 'dexamethasone', 'methylprednisolone', 'ibuprofen', 'naproxen', 'diclofenac', 'meloxicam', 'celecoxib'];
+    const isAntiInflammatory = antiInflammatoryKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('kháng viêm') || category.includes('anti-inflammatory')
+    );
+    if (isAntiInflammatory) score += 0.5;
+  }
+  
+  // Neurological medicines scoring (Thuốc thần kinh)
+  if (q.includes('thần kinh') || q.includes('than kinh') || q.includes('neurological') || q.includes('đau đầu') || q.includes('dau dau') || q.includes('nhức đầu') || q.includes('nhuc dau') || q.includes('migraine')) {
+    const neurologicalKeywords = ['thần kinh', 'than kinh', 'neurological', 'betahistine', 'cinnarizine', 'flunarizine', 'piracetam', 'ginkgo', 'đau đầu', 'dau dau', 'nhức đầu', 'nhuc dau', 'migraine', 'vertigo', 'chóng mặt', 'chong mat'];
+    const isNeurological = neurologicalKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('thần kinh') || category.includes('neurological')
+    );
+    if (isNeurological) score += 0.5;
+  }
+  
+  // Musculoskeletal medicines scoring (Thuốc cơ xương khớp)
+  if (q.includes('xương khớp') || q.includes('xuong khop') || q.includes('đau khớp') || q.includes('dau khop') || q.includes('viêm khớp') || q.includes('viem khop') || q.includes('arthrit') || q.includes('joint pain')) {
+    const musculoskeletalKeywords = ['xương khớp', 'xuong khop', 'musculoskeletal', 'arthrit', 'đau khớp', 'dau khop', 'viêm khớp', 'viem khop', 'etoricoxib', 'celecoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'glucosamine', 'chondroitin'];
+    const isMusculoskeletal = musculoskeletalKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('xương khớp') || category.includes('musculoskeletal') || category.includes('cơ xương khớp')
+    );
+    if (isMusculoskeletal) score += 0.5;
+  }
+  
+  // Cardiovascular medicines scoring (Thuốc tim mạch, huyết áp)
+  if (q.includes('tim mạch') || q.includes('tim mach') || q.includes('huyết áp') || q.includes('huyet ap') || q.includes('cardiovascular') || q.includes('hypertension') || q.includes('blood pressure') || q.includes('hạ huyết áp') || q.includes('ha huyet ap')) {
+    const cardiovascularKeywords = ['tim mạch', 'tim mach', 'cardiovascular', 'huyết áp', 'huyet ap', 'hypertension', 'blood pressure', 'amlodipine', 'atenolol', 'losartan', 'captopril', 'enalapril', 'metoprolol', 'propranolol', 'hạ huyết áp', 'ha huyet ap'];
+    const isCardiovascular = cardiovascularKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('tim mạch') || category.includes('cardiovascular') || category.includes('huyết áp') || category.includes('hypertension')
+    );
+    if (isCardiovascular) score += 0.5;
+  }
+  
+  // Pain relief and fever reduction scoring (Giảm đau, hạ sốt)
+  if (q.includes('giảm đau') || q.includes('giam dau') || q.includes('hạ sốt') || q.includes('ha sot') || q.includes('pain relief') || q.includes('fever') || q.includes('đau') || q.includes('dau') || q.includes('sốt') || q.includes('sot')) {
+    const painFeverKeywords = ['giảm đau', 'giam dau', 'hạ sốt', 'ha sot', 'pain relief', 'fever', 'paracetamol', 'acetaminophen', 'panadol', 'efferalgan', 'hapacol', 'ibuprofen', 'aspirin'];
+    const isPainFever = painFeverKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('giảm đau') || category.includes('hạ sốt') || category.includes('pain') || category.includes('fever')
+    );
+    if (isPainFever) score += 0.5;
+  }
+  
+  // Antibiotic medicines scoring (Thuốc kháng sinh)
+  if (q.includes('kháng sinh') || q.includes('khang sinh') || q.includes('antibiotic') || q.includes('amoxicillin') || q.includes('azithromycin') || q.includes('cephalexin') || q.includes('ciprofloxacin')) {
+    const antibioticKeywords = ['kháng sinh', 'khang sinh', 'antibiotic', 'amoxicillin', 'azithromycin', 'cephalexin', 'ciprofloxacin', 'augmentin', 'cefuroxime', 'metronidazole', 'doxycycline', 'clindamycin'];
+    const isAntibiotic = antibioticKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('kháng sinh') || category.includes('antibiotic')
+    );
+    if (isAntibiotic) score += 0.5;
+  }
+  
+  // Pediatric digestive medicines scoring (Thuốc tiêu hóa cho trẻ)
+  if ((q.includes('tiêu hóa') || q.includes('tieu hoa') || q.includes('digestive')) && (q.includes('trẻ') || q.includes('tre') || q.includes('trẻ em') || q.includes('tre em') || q.includes('trẻ nhỏ') || q.includes('tre nho') || q.includes('kids') || q.includes('pediatric') || q.includes('infant'))) {
+    const pediatricDigestiveKeywords = ['tiêu hóa cho trẻ', 'tieu hoa cho tre', 'pediatric digestive', 'kids digestive', 'smecta kids', 'gastropulgite kids', 'lactulose kids', 'hepasol kid', 'nausy kids', 'infacol', 'gaviscon infant', 'sab simplex'];
+    const isPediatricDigestive = pediatricDigestiveKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('tiêu hóa cho trẻ') || category.includes('pediatric digestive')
+    );
+    if (isPediatricDigestive) score += 0.5;
+  }
+  
+  // Eye/Ear/Nose medicines scoring (Thuốc Mắt/Tai/Mũi)
+  if (q.includes('mắt') || q.includes('mat') || q.includes('eye') || q.includes('tai') || q.includes('ear') || q.includes('mũi') || q.includes('mui') || q.includes('nose') || q.includes('nghẹt mũi') || q.includes('nghet mui') || q.includes('sổ mũi') || q.includes('so mui') || q.includes('viêm mũi') || q.includes('viem mui')) {
+    const eyeEarNoseKeywords = ['mắt', 'mat', 'eye', 'ophthalmic', 'tai', 'ear', 'otic', 'mũi', 'mui', 'nose', 'nasal', 'nghẹt mũi', 'nghet mui', 'sổ mũi', 'so mui', 'viêm mũi', 'viem mui', 'rhinitis', 'otrivin', 'naphazoline', 'rhinocort', 'xịt mũi', 'xit mui', 'nhỏ mũi', 'nho mui', 'nhỏ mắt', 'nho mat', 'nhỏ tai', 'nho tai'];
+    const isEyeEarNose = eyeEarNoseKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes('mắt') || category.includes('tai') || category.includes('mũi') || category.includes('eye') || category.includes('ear') || category.includes('nose')
+    );
+    if (isEyeEarNose) score += 0.5;
+  }
+  
   // Bonus score if product is in stock
   if (product.inStock && product.stockQuantity > 0) score += 0.1;
   
@@ -1370,12 +1469,29 @@ async function semanticSearch(query: string): Promise<any[]> {
       _score: relevanceScore(query, p, matchedSymptoms)
     }));
 
-    // For digestive symptoms, lower the threshold to ensure we get results
-    // If we have matched digestive symptoms, accept lower scores
+    // For specific medicine categories, lower the threshold to ensure we get results
+    // If we have matched symptoms for these categories, accept lower scores
     const hasDigestiveSymptoms = matchedSymptoms.some(s => 
       ['khó tiêu', 'tiêu hóa', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón'].includes(s)
     );
-    const scoreThreshold = hasDigestiveSymptoms ? 0.2 : 0.3; // Lower threshold for digestive
+    const hasAllergySymptoms = matchedSymptoms.some(s => 
+      ['dị ứng', 'ngứa', 'mề đay', 'phát ban'].includes(s)
+    ) || lowerQuery.includes('dị ứng') || lowerQuery.includes('kháng dị ứng') || lowerQuery.includes('antihistamine');
+    const hasAntiInflammatorySymptoms = lowerQuery.includes('kháng viêm') || lowerQuery.includes('chống viêm') || lowerQuery.includes('anti-inflammatory');
+    const hasNeurologicalSymptoms = lowerQuery.includes('thần kinh') || lowerQuery.includes('đau đầu') || lowerQuery.includes('nhức đầu') || lowerQuery.includes('migraine');
+    const hasMusculoskeletalSymptoms = lowerQuery.includes('xương khớp') || lowerQuery.includes('đau khớp') || lowerQuery.includes('viêm khớp') || lowerQuery.includes('arthrit');
+    const hasCardiovascularSymptoms = lowerQuery.includes('tim mạch') || lowerQuery.includes('huyết áp') || lowerQuery.includes('cardiovascular') || lowerQuery.includes('hypertension');
+    const hasPainFeverSymptoms = lowerQuery.includes('giảm đau') || lowerQuery.includes('hạ sốt') || lowerQuery.includes('pain') || lowerQuery.includes('fever');
+    const hasAntibioticSymptoms = lowerQuery.includes('kháng sinh') || lowerQuery.includes('antibiotic');
+    const hasPediatricDigestiveSymptoms = (lowerQuery.includes('tiêu hóa') || lowerQuery.includes('digestive')) && (lowerQuery.includes('trẻ') || lowerQuery.includes('kids') || lowerQuery.includes('pediatric'));
+    const hasEyeEarNoseSymptoms = lowerQuery.includes('mắt') || lowerQuery.includes('tai') || lowerQuery.includes('mũi') || lowerQuery.includes('eye') || lowerQuery.includes('ear') || lowerQuery.includes('nose');
+    
+    const hasSpecialCategorySymptoms = hasDigestiveSymptoms || hasAllergySymptoms || hasAntiInflammatorySymptoms || 
+                                       hasNeurologicalSymptoms || hasMusculoskeletalSymptoms || hasCardiovascularSymptoms ||
+                                       hasPainFeverSymptoms || hasAntibioticSymptoms || hasPediatricDigestiveSymptoms || 
+                                       hasEyeEarNoseSymptoms;
+    
+    const scoreThreshold = hasSpecialCategorySymptoms ? 0.2 : 0.3; // Lower threshold for all special categories
     
     const finalResults = scored
       .filter(p => p._score > scoreThreshold)
@@ -1748,6 +1864,67 @@ function filterMedicinesByPatientInfo(medicines: any[], patientInfo: ReturnType<
   });
 }
 
+/**
+ * Filter thuốc kháng histamin cho mề đay dựa trên thời gian (cấp hay mạn) và ngứa ban đêm
+ * - Mề đay cấp (< 6 tuần) + KHÔNG ngứa nhiều về đêm: CHỈ thế hệ 2
+ * - Mề đay cấp (< 6 tuần) + CÓ ngứa nhiều về đêm: Ưu tiên thế hệ 2, có thể gợi ý thế hệ 1
+ * - Mề đay mạn (≥ 6 tuần): CHỈ dùng thế hệ 2, không đưa thế hệ 1
+ */
+function filterAntihistaminesForUrticaria(medicines: any[], duration: 'acute' | 'chronic', hasNightItching: boolean = false): any[] {
+  if (!medicines || medicines.length === 0) return medicines;
+  
+  // Phân loại thuốc theo thế hệ
+  const firstGenAntihistamines = ['clorpheniramin', 'chlorpheniramine']; // Thế hệ 1 - gây buồn ngủ
+  const secondGenAntihistamines = ['cetirizine', 'loratadine', 'fexofenadine', 'desloratadine', 'levocetirizine']; // Thế hệ 2 - ít gây buồn ngủ
+  
+  const firstGen: any[] = [];
+  const secondGen: any[] = [];
+  const others: any[] = [];
+  
+  medicines.forEach(med => {
+    const medName = (med.name || '').toLowerCase();
+    const isFirstGen = firstGenAntihistamines.some(drug => medName.includes(drug));
+    const isSecondGen = secondGenAntihistamines.some(drug => medName.includes(drug));
+    
+    if (isFirstGen) {
+      firstGen.push(med);
+    } else if (isSecondGen) {
+      secondGen.push(med);
+    } else {
+      others.push(med); // Các thuốc khác không phải kháng histamin
+    }
+  });
+  
+  // Sắp xếp thế hệ 2 theo thứ tự ưu tiên (có thể thêm logic scoring)
+  secondGen.sort((a, b) => {
+    const aName = (a.name || '').toLowerCase();
+    const bName = (b.name || '').toLowerCase();
+    // Ưu tiên Cetirizine, Loratadine, Fexofenadine
+    const priority = ['cetirizine', 'loratadine', 'fexofenadine'];
+    const aPriority = priority.findIndex(p => aName.includes(p));
+    const bPriority = priority.findIndex(p => bName.includes(p));
+    if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
+    if (aPriority !== -1) return -1;
+    if (bPriority !== -1) return 1;
+    return 0;
+  });
+  
+  if (duration === 'chronic') {
+    // Mề đay mạn: CHỈ dùng thế hệ 2, không đưa thế hệ 1
+    return [...secondGen, ...others].slice(0, 3); // Giới hạn 3 thuốc
+  } else {
+    // Mề đay cấp
+    if (hasNightItching) {
+      // Có ngứa nhiều về đêm: Ưu tiên thế hệ 2, có thể gợi ý thế hệ 1
+      const limitedFirstGen = firstGen.slice(0, 1);
+      return [...secondGen.slice(0, 2), ...others, ...limitedFirstGen].slice(0, 3); // Tối đa 3 thuốc
+    } else {
+      // KHÔNG ngứa nhiều về đêm: CHỈ thế hệ 2, không đưa thế hệ 1
+      return [...secondGen, ...others].slice(0, 3); // Giới hạn 3 thuốc
+    }
+  }
+}
+
 // Detect if current message is a follow-up answer to previous questions
 function isFollowUpAnswer(message: string, conversationHistory: ChatMessage[]): boolean {
   const lower = normalizeText(message);
@@ -2107,11 +2284,113 @@ async function generateAIResponse(
       
       // Kiểm tra xem có triệu chứng cụ thể không (đặc biệt với "tiêu hóa")
       const hasSpecificSymptom = /(khó tiêu|đầy bụng|đau bụng|tiêu chảy|táo bón|ợ nóng|buồn nôn|nôn)/i.test(lowerCombinedMessage);
-      const onlyGeneralDigestive = /tiêu hóa/i.test(lowerCombinedMessage) && !hasSpecificSymptom;
+      // Kiểm tra xem có phải là câu hỏi chung chung về một loại thuốc không (không có triệu chứng cụ thể)
+      const generalMedicineCategories = {
+        'tiêu hóa': {
+          pattern: /thuốc\s*tiêu\s*hóa|tiêu\s*hóa/i,
+          symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'ợ nóng', 'buồn nôn', 'nôn', 'đầy hơi', 'chướng bụng'],
+          question: 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: khó tiêu, đầy bụng, đau bụng, tiêu chảy, táo bón, ợ nóng, buồn nôn...).'
+        },
+        'kháng dị ứng': {
+          pattern: /thuốc\s*kháng\s*dị\s*ứng|thuốc\s*dị\s*ứng|kháng\s*dị\s*ứng/i,
+          symptoms: ['ngứa', 'mề đay', 'phát ban', 'hắt hơi', 'sổ mũi', 'nghẹt mũi', 'viêm mũi dị ứng', 'chảy nước mắt', 'đỏ mắt'],
+          question: 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: ngứa, nổi mề đay, phát ban, hắt hơi, sổ mũi, nghẹt mũi, viêm mũi dị ứng, chảy nước mắt...).'
+        },
+        'kháng viêm': {
+          pattern: /thuốc\s*kháng\s*viêm|thuốc\s*chống\s*viêm|kháng\s*viêm|chống\s*viêm/i,
+          symptoms: ['viêm', 'sưng', 'đau', 'đỏ', 'nóng'],
+          question: 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: viêm khớp, viêm họng, viêm mũi, sưng đau, đỏ nóng...).'
+        },
+        'thần kinh': {
+          pattern: /thuốc\s*thần\s*kinh|thần\s*kinh/i,
+          symptoms: ['đau đầu', 'nhức đầu', 'chóng mặt', 'hoa mắt', 'migraine', 'đau nửa đầu'],
+          question: 'Để tư vấn thuốc thần kinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: đau đầu, nhức đầu, chóng mặt, hoa mắt, migraine, đau nửa đầu...).'
+        },
+        'cơ xương khớp': {
+          pattern: /thuốc\s*cơ\s*xương\s*khớp|thuốc\s*xương\s*khớp|cơ\s*xương\s*khớp|xương\s*khớp/i,
+          symptoms: ['đau khớp', 'viêm khớp', 'đau cơ', 'cứng khớp', 'sưng khớp'],
+          question: 'Để tư vấn thuốc cơ xương khớp phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: đau khớp, viêm khớp, đau cơ, cứng khớp, sưng khớp...).'
+        },
+        'tim mạch': {
+          pattern: /thuốc\s*tim\s*mạch|thuốc\s*huyết\s*áp|tim\s*mạch|huyết\s*áp/i,
+          symptoms: ['tăng huyết áp', 'hạ huyết áp', 'đau ngực', 'nhịp tim nhanh', 'nhịp tim chậm', 'hồi hộp'],
+          question: 'Để tư vấn thuốc tim mạch/huyết áp phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: tăng huyết áp, hạ huyết áp, đau ngực, nhịp tim nhanh/chậm, hồi hộp...).'
+        },
+        'giảm đau': {
+          pattern: /thuốc\s*giảm\s*đau|giảm\s*đau|thuốc\s*hạ\s*sốt|hạ\s*sốt/i,
+          symptoms: ['đau', 'sốt', 'đau đầu', 'đau cơ', 'đau khớp', 'đau răng'],
+          question: 'Để tư vấn thuốc giảm đau/hạ sốt phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: đau đầu, đau cơ, đau khớp, đau răng, sốt, sốt cao...).'
+        },
+        'kháng sinh': {
+          pattern: /thuốc\s*kháng\s*sinh|kháng\s*sinh/i,
+          symptoms: ['nhiễm khuẩn', 'viêm nhiễm', 'sốt', 'mủ', 'đau họng', 'ho có đờm'],
+          question: 'Để tư vấn thuốc kháng sinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: nhiễm khuẩn, viêm nhiễm, sốt, có mủ, đau họng, ho có đờm...). Lưu ý: Thuốc kháng sinh cần có chỉ định của bác sĩ.'
+        },
+        'tiêu hóa cho trẻ': {
+          pattern: /thuốc\s*tiêu\s*hóa\s*cho\s*trẻ|tiêu\s*hóa\s*cho\s*trẻ|tiêu\s*hóa\s*trẻ\s*em/i,
+          symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'nôn', 'trớ'],
+          question: 'Để tư vấn thuốc tiêu hóa cho trẻ phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng trẻ đang gặp phải (ví dụ: khó tiêu, đầy bụng, đau bụng, tiêu chảy, táo bón, nôn, trớ...). Và vui lòng cho biết tuổi và cân nặng của trẻ.'
+        },
+        'mắt tai mũi': {
+          pattern: /thuốc\s*mắt|thuốc\s*tai|thuốc\s*mũi|mắt|tai|mũi/i,
+          symptoms: ['đau mắt', 'đỏ mắt', 'chảy nước mắt', 'đau tai', 'ù tai', 'nghẹt mũi', 'sổ mũi', 'viêm mũi'],
+          question: 'Để tư vấn thuốc mắt/tai/mũi phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: đau mắt, đỏ mắt, chảy nước mắt, đau tai, ù tai, nghẹt mũi, sổ mũi, viêm mũi...).'
+        }
+      };
       
-      // Nếu chỉ hỏi "thuốc tiêu hóa" mà không có triệu chứng cụ thể, thêm instruction để AI hỏi lại
-      if (onlyGeneralDigestive && patientInfo.hasAge) {
-        context.instruction = `Người dùng đã cung cấp thông tin an toàn nhưng chỉ hỏi chung chung về "thuốc tiêu hóa" mà chưa có triệu chứng cụ thể. Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc. Hãy hỏi: "Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: khó tiêu, đầy bụng, đau bụng, tiêu chảy, táo bón, ợ nóng, buồn nôn...)".`;
+      // Kiểm tra từng loại thuốc
+      let generalMedicineCategory: string | null = null;
+      for (const [category, config] of Object.entries(generalMedicineCategories)) {
+        if (config.pattern.test(lowerCombinedMessage)) {
+          // Kiểm tra xem có triệu chứng cụ thể không
+          const hasSpecificSymptomForCategory = config.symptoms.some(symptom => 
+            lowerCombinedMessage.includes(symptom.toLowerCase())
+          );
+          if (!hasSpecificSymptomForCategory) {
+            generalMedicineCategory = category;
+            break;
+          }
+        }
+      }
+      
+      // Đặc biệt: Kiểm tra mề đay - cần hỏi thêm về thời gian (cấp hay mạn)
+      const hasUrticaria = /(mề đay|me day|nổi mề đay|noi me day|urticaria)/i.test(lowerCombinedMessage);
+      let urticariaDuration: 'acute' | 'chronic' | null = null;
+      let hasUrticariaDurationInfo = false;
+      
+      if (hasUrticaria) {
+        // Kiểm tra xem đã có thông tin về thời gian chưa
+        const durationPatterns = {
+          acute: /(dưới|dưới 6|ít hơn 6|mới|mới bị|vài ngày|vài tuần|1 tuần|2 tuần|3 tuần|4 tuần|5 tuần|dưới 1 tháng|dưới 2 tháng|cấp|cấp tính)/i,
+          chronic: /(trên|trên 6|hơn 6|hơn 6 tuần|trên 6 tuần|nhiều hơn 6|6 tuần|7 tuần|8 tuần|2 tháng|3 tháng|nhiều tháng|mạn|mạn tính|kéo dài|lâu rồi)/i
+        };
+        
+        if (durationPatterns.chronic.test(lowerCombinedMessage)) {
+          urticariaDuration = 'chronic';
+          hasUrticariaDurationInfo = true;
+        } else if (durationPatterns.acute.test(lowerCombinedMessage)) {
+          urticariaDuration = 'acute';
+          hasUrticariaDurationInfo = true;
+        }
+        
+        // Nếu chưa có thông tin về thời gian, hỏi lại
+        if (!hasUrticariaDurationInfo && patientInfo.hasAge) {
+          context.instruction = `Người dùng đã cung cấp thông tin an toàn và nói về triệu chứng "mề đay" hoặc "nổi mề đay", nhưng chưa có thông tin về thời gian bị mề đay. Bạn PHẢI hỏi lại về thời gian trước khi tư vấn thuốc. Hãy hỏi một cách tự nhiên: "Mình hỏi thêm một chút để tư vấn chính xác hơn nhé:\n\n1. Bạn bị nổi mề đay đã bao lâu rồi? (dưới hay trên 6 tuần)\n2. Các nốt mề đay có xuất hiện nhiều vào ban đêm không?"\n\nKHÔNG được đưa thuốc ngay khi chưa có thông tin về thời gian.`;
+          context.queryType = 'symptom_clarification_needed';
+          context.urticariaInfo = { needsDuration: true };
+        } else if (hasUrticariaDurationInfo) {
+          // Đã có thông tin về thời gian, lưu vào context
+          context.urticariaInfo = { 
+            duration: urticariaDuration,
+            needsDuration: false 
+          };
+        }
+      }
+      
+      // Nếu chỉ hỏi chung chung về một loại thuốc mà không có triệu chứng cụ thể, thêm instruction để AI hỏi lại
+      if (generalMedicineCategory && patientInfo.hasAge && !hasUrticaria) {
+        const categoryConfig = generalMedicineCategories[generalMedicineCategory as keyof typeof generalMedicineCategories];
+        context.instruction = `Người dùng đã cung cấp thông tin an toàn nhưng chỉ hỏi chung chung về "${generalMedicineCategory}" mà chưa có triệu chứng cụ thể. Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc. Hãy hỏi: "${categoryConfig.question}"`;
         context.queryType = 'symptom_clarification_needed';
       }
       
@@ -2120,7 +2399,10 @@ async function generateAIResponse(
       const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
           lowerCombinedMessage.includes(symptom)
       );
-      if (symptomKeywords.length > 0 && !onlyGeneralDigestive) {
+      // Kiểm tra lại xem có phải là câu hỏi chung chung không
+      const isGeneralMedicineQuery = generalMedicineCategory !== null;
+      
+      if (symptomKeywords.length > 0 && !isGeneralMedicineQuery) {
         // Use semanticSearch which already has filtering logic
           const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
         if (suggestedMedicines.length > 0) {
@@ -2309,6 +2591,129 @@ async function generateAIResponse(
     // Parse patient info from entire conversation history
     // If we have age info (required), proceed to suggest medicines
     if (parsed.hasAge) {
+      // QUAN TRỌNG: Kiểm tra xem có phải là câu hỏi chung chung về một loại thuốc không TRƯỚC KHI tìm thuốc
+      const generalMedicineCategoriesRuleBased = {
+        'tiêu hóa': {
+          pattern: /thuốc\s*tiêu\s*hóa|tiêu\s*hóa/i,
+          symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'ợ nóng', 'buồn nôn', 'nôn', 'đầy hơi', 'chướng bụng']
+        },
+        'kháng dị ứng': {
+          pattern: /thuốc\s*kháng\s*dị\s*ứng|thuốc\s*dị\s*ứng|kháng\s*dị\s*ứng/i,
+          symptoms: ['ngứa', 'mề đay', 'phát ban', 'hắt hơi', 'sổ mũi', 'nghẹt mũi', 'viêm mũi dị ứng', 'chảy nước mắt', 'đỏ mắt']
+        },
+        'kháng viêm': {
+          pattern: /thuốc\s*kháng\s*viêm|thuốc\s*chống\s*viêm|kháng\s*viêm|chống\s*viêm/i,
+          symptoms: ['viêm', 'sưng', 'đau', 'đỏ', 'nóng']
+        },
+        'thần kinh': {
+          pattern: /thuốc\s*thần\s*kinh|thần\s*kinh/i,
+          symptoms: ['đau đầu', 'nhức đầu', 'chóng mặt', 'hoa mắt', 'migraine', 'đau nửa đầu']
+        },
+        'cơ xương khớp': {
+          pattern: /thuốc\s*cơ\s*xương\s*khớp|thuốc\s*xương\s*khớp|cơ\s*xương\s*khớp|xương\s*khớp/i,
+          symptoms: ['đau khớp', 'viêm khớp', 'đau cơ', 'cứng khớp', 'sưng khớp']
+        },
+        'tim mạch': {
+          pattern: /thuốc\s*tim\s*mạch|thuốc\s*huyết\s*áp|tim\s*mạch|huyết\s*áp/i,
+          symptoms: ['tăng huyết áp', 'hạ huyết áp', 'đau ngực', 'nhịp tim nhanh', 'nhịp tim chậm', 'hồi hộp']
+        },
+        'giảm đau': {
+          pattern: /thuốc\s*giảm\s*đau|giảm\s*đau|thuốc\s*hạ\s*sốt|hạ\s*sốt/i,
+          symptoms: ['đau', 'sốt', 'đau đầu', 'đau cơ', 'đau khớp', 'đau răng']
+        },
+        'kháng sinh': {
+          pattern: /thuốc\s*kháng\s*sinh|kháng\s*sinh/i,
+          symptoms: ['nhiễm khuẩn', 'viêm nhiễm', 'sốt', 'mủ', 'đau họng', 'ho có đờm']
+        },
+        'tiêu hóa cho trẻ': {
+          pattern: /thuốc\s*tiêu\s*hóa\s*cho\s*trẻ|tiêu\s*hóa\s*cho\s*trẻ|tiêu\s*hóa\s*trẻ\s*em/i,
+          symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'nôn', 'trớ']
+        },
+        'mắt tai mũi': {
+          pattern: /thuốc\s*mắt|thuốc\s*tai|thuốc\s*mũi|mắt|tai|mũi/i,
+          symptoms: ['đau mắt', 'đỏ mắt', 'chảy nước mắt', 'đau tai', 'ù tai', 'nghẹt mũi', 'sổ mũi', 'viêm mũi']
+        }
+      };
+      
+      let generalMedicineCategoryRuleBased: string | null = null;
+      for (const [category, config] of Object.entries(generalMedicineCategoriesRuleBased)) {
+        if (config.pattern.test(lowerCombinedMessage)) {
+          // QUAN TRỌNG: Loại bỏ các từ trong tên loại thuốc khi kiểm tra triệu chứng
+          // Ví dụ: "dị ứng" trong "thuốc kháng dị ứng" không phải là triệu chứng cụ thể
+          const messageWithoutMedicineName = lowerCombinedMessage.replace(config.pattern, ' ').trim();
+          const hasSpecificSymptomForCategory = config.symptoms.some(symptom => 
+            messageWithoutMedicineName.includes(symptom.toLowerCase())
+          );
+          if (!hasSpecificSymptomForCategory) {
+            generalMedicineCategoryRuleBased = category;
+            break;
+          }
+        }
+      }
+      
+      // Nếu chỉ hỏi chung chung về một loại thuốc mà không có triệu chứng cụ thể, hỏi lại triệu chứng
+      if (generalMedicineCategoryRuleBased) {
+        let clarificationQuestion = '';
+        
+        switch (generalMedicineCategoryRuleBased) {
+          case 'tiêu hóa':
+            clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'kháng dị ứng':
+            clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Ngứa\n- Nổi mề đay\n- Phát ban\n- Hắt hơi\n- Sổ mũi\n- Nghẹt mũi\n- Viêm mũi dị ứng\n- Chảy nước mắt\n- Đỏ mắt\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'kháng viêm':
+            clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Viêm khớp\n- Viêm họng\n- Viêm mũi\n- Sưng đau\n- Đỏ nóng\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'thần kinh':
+            clarificationQuestion = 'Để tư vấn thuốc thần kinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau đầu\n- Nhức đầu\n- Chóng mặt\n- Hoa mắt\n- Migraine / Đau nửa đầu\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'cơ xương khớp':
+            clarificationQuestion = 'Để tư vấn thuốc cơ xương khớp phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau khớp\n- Viêm khớp\n- Đau cơ\n- Cứng khớp\n- Sưng khớp\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'tim mạch':
+            clarificationQuestion = 'Để tư vấn thuốc tim mạch/huyết áp phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Tăng huyết áp\n- Hạ huyết áp\n- Đau ngực\n- Nhịp tim nhanh/chậm\n- Hồi hộp\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'giảm đau':
+            clarificationQuestion = 'Để tư vấn thuốc giảm đau/hạ sốt phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau đầu\n- Đau cơ\n- Đau khớp\n- Đau răng\n- Sốt\n- Sốt cao\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          case 'kháng sinh':
+            clarificationQuestion = 'Để tư vấn thuốc kháng sinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Nhiễm khuẩn\n- Viêm nhiễm\n- Sốt\n- Có mủ\n- Đau họng\n- Ho có đờm\n\n⚠️ Lưu ý: Thuốc kháng sinh cần có chỉ định của bác sĩ.';
+            break;
+          case 'tiêu hóa cho trẻ':
+            clarificationQuestion = 'Để tư vấn thuốc tiêu hóa cho trẻ phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng trẻ đang gặp phải:\n\n- Khó tiêu\n- Đầy bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Nôn / Trớ\n\nVà vui lòng cho biết tuổi và cân nặng của trẻ.';
+            break;
+          case 'mắt tai mũi':
+            clarificationQuestion = 'Để tư vấn thuốc mắt/tai/mũi phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau mắt / Đỏ mắt / Chảy nước mắt\n- Đau tai / Ù tai\n- Nghẹt mũi / Sổ mũi / Viêm mũi\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            break;
+          default:
+            clarificationQuestion = 'Để tư vấn thuốc phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải.';
+        }
+        
+        console.log('⚠️ Rule-based: General medicine category detected, asking for specific symptoms:', generalMedicineCategoryRuleBased);
+        return clarificationQuestion;
+      }
+      
+      // QUAN TRỌNG: Kiểm tra mề đay - cần hỏi về thời gian (cấp hay mạn) TRƯỚC KHI tìm thuốc
+      const hasUrticaria = /(mề đay|me day|nổi mề đay|noi me day|urticaria)/i.test(lowerCombinedMessage);
+      if (hasUrticaria) {
+        // Kiểm tra xem đã có thông tin về thời gian chưa
+        const durationPatterns = {
+          acute: /(dưới|dưới 6|ít hơn 6|mới|mới bị|vài ngày|vài tuần|1 tuần|2 tuần|3 tuần|4 tuần|5 tuần|dưới 1 tháng|dưới 2 tháng|cấp|cấp tính|mới xuất hiện|mới bắt đầu)/i,
+          chronic: /(trên|trên 6|hơn 6|hơn 6 tuần|trên 6 tuần|nhiều hơn 6|6 tuần|7 tuần|8 tuần|2 tháng|3 tháng|nhiều tháng|mạn|mạn tính|kéo dài|lâu rồi|đã lâu)/i
+        };
+        
+        const hasDurationInfo = durationPatterns.acute.test(lowerCombinedMessage) || 
+                                durationPatterns.chronic.test(lowerCombinedMessage);
+        
+        // Nếu chưa có thông tin về thời gian, hỏi lại
+        if (!hasDurationInfo) {
+          const urticariaQuestion = 'Mình hỏi thêm một chút để tư vấn chính xác hơn nhé:\n\n1. Bạn bị nổi mề đay đã bao lâu rồi? (dưới hay trên 6 tuần)\n2. Các nốt mề đay có xuất hiện nhiều vào ban đêm không?';
+          console.log('⚠️ Rule-based: Urticaria detected but no duration info, asking for duration');
+          return urticariaQuestion;
+        }
+      }
+      
       // Find the original symptom message - exclude messages that are just answers
       const originalSymptomMsg = [...conversationHistory].reverse().find(m =>
         m.role === 'user' &&
@@ -2328,15 +2733,44 @@ async function generateAIResponse(
       const suggestedMedicines = await semanticSearch(symptomQuery);
       console.log('   Semantic search result:', suggestedMedicines.length, 'medicines found');
       
+      // QUAN TRỌNG: Nếu là mề đay và đã có thông tin về thời gian, filter thuốc theo thời gian
+      let finalMedicines = suggestedMedicines;
+      if (hasUrticaria && suggestedMedicines.length > 0) {
+        // Xác định thời gian (cấp hay mạn)
+        const durationPatterns = {
+          acute: /(dưới|dưới 6|ít hơn 6|mới|mới bị|vài ngày|vài tuần|1 tuần|2 tuần|3 tuần|4 tuần|5 tuần|dưới 1 tháng|dưới 2 tháng|cấp|cấp tính|mới xuất hiện|mới bắt đầu)/i,
+          chronic: /(trên|trên 6|hơn 6|hơn 6 tuần|trên 6 tuần|nhiều hơn 6|6 tuần|7 tuần|8 tuần|2 tháng|3 tháng|nhiều tháng|mạn|mạn tính|kéo dài|lâu rồi|đã lâu)/i
+        };
+        
+        let urticariaDuration: 'acute' | 'chronic' | null = null;
+        if (durationPatterns.chronic.test(lowerCombinedMessage)) {
+          urticariaDuration = 'chronic';
+        } else if (durationPatterns.acute.test(lowerCombinedMessage)) {
+          urticariaDuration = 'acute';
+        }
+        
+        // Kiểm tra xem có ngứa nhiều về đêm không
+        const hasNightItching = /(ban đêm|buổi đêm|đêm|ngứa nhiều|ngứa dữ dội|ngứa không ngủ|nhiều vào ban đêm)/i.test(lowerCombinedMessage);
+        const noNightItching = /(không.*ban đêm|không.*đêm|không.*nhiều|ít.*ban đêm|ít.*đêm)/i.test(lowerCombinedMessage);
+        
+        // Xác định hasNightItching: nếu có "không" thì false, nếu có "nhiều" thì true
+        const nightItchingStatus = noNightItching ? false : (hasNightItching ? true : false);
+        
+        if (urticariaDuration) {
+          finalMedicines = filterAntihistaminesForUrticaria(suggestedMedicines, urticariaDuration, nightItchingStatus);
+          console.log(`   Filtered medicines for urticaria (${urticariaDuration}, nightItching: ${nightItchingStatus}):`, finalMedicines.length, 'medicines');
+        }
+      }
+      
       // Extract symptom keywords (used in both success and fallback cases)
       const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
         normalizeText(symptomQuery).includes(symptom)
       );
       
-      if (suggestedMedicines.length > 0) {
-        console.log('✅ Rule-based: Suggesting medicines for symptom:', symptomQuery, 'Found', suggestedMedicines.length, 'medicines');
+      if (finalMedicines.length > 0) {
+        console.log('✅ Rule-based: Suggesting medicines for symptom:', symptomQuery, 'Found', finalMedicines.length, 'medicines');
         console.log('   Symptom keywords:', symptomKeywords);
-        const response = await formatSymptomBasedResponse(suggestedMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
+        const response = await formatSymptomBasedResponse(finalMedicines, symptomKeywords.length > 0 ? symptomKeywords : ['cảm cúm']);
         console.log('   Response length:', response.length);
         return response;
       } else {
@@ -2432,17 +2866,108 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
       return followup;
     }
     
-    // Kiểm tra xem có triệu chứng cụ thể không (đặc biệt với "tiêu hóa")
-    const hasSpecificSymptom = /(khó tiêu|đầy bụng|đau bụng|tiêu chảy|táo bón|ợ nóng|buồn nôn|nôn)/i.test(lowerCombinedMessage);
-    const onlyGeneralDigestive = /tiêu hóa/i.test(lowerCombinedMessage) && !hasSpecificSymptom;
+    // QUAN TRỌNG: Kiểm tra xem có phải là câu hỏi chung chung về một loại thuốc không TRƯỚC KHI tìm thuốc
+    const generalMedicineCategoriesRuleBased = {
+      'tiêu hóa': {
+        pattern: /thuốc\s*tiêu\s*hóa|tiêu\s*hóa/i,
+        symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'ợ nóng', 'buồn nôn', 'nôn', 'đầy hơi', 'chướng bụng']
+      },
+      'kháng dị ứng': {
+        pattern: /thuốc\s*kháng\s*dị\s*ứng|thuốc\s*dị\s*ứng|kháng\s*dị\s*ứng/i,
+        symptoms: ['ngứa', 'mề đay', 'phát ban', 'hắt hơi', 'sổ mũi', 'nghẹt mũi', 'viêm mũi dị ứng', 'chảy nước mắt', 'đỏ mắt']
+      },
+      'kháng viêm': {
+        pattern: /thuốc\s*kháng\s*viêm|thuốc\s*chống\s*viêm|kháng\s*viêm|chống\s*viêm/i,
+        symptoms: ['viêm', 'sưng', 'đau', 'đỏ', 'nóng']
+      },
+      'thần kinh': {
+        pattern: /thuốc\s*thần\s*kinh|thần\s*kinh/i,
+        symptoms: ['đau đầu', 'nhức đầu', 'chóng mặt', 'hoa mắt', 'migraine', 'đau nửa đầu']
+      },
+      'cơ xương khớp': {
+        pattern: /thuốc\s*cơ\s*xương\s*khớp|thuốc\s*xương\s*khớp|cơ\s*xương\s*khớp|xương\s*khớp/i,
+        symptoms: ['đau khớp', 'viêm khớp', 'đau cơ', 'cứng khớp', 'sưng khớp']
+      },
+      'tim mạch': {
+        pattern: /thuốc\s*tim\s*mạch|thuốc\s*huyết\s*áp|tim\s*mạch|huyết\s*áp/i,
+        symptoms: ['tăng huyết áp', 'hạ huyết áp', 'đau ngực', 'nhịp tim nhanh', 'nhịp tim chậm', 'hồi hộp']
+      },
+      'giảm đau': {
+        pattern: /thuốc\s*giảm\s*đau|giảm\s*đau|thuốc\s*hạ\s*sốt|hạ\s*sốt/i,
+        symptoms: ['đau', 'sốt', 'đau đầu', 'đau cơ', 'đau khớp', 'đau răng']
+      },
+      'kháng sinh': {
+        pattern: /thuốc\s*kháng\s*sinh|kháng\s*sinh/i,
+        symptoms: ['nhiễm khuẩn', 'viêm nhiễm', 'sốt', 'mủ', 'đau họng', 'ho có đờm']
+      },
+      'tiêu hóa cho trẻ': {
+        pattern: /thuốc\s*tiêu\s*hóa\s*cho\s*trẻ|tiêu\s*hóa\s*cho\s*trẻ|tiêu\s*hóa\s*trẻ\s*em/i,
+        symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'nôn', 'trớ']
+      },
+      'mắt tai mũi': {
+        pattern: /thuốc\s*mắt|thuốc\s*tai|thuốc\s*mũi|mắt|tai|mũi/i,
+        symptoms: ['đau mắt', 'đỏ mắt', 'chảy nước mắt', 'đau tai', 'ù tai', 'nghẹt mũi', 'sổ mũi', 'viêm mũi']
+      }
+    };
     
-    // Nếu chỉ hỏi "thuốc tiêu hóa" mà không có triệu chứng cụ thể, hỏi lại triệu chứng
-    if (onlyGeneralDigestive && parsed.hasAge) {
-      return 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+    let generalMedicineCategoryRuleBased: string | null = null;
+    for (const [category, config] of Object.entries(generalMedicineCategoriesRuleBased)) {
+      if (config.pattern.test(lowerCombinedMessage)) {
+        const hasSpecificSymptomForCategory = config.symptoms.some(symptom => 
+          lowerCombinedMessage.includes(symptom.toLowerCase())
+        );
+        if (!hasSpecificSymptomForCategory) {
+          generalMedicineCategoryRuleBased = category;
+          break;
+        }
+      }
+    }
+    
+    // Nếu chỉ hỏi chung chung về một loại thuốc mà không có triệu chứng cụ thể, hỏi lại triệu chứng
+    if (generalMedicineCategoryRuleBased && parsed.hasAge) {
+      let clarificationQuestion = '';
+      
+      switch (generalMedicineCategoryRuleBased) {
+        case 'tiêu hóa':
+          clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'kháng dị ứng':
+          clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Ngứa\n- Nổi mề đay\n- Phát ban\n- Hắt hơi\n- Sổ mũi\n- Nghẹt mũi\n- Viêm mũi dị ứng\n- Chảy nước mắt\n- Đỏ mắt\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'kháng viêm':
+          clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Viêm khớp\n- Viêm họng\n- Viêm mũi\n- Sưng đau\n- Đỏ nóng\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'thần kinh':
+          clarificationQuestion = 'Để tư vấn thuốc thần kinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau đầu\n- Nhức đầu\n- Chóng mặt\n- Hoa mắt\n- Migraine / Đau nửa đầu\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'cơ xương khớp':
+          clarificationQuestion = 'Để tư vấn thuốc cơ xương khớp phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau khớp\n- Viêm khớp\n- Đau cơ\n- Cứng khớp\n- Sưng khớp\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'tim mạch':
+          clarificationQuestion = 'Để tư vấn thuốc tim mạch/huyết áp phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Tăng huyết áp\n- Hạ huyết áp\n- Đau ngực\n- Nhịp tim nhanh/chậm\n- Hồi hộp\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'giảm đau':
+          clarificationQuestion = 'Để tư vấn thuốc giảm đau/hạ sốt phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau đầu\n- Đau cơ\n- Đau khớp\n- Đau răng\n- Sốt\n- Sốt cao\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        case 'kháng sinh':
+          clarificationQuestion = 'Để tư vấn thuốc kháng sinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Nhiễm khuẩn\n- Viêm nhiễm\n- Sốt\n- Có mủ\n- Đau họng\n- Ho có đờm\n\n⚠️ Lưu ý: Thuốc kháng sinh cần có chỉ định của bác sĩ.';
+          break;
+        case 'tiêu hóa cho trẻ':
+          clarificationQuestion = 'Để tư vấn thuốc tiêu hóa cho trẻ phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng trẻ đang gặp phải:\n\n- Khó tiêu\n- Đầy bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Nôn / Trớ\n\nVà vui lòng cho biết tuổi và cân nặng của trẻ.';
+          break;
+        case 'mắt tai mũi':
+          clarificationQuestion = 'Để tư vấn thuốc mắt/tai/mũi phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau mắt / Đỏ mắt / Chảy nước mắt\n- Đau tai / Ù tai\n- Nghẹt mũi / Sổ mũi / Viêm mũi\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          break;
+        default:
+          clarificationQuestion = 'Để tư vấn thuốc phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải.';
+      }
+      
+      return clarificationQuestion;
     }
     
     // Nếu đã có đủ thông tin (có age) và có triệu chứng cụ thể, gợi ý thuốc ngay
-    if (parsed.hasAge && hasSymptomKeyword && (hasSpecificSymptom || !onlyGeneralDigestive)) {
+    const isGeneralMedicineQuery = generalMedicineCategoryRuleBased !== null;
+    if (parsed.hasAge && hasSymptomKeyword && !isGeneralMedicineQuery) {
       console.log('✅ Rule-based: Has age and symptom, suggesting medicines');
       const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
       if (suggestedMedicines.length > 0) {
@@ -3169,7 +3694,10 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
     // Kiểm tra xem indication có phải là hàm lượng không
     const isOnlyStrength = indication && /^\d+(\s*[+\/]\s*\d+)?\s*(mg|g|ml|%)/i.test(indication.trim()) && indication.length < 50;
     
-    if (indication && !isOnlyStrength) {
+    // Kiểm tra xem indication có chứa "đang cập nhật" không
+    const isUpdating = indication && (indication.includes('đang cập nhật') || indication.includes('cập nhật') || indication.includes('thông tin đang được'));
+    
+    if (indication && !isOnlyStrength && !isUpdating) {
       const shortIndication = indication.length > 150 
         ? indication.substring(0, 150) + '...' 
         : indication;
@@ -3191,10 +3719,29 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
         defaultIndication = 'Giảm nghẹt mũi, sổ mũi, đau đầu do cảm';
       } else if (baseName.includes('acetylcysteine')) {
         defaultIndication = 'Giúp tiêu đờm (chỉ dùng nếu có ho đờm)';
+      } else if (baseName.includes('cetirizine') || baseName.includes('cetirizin')) {
+        defaultIndication = 'Giảm các triệu chứng dị ứng: ngứa, nổi mề đay, viêm mũi dị ứng, phát ban. Ít gây buồn ngủ.';
+      } else if (baseName.includes('loratadine') || baseName.includes('loratadin')) {
+        defaultIndication = 'Giảm các triệu chứng dị ứng: viêm mũi dị ứng, mề đay, ngứa. Ít gây buồn ngủ, phù hợp dùng ban ngày.';
+      } else if (baseName.includes('fexofenadine') || baseName.includes('fexofenadin')) {
+        defaultIndication = 'Giảm các triệu chứng dị ứng: mề đay, viêm mũi dị ứng. Ít gây buồn ngủ, tác dụng kéo dài.';
+      } else if (baseName.includes('clorpheniramin') || baseName.includes('chlorpheniramine')) {
+        defaultIndication = 'Điều trị các triệu chứng dị ứng: mề đay, ngứa, viêm mũi dị ứng, phát ban. Có thể gây buồn ngủ.';
       } else {
         // Try to get from commonMedicineInfo
         const commonInfo = commonMedicineInfo[medicine.name] || commonMedicineInfo[baseName];
-        defaultIndication = commonInfo?.indication || 'Thông tin đang được cập nhật. Vui lòng liên hệ dược sĩ.';
+        defaultIndication = commonInfo?.indication || '';
+        
+        // Nếu vẫn không có, kiểm tra xem có phải là "đang cập nhật" không
+        if (!defaultIndication || defaultIndication.includes('đang cập nhật') || defaultIndication.includes('cập nhật')) {
+          // Generate mô tả dựa trên tên thuốc nếu có thể
+          if (baseName.includes('antihistamin') || baseName.includes('kháng dị ứng')) {
+            defaultIndication = 'Giảm các triệu chứng dị ứng: ngứa, mề đay, viêm mũi dị ứng.';
+          } else {
+            // Không hiển thị "đang cập nhật", để trống hoặc generate mô tả chung
+            defaultIndication = 'Thuốc điều trị các triệu chứng dị ứng.';
+          }
+        }
       }
       
       response += `   - Công dụng: ${defaultIndication}\n`;

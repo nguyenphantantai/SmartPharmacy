@@ -7,25 +7,72 @@ let geminiClient: any = null;
 
 // Rate limiting cho Gemini API để tránh lỗi 503
 // Free tier: 5 RPM (requests per minute), 20 RPD (requests per day)
-// Chúng ta sẽ giới hạn ở 4 RPM để an toàn
+// Chúng ta sẽ giới hạn ở 3 RPM để an toàn hơn (conservative approach)
 interface RateLimitState {
   requests: number[];
   lastRequestTime: number;
+  consecutive503Errors: number;
+  last503ErrorTime: number;
+  isCircuitOpen: boolean; // Circuit breaker pattern
+  instanceId: string; // Unique instance identifier
+  processId: number; // Process ID
+  hostname: string; // Hostname
+  apiKeyHash: string; // Hash of API key (first 10 + last 4 chars) để detect multiple instances
+}
+
+// Generate unique instance ID (combination of hostname, process ID, and start time)
+const INSTANCE_ID = `${require('os').hostname()}-${process.pid}-${Date.now()}`;
+const PROCESS_ID = process.pid;
+const HOSTNAME = require('os').hostname();
+
+// Hash API key để detect nếu có nhiều instance dùng cùng key
+function hashApiKey(apiKey: string | undefined): string {
+  if (!apiKey) return 'NOT_SET';
+  if (apiKey.length < 14) return 'INVALID';
+  return `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}`;
 }
 
 const geminiRateLimit: RateLimitState = {
   requests: [],
-  lastRequestTime: 0
+  lastRequestTime: 0,
+  consecutive503Errors: 0,
+  last503ErrorTime: 0,
+  isCircuitOpen: false,
+  instanceId: INSTANCE_ID,
+  processId: PROCESS_ID,
+  hostname: HOSTNAME,
+  apiKeyHash: hashApiKey(process.env.GEMINI_API_KEY)
 };
 
-const GEMINI_RPM_LIMIT = 4; // Giới hạn 4 requests/phút (an toàn hơn 5)
-const GEMINI_MIN_DELAY_MS = 12000; // Tối thiểu 12 giây giữa các requests (60s / 5 = 12s, nhưng dùng 12s để an toàn)
+const GEMINI_RPM_LIMIT = 3; // Giới hạn 3 requests/phút (an toàn hơn 4, conservative)
+const GEMINI_MIN_DELAY_MS = 20000; // Tối thiểu 20 giây giữa các requests (60s / 3 = 20s)
+const CIRCUIT_BREAKER_THRESHOLD = 3; // Sau 3 lỗi 503 liên tiếp, mở circuit breaker
+const CIRCUIT_BREAKER_RESET_TIME = 60000; // Đợi 60 giây trước khi thử lại sau khi circuit breaker mở
 
 /**
  * Kiểm tra và đợi nếu cần để tuân thủ rate limit của Gemini
+ * Cải thiện với queue system và circuit breaker
  */
 async function waitForGeminiRateLimit(): Promise<void> {
   const now = Date.now();
+  
+  // Kiểm tra circuit breaker - nếu đang mở và chưa đủ thời gian reset, đợi thêm
+  if (geminiRateLimit.isCircuitOpen) {
+    const timeSinceLast503 = now - geminiRateLimit.last503ErrorTime;
+    if (timeSinceLast503 < CIRCUIT_BREAKER_RESET_TIME) {
+      const waitTime = CIRCUIT_BREAKER_RESET_TIME - timeSinceLast503;
+      console.log(`🔴 Circuit breaker is OPEN. Waiting ${Math.ceil(waitTime / 1000)}s before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      // Reset circuit breaker sau khi đợi
+      geminiRateLimit.isCircuitOpen = false;
+      geminiRateLimit.consecutive503Errors = 0;
+      console.log(`🟢 Circuit breaker reset, attempting request...`);
+    } else {
+      // Đã đủ thời gian, reset circuit breaker
+      geminiRateLimit.isCircuitOpen = false;
+      geminiRateLimit.consecutive503Errors = 0;
+    }
+  }
   
   // Xóa các requests cũ hơn 1 phút
   geminiRateLimit.requests = geminiRateLimit.requests.filter(
@@ -35,24 +82,24 @@ async function waitForGeminiRateLimit(): Promise<void> {
   // Nếu đã đạt giới hạn RPM, đợi đến khi có slot
   if (geminiRateLimit.requests.length >= GEMINI_RPM_LIMIT) {
     const oldestRequest = geminiRateLimit.requests[0];
-    const waitTime = 60000 - (now - oldestRequest) + 1000; // +1s buffer
+    const waitTime = 60000 - (now - oldestRequest) + 2000; // +2s buffer để an toàn
     if (waitTime > 0) {
-      console.log(`⏳ Gemini rate limit: waiting ${Math.ceil(waitTime / 1000)}s before next request...`);
+      console.log(`⏳ Gemini rate limit: waiting ${Math.ceil(waitTime / 1000)}s before next request... (${geminiRateLimit.requests.length}/${GEMINI_RPM_LIMIT} requests in last minute)`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
       // Xóa lại sau khi đợi
+      const newNow = Date.now();
       geminiRateLimit.requests = geminiRateLimit.requests.filter(
-        timestamp => Date.now() - timestamp < 60000
+        timestamp => newNow - timestamp < 60000
       );
     }
   }
   
-  // Đảm bảo có delay tối thiểu giữa các requests (chỉ khi cần thiết)
-  // Chỉ delay nếu request trước đó quá gần (< 12 giây)
+  // Đảm bảo có delay tối thiểu giữa các requests
   const timeSinceLastRequest = now - geminiRateLimit.lastRequestTime;
   if (timeSinceLastRequest < GEMINI_MIN_DELAY_MS && geminiRateLimit.lastRequestTime > 0) {
     const waitTime = GEMINI_MIN_DELAY_MS - timeSinceLastRequest;
     if (waitTime > 0) {
-      console.log(`⏳ Gemini minimum delay: waiting ${Math.ceil(waitTime / 1000)}s...`);
+      console.log(`⏳ Gemini minimum delay: waiting ${Math.ceil(waitTime / 1000)}s... (minimum ${GEMINI_MIN_DELAY_MS / 1000}s between requests)`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
@@ -60,6 +107,69 @@ async function waitForGeminiRateLimit(): Promise<void> {
   // Ghi nhận request mới
   geminiRateLimit.requests.push(Date.now());
   geminiRateLimit.lastRequestTime = Date.now();
+  
+  // Log instance info lần đầu tiên hoặc khi API key thay đổi
+  const currentApiKeyHash = hashApiKey(process.env.GEMINI_API_KEY);
+  if (currentApiKeyHash !== geminiRateLimit.apiKeyHash) {
+    geminiRateLimit.apiKeyHash = currentApiKeyHash;
+    console.log(`🔑 Gemini API Key detected: ${currentApiKeyHash}`);
+    console.log(`   Instance: ${geminiRateLimit.instanceId}`);
+    console.log(`   Process ID: ${geminiRateLimit.processId}`);
+    console.log(`   Hostname: ${geminiRateLimit.hostname}`);
+    console.log(`   ⚠️  If multiple instances use the same API key, rate limits will be shared!`);
+  }
+}
+
+/**
+ * Get API usage statistics for debugging
+ */
+export function getGeminiApiUsageStats() {
+  const now = Date.now();
+  const recentRequests = geminiRateLimit.requests.filter(
+    timestamp => now - timestamp < 60000
+  );
+  
+  return {
+    instanceId: geminiRateLimit.instanceId,
+    processId: geminiRateLimit.processId,
+    hostname: geminiRateLimit.hostname,
+    apiKeyHash: geminiRateLimit.apiKeyHash,
+    requestsInLastMinute: recentRequests.length,
+    maxRpmLimit: GEMINI_RPM_LIMIT,
+    lastRequestTime: geminiRateLimit.lastRequestTime ? new Date(geminiRateLimit.lastRequestTime).toISOString() : null,
+    timeSinceLastRequest: geminiRateLimit.lastRequestTime ? Math.round((now - geminiRateLimit.lastRequestTime) / 1000) : null,
+    consecutive503Errors: geminiRateLimit.consecutive503Errors,
+    isCircuitOpen: geminiRateLimit.isCircuitOpen,
+    circuitBreakerResetTime: geminiRateLimit.isCircuitOpen && geminiRateLimit.last503ErrorTime 
+      ? Math.round((CIRCUIT_BREAKER_RESET_TIME - (now - geminiRateLimit.last503ErrorTime)) / 1000)
+      : null
+  };
+}
+
+/**
+ * Ghi nhận lỗi 503 để quản lý circuit breaker
+ */
+function record503Error(): void {
+  geminiRateLimit.consecutive503Errors++;
+  geminiRateLimit.last503ErrorTime = Date.now();
+  
+  if (geminiRateLimit.consecutive503Errors >= CIRCUIT_BREAKER_THRESHOLD) {
+    geminiRateLimit.isCircuitOpen = true;
+    console.log(`🔴 Circuit breaker OPENED after ${geminiRateLimit.consecutive503Errors} consecutive 503 errors. Will wait ${CIRCUIT_BREAKER_RESET_TIME / 1000}s before retrying.`);
+  } else {
+    console.log(`⚠️ 503 error recorded (${geminiRateLimit.consecutive503Errors}/${CIRCUIT_BREAKER_THRESHOLD}). Circuit breaker will open if this continues.`);
+  }
+}
+
+/**
+ * Reset error counter khi request thành công
+ */
+function reset503ErrorCounter(): void {
+  if (geminiRateLimit.consecutive503Errors > 0) {
+    console.log(`✅ Request successful, resetting 503 error counter (was ${geminiRateLimit.consecutive503Errors})`);
+    geminiRateLimit.consecutive503Errors = 0;
+    geminiRateLimit.isCircuitOpen = false;
+  }
 }
 
 // Export initialization function for server startup
@@ -90,9 +200,17 @@ async function initializeClients() {
       const { GoogleGenerativeAI } = await import('@google/generative-ai');
       // IMPORTANT: Never log API key - only use it for initialization
       geminiClient = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      // Update API key hash when client is initialized
+      geminiRateLimit.apiKeyHash = hashApiKey(process.env.GEMINI_API_KEY);
+      
       // Default to gemini-2.5-flash (stable and fast), user can override with GEMINI_MODEL
       const modelName = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
       console.log(`✅ Google Gemini AI initialized (Model: ${modelName})`);
+      console.log(`   Instance ID: ${geminiRateLimit.instanceId}`);
+      console.log(`   Process ID: ${geminiRateLimit.processId}`);
+      console.log(`   Hostname: ${geminiRateLimit.hostname}`);
+      console.log(`   API Key: ${geminiRateLimit.apiKeyHash}`);
+      console.log(`   ⚠️  If multiple instances use the same API key, rate limits will be shared!`);
     } catch (error: any) {
       const errorMsg = error?.message || 'Unknown error';
       console.log('⚠️ Google Gemini package not installed or error:', errorMsg.substring(0, 100));
@@ -117,13 +235,17 @@ interface AIChatOptions {
     medicines?: any[];
     userHistory?: any[];
     symptoms?: string[];
-    queryType?: 'medical_consultation' | 'stock_inquiry' | 'price_inquiry' | 'alternative_inquiry' | 'symptom_based';
+    queryType?: 'medical_consultation' | 'stock_inquiry' | 'price_inquiry' | 'alternative_inquiry' | 'symptom_based' | 'symptom_clarification_needed';
     productInfo?: any;
     originalProductName?: string;
     alternatives?: any[];
     instruction?: string;
     userQuery?: string;
     isFollowUpAnswer?: boolean;
+    urticariaInfo?: {
+      duration?: 'acute' | 'chronic';
+      needsDuration?: boolean;
+    };
   };
 }
 
@@ -525,6 +647,44 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc.\n`;
       contextInfo += `KHÔNG được tư vấn thuốc khi chưa biết triệu chứng cụ thể.\n`;
     }
+    
+    // Đặc biệt: Hướng dẫn tư vấn mề đay (urticaria)
+    if ((context as any).urticariaInfo) {
+      const urticariaInfo = (context as any).urticariaInfo;
+      
+      if (urticariaInfo.needsDuration) {
+        contextInfo += `\n⚠️⚠️⚠️ QUAN TRỌNG: Người dùng đã nói về triệu chứng "mề đay" hoặc "nổi mề đay", nhưng chưa có thông tin về thời gian.\n`;
+        contextInfo += `Bạn PHẢI hỏi lại về thời gian trước khi tư vấn thuốc.\n`;
+        contextInfo += `Hãy hỏi một cách tự nhiên: "Mình hỏi thêm một chút để tư vấn chính xác hơn nhé:\n\n1. Bạn bị nổi mề đay đã bao lâu rồi? (dưới hay trên 6 tuần)\n2. Các nốt mề đay có xuất hiện nhiều vào ban đêm không?"\n`;
+        contextInfo += `KHÔNG được đưa thuốc ngay khi chưa có thông tin về thời gian.\n`;
+      } else if (urticariaInfo.duration) {
+        contextInfo += `\n=== HƯỚNG DẪN TƯ VẤN MỀ ĐAY (QUAN TRỌNG) ===\n`;
+        
+        if (urticariaInfo.duration === 'chronic') {
+          contextInfo += `🔵 MỀ ĐAY MẠN TÍNH (≥ 6 tuần):\n`;
+          contextInfo += `✅ CHỈ được gợi ý THẾ HỆ 2 (Cetirizine, Loratadine, Fexofenadine) - ít gây buồn ngủ\n`;
+          contextInfo += `❌ TUYỆT ĐỐI KHÔNG được gợi ý THẾ HỆ 1 (Clorpheniramin) - gây buồn ngủ\n`;
+          contextInfo += `📌 Ưu tiên: Cetirizine > Loratadine > Fexofenadine\n`;
+          contextInfo += `📌 Chỉ gợi ý 2-3 thuốc thế hệ 2, không gợi ý quá nhiều\n`;
+        } else {
+          contextInfo += `🟢 MỀ ĐAY CẤP TÍNH (< 6 tuần):\n`;
+          contextInfo += `✅ ƯU TIÊN THẾ HỆ 2 (Cetirizine, Loratadine, Fexofenadine) - ít gây buồn ngủ\n`;
+          contextInfo += `📌 Ưu tiên: Cetirizine > Loratadine > Fexofenadine\n`;
+          contextInfo += `⚠️ Thế hệ 1 (Clorpheniramin) CHỈ gợi ý như phương án phụ nếu ngứa nhiều về đêm\n`;
+          contextInfo += `📌 Format gợi ý:\n`;
+          contextInfo += `   1. Cetirizine 10mg – giúp giảm ngứa và mề đay, ít gây buồn ngủ\n`;
+          contextInfo += `   2. Loratadine 10mg – phù hợp dùng ban ngày\n`;
+          contextInfo += `   (Nếu ngứa nhiều về đêm, có thể cân nhắc Clorpheniramin dùng buổi tối do thuốc có thể gây buồn ngủ)\n`;
+          contextInfo += `📌 KHÔNG được đưa cả 2 thế hệ cùng lúc ngay từ đầu\n`;
+        }
+        
+        contextInfo += `\n⚠️ LƯU Ý QUAN TRỌNG:\n`;
+        contextInfo += `- KHÔNG được gợi ý cả thế hệ 1 và thế hệ 2 cùng lúc ngay từ đầu\n`;
+        contextInfo += `- Thế hệ 1 (Clorpheniramin) chỉ là phương án phụ cho mề đay cấp\n`;
+        contextInfo += `- Mề đay mạn TẤT CẢ phải dùng thế hệ 2\n`;
+        contextInfo += `- Không được để "Công dụng: đang cập nhật" - phải mô tả công dụng cụ thể\n`;
+      }
+    }
 
     // Thêm thông tin bệnh nhân vào context
     if (context?.patientInfo) {
@@ -690,6 +850,9 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
         const response = await result.response;
         aiResponse = response.text();
         
+        // Reset error counter khi thành công
+        reset503ErrorCounter();
+        
         // Success - break out of retry loop
         break;
       } catch (error: any) {
@@ -699,9 +862,22 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
         
         // Nếu là lỗi 503 (Service Unavailable) và chưa hết số lần retry
         if ((errorStatus === 503 || errorMessage?.includes('503') || errorMessage?.includes('overloaded') || errorMessage?.includes('Service Unavailable')) && attempt < maxRetries - 1) {
-          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
-          console.log(`⚠️ Gemini API overloaded (503), retrying in ${waitTime}ms... (attempt ${attempt + 1}/${maxRetries})`);
+          // Ghi nhận lỗi 503
+          record503Error();
+          
+          // Exponential backoff với base time lớn hơn: 2s, 4s, 8s
+          const waitTime = Math.pow(2, attempt + 1) * 1000; // 2s, 4s, 8s
+          console.log(`⚠️ Gemini API overloaded (503), retrying in ${waitTime / 1000}s... (attempt ${attempt + 1}/${maxRetries})`);
+          console.log(`   Consecutive 503 errors: ${geminiRateLimit.consecutive503Errors}/${CIRCUIT_BREAKER_THRESHOLD}`);
+          
           await new Promise(resolve => setTimeout(resolve, waitTime));
+          
+          // Nếu circuit breaker đã mở, không retry nữa
+          if (geminiRateLimit.isCircuitOpen) {
+            console.log(`🔴 Circuit breaker is OPEN, stopping retry attempts. Will fallback to rule-based system.`);
+            throw new Error('Gemini API circuit breaker is open due to multiple 503 errors');
+          }
+          
           continue; // Retry
         } else {
           // Không phải lỗi 503 hoặc đã hết số lần retry, throw error
@@ -750,7 +926,13 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
     } else if (errorStatus === 429 || errorMessage?.includes('429') || errorMessage?.includes('quota') || errorMessage?.includes('rate limit')) {
       console.log('⚠️ Gemini API rate limit reached, falling back to rule-based system');
     } else if (errorStatus === 503 || errorMessage?.includes('503') || errorMessage?.includes('overloaded') || errorMessage?.includes('Service Unavailable')) {
-      console.log('⚠️ Gemini API service unavailable (503 - model overloaded), falling back to rule-based system');
+      // Ghi nhận lỗi 503
+      record503Error();
+      console.log(`⚠️ Gemini API service unavailable (503 - model overloaded), falling back to rule-based system`);
+      console.log(`   Consecutive 503 errors: ${geminiRateLimit.consecutive503Errors}/${CIRCUIT_BREAKER_THRESHOLD}`);
+      if (geminiRateLimit.isCircuitOpen) {
+        console.log(`🔴 Circuit breaker is OPEN. Next requests will wait ${CIRCUIT_BREAKER_RESET_TIME / 1000}s before attempting.`);
+      }
       console.log('   This usually means the model is temporarily overloaded. The system will use rule-based fallback.');
     } else {
       // Log generic error without full error object (may contain sensitive info)
