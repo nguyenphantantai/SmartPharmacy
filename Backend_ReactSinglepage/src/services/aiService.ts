@@ -239,6 +239,7 @@ interface AIChatOptions {
     productInfo?: any;
     originalProductName?: string;
     alternatives?: any[];
+    isReverseQuestion?: boolean; // Flag để phân biệt "có thay thế được cho" vs "thay thế cho"
     instruction?: string;
     userQuery?: string;
     isFollowUpAnswer?: boolean;
@@ -456,13 +457,43 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `CHỈ sử dụng thông tin giá được cung cấp ở trên, KHÔNG được bịa giá.\n`;
     } else if (context?.queryType === 'alternative_inquiry' && context?.alternatives) {
       // Câu hỏi về thuốc thay thế
+      console.log(`[aiService] ✅ Xử lý alternative_inquiry với ${context.alternatives.length} sản phẩm thay thế`);
+      const isReverseQuestion = context.isReverseQuestion || false;
+      
       contextInfo += `\n=== THÔNG TIN THUỐC THAY THẾ TỪ HỆ THỐNG ===\n`;
-      contextInfo += `Khách hàng đang tìm thuốc thay thế cho "${context.originalProductName}".\n\n`;
-      contextInfo += `Các sản phẩm tương tự hiện có trong kho:\n\n`;
+      
+      if (isReverseQuestion) {
+        // Câu hỏi: "Siro Ích Nhi có thay thế được cho sản phẩm nào không?"
+        contextInfo += `Khách hàng đang hỏi: "${context.originalProductName}" có thể thay thế cho những sản phẩm nào?\n\n`;
+        contextInfo += `Các sản phẩm mà "${context.originalProductName}" có thể thay thế (cùng danh mục, nhóm thuốc, dạng bào chế và cách dùng):\n\n`;
+      } else {
+        // Câu hỏi: "Có sản phẩm nào thay thế cho Siro Ích Nhi không?"
+        contextInfo += `Khách hàng đang tìm thuốc thay thế cho "${context.originalProductName}".\n\n`;
+        contextInfo += `Các sản phẩm thay thế (cùng danh mục, nhóm thuốc, dạng bào chế và cách dùng):\n\n`;
+      }
+      
+      contextInfo += `⚠️ QUAN TRỌNG: Các sản phẩm dưới đây đã được lọc theo 4 tiêu chí:\n`;
+      contextInfo += `1. Cùng Danh mục (Category)\n`;
+      contextInfo += `2. Cùng Nhóm thuốc (Subcategory/Medicine Group)\n`;
+      contextInfo += `3. Cùng Dạng bào chế (Dosage Form)\n`;
+      contextInfo += `4. Cùng Cách dùng (Route)\n\n`;
+      
       context.alternatives.forEach((alt: any, idx: number) => {
         contextInfo += `${idx + 1}. ${alt.name}\n`;
         if (alt.indication || alt.description) {
-          contextInfo += `   - Hoạt chất/Công dụng: ${(alt.indication || alt.description).substring(0, 150)}\n`;
+          contextInfo += `   - Công dụng: ${(alt.indication || alt.description).substring(0, 150)}\n`;
+        }
+        if (alt.category) {
+          contextInfo += `   - Danh mục: ${alt.category}\n`;
+        }
+        if (alt.subcategory) {
+          contextInfo += `   - Nhóm thuốc: ${alt.subcategory}\n`;
+        }
+        if (alt.dosageForm) {
+          contextInfo += `   - Dạng bào chế: ${alt.dosageForm}\n`;
+        }
+        if (alt.route) {
+          contextInfo += `   - Cách dùng: ${alt.route}\n`;
         }
         if (alt.price) {
           contextInfo += `   - Giá: ${alt.price.toLocaleString('vi-VN')}đ/${alt.unit || 'sản phẩm'}\n`;
@@ -472,9 +503,37 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
         }
         contextInfo += '\n';
       });
-      contextInfo += `Hãy gợi ý cho khách hàng các lựa chọn phù hợp, ngôn ngữ dễ hiểu.\n`;
-      contextInfo += `Không khẳng định thay thế hoàn toàn, chỉ gợi ý các lựa chọn tương tự.\n`;
-      contextInfo += `CHỈ gợi ý các sản phẩm trong danh sách trên, KHÔNG được gợi ý sản phẩm khác.\n`;
+      
+      contextInfo += `\n⚠️⚠️⚠️ QUY TẮC TRẢ LỜI (BẮT BUỘC CỰC KỲ):\n`;
+      contextInfo += `1. BẮT BUỘC: Bạn PHẢI liệt kê CỤ THỂ từng sản phẩm thay thế từ danh sách trên.\n`;
+      contextInfo += `2. BẮT BUỘC: KHÔNG được nói "chưa tìm thấy" hoặc "không có sản phẩm phù hợp" khi đã có danh sách sản phẩm ở trên.\n`;
+      contextInfo += `3. BẮT BUỘC: PHẢI trả lời theo format dưới đây:\n\n`;
+      contextInfo += `   Dựa trên 4 tiêu chí (cùng danh mục, nhóm thuốc, dạng bào chế và cách dùng), "${context.originalProductName}" có thể thay thế cho các sản phẩm sau:\n\n`;
+      contextInfo += `   [Số]. **[Tên sản phẩm]**\n`;
+      contextInfo += `   - Danh mục: [danh mục]\n`;
+      contextInfo += `   - Nhóm thuốc: [nhóm thuốc]\n`;
+      contextInfo += `   - Dạng bào chế: [dạng bào chế]\n`;
+      contextInfo += `   - Cách dùng: [cách dùng]\n`;
+      contextInfo += `   - Công dụng: [công dụng]\n`;
+      contextInfo += `   ${context.alternatives.some((alt: any) => alt.price) ? '- Giá: [giá] (nếu có)\n' : ''}`;
+      contextInfo += `\n   ⚠️ Lưu ý: Các sản phẩm này có cùng 4 tiêu chí với "${context.originalProductName}", nhưng việc thay thế thuốc cần được tư vấn bởi dược sĩ để đảm bảo an toàn và hiệu quả.\n\n`;
+      contextInfo += `4. ❌❌❌ TUYỆT ĐỐI KHÔNG được trả lời:\n`;
+      contextInfo += `   - "Hiện tại, trong danh mục thuốc có sẵn, tôi chưa tìm thấy thuốc cụ thể phù hợp..."\n`;
+      contextInfo += `   - "Không tìm thấy sản phẩm thay thế phù hợp..."\n`;
+      contextInfo += `   - "Để được tư vấn cụ thể hơn, bạn có thể liên hệ trực tiếp với dược sĩ..." (chỉ nói câu này ở cuối, sau khi đã liệt kê sản phẩm)\n`;
+      contextInfo += `5. ✅✅✅ PHẢI trả lời: Liệt kê CỤ THỂ từng sản phẩm với đầy đủ thông tin (tên, danh mục, nhóm thuốc, dạng bào chế, cách dùng, công dụng)\n`;
+    } else if (context?.queryType === 'alternative_inquiry' && (!context?.alternatives || context.alternatives.length === 0)) {
+      // Trường hợp không tìm thấy sản phẩm thay thế
+      contextInfo += `\n=== THÔNG TIN THUỐC THAY THẾ ===\n`;
+      contextInfo += `⚠️⚠️⚠️ QUAN TRỌNG: HỆ THỐNG KHÔNG TÌM THẤY SẢN PHẨM THAY THẾ PHÙ HỢP.\n`;
+      contextInfo += `⚠️⚠️⚠️ BẮT BUỘC: Bạn PHẢI trả lời:\n`;
+      contextInfo += `"Hiện tại, trong danh mục thuốc có sẵn, tôi chưa tìm thấy sản phẩm cụ thể phù hợp để thay thế cho "${context.originalProductName || 'sản phẩm này'}".\n\n`;
+      contextInfo += `Sản phẩm thay thế cần có cùng:\n`;
+      contextInfo += `- Danh mục (Category)\n`;
+      contextInfo += `- Nhóm thuốc (Subcategory)\n`;
+      contextInfo += `- Dạng bào chế (Dosage Form)\n`;
+      contextInfo += `- Cách dùng (Route)\n\n`;
+      contextInfo += `Để được tư vấn cụ thể hơn, bạn có thể liên hệ trực tiếp với dược sĩ tại nhà thuốc."\n`;
     } else {
       // Câu hỏi tư vấn y tế thông thường
       // Add instruction for recognizing various question formats

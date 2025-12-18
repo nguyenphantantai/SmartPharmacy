@@ -529,6 +529,29 @@ function classifyQuestionIntent(userMessage: string): {
  * Cải thiện để xử lý các trường hợp như "ok biết rồi, muốn biết Siro Ích Nhi"
  */
 function extractProductNameFromMessage(message: string): string | undefined {
+  // Xử lý đặc biệt cho câu hỏi về thay thế
+  // Pattern: "[Tên sản phẩm] có thay thế được cho sản phẩm nào không?"
+  // Hoặc: "Có sản phẩm nào thay thế cho [Tên sản phẩm] không?"
+  const alternativePatterns = [
+    // Pattern 1: "[Tên] có thay thế được cho sản phẩm nào không?"
+    /^([A-ZÀ-ỹ][A-Za-zÀ-ỹ\s]{2,50}?)\s+(?:có\s+)?(?:thay\s+thế|thay\s+cho|tương\s+đương)(?:\s+được)?(?:\s+cho)?(?:\s+sản\s+phẩm)?(?:\s+nào)?(?:\s+không)?[?.,!]*$/i,
+    // Pattern 2: "Có sản phẩm nào thay thế cho [Tên] không?"
+    /^(?:có\s+)?(?:sản\s+phẩm\s+)?(?:nào\s+)?(?:thay\s+thế|thay\s+cho|tương\s+đương)(?:\s+cho)?\s+([A-ZÀ-ỹ][A-Za-zÀ-ỹ\s]{2,50}?)(?:\s+không)?[?.,!]*$/i,
+    // Pattern 3: "[Tên] có thể thay thế cho sản phẩm nào?"
+    /^([A-ZÀ-ỹ][A-Za-zÀ-ỹ\s]{2,50}?)\s+(?:có\s+thể\s+)?(?:thay\s+thế|thay\s+cho)(?:\s+cho)?(?:\s+sản\s+phẩm)?(?:\s+nào)?[?.,!]*$/i,
+  ];
+  
+  for (const pattern of alternativePatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const extracted = match[1].trim();
+      if (extracted.length >= 2 && extracted.length < 100 && /[a-zA-ZÀ-ỹ]/.test(extracted)) {
+        console.log(`[extractProductNameFromMessage] ✅ Extract từ pattern thay thế: "${extracted}" từ câu: "${message}"`);
+        return extracted;
+      }
+    }
+  }
+  
   // Danh sách các từ/cụm từ cần loại bỏ (mở rộng)
   const removePatterns = [
     // Từ chào hỏi, xác nhận
@@ -541,11 +564,14 @@ function extractProductNameFromMessage(message: string): string | undefined {
     // Từ về số lượng, giá
     /còn lại|còn bao nhiêu|còn không|còn hàng|tồn kho|số lượng|giá|giá bao nhiêu|bao nhiêu/gi,
     
-    // Từ về thay thế
-    /thay thế|thay cho|tương đương/gi,
+    // Từ về thay thế (mở rộng)
+    /thay thế|thay cho|tương đương|có thay thế|có thể thay|thay thế được|thay thế cho|cho sản phẩm nào|sản phẩm nào|có.*?không/gi,
     
     // Từ muốn, cần
     /muốn biết|muốn hỏi|muốn|tôi muốn|cần biết|cần hỏi/gi,
+    
+    // Từ phủ định, xác nhận
+    /có được|được cho|nào không|không\?/gi,
   ];
   
   let cleaned = message;
@@ -565,6 +591,7 @@ function extractProductNameFromMessage(message: string): string | undefined {
   if (cleaned.length >= 2 && cleaned.length < 100) {
     // Kiểm tra xem có phải là tên sản phẩm hợp lệ không (có chữ cái)
     if (/[a-zA-ZÀ-ỹ]/.test(cleaned)) {
+      console.log(`[extractProductNameFromMessage] ✅ Extract sau khi clean: "${cleaned}" từ câu: "${message}"`);
       return cleaned;
     }
   }
@@ -851,7 +878,11 @@ async function queryProductPrice(productName: string): Promise<any | null> {
 
 /**
  * Query database để tìm thuốc thay thế
- * Tìm các thuốc có cùng hoạt chất, cùng chỉ định, hoặc cùng nhóm điều trị
+ * Tìm các thuốc thay thế dựa trên 4 điều kiện:
+ * 1. Cùng Danh mục (Category)
+ * 2. Cùng Nhóm thuốc (Subcategory/Medicine Group)
+ * 3. Cùng Dạng bào chế (Dosage Form)
+ * 4. Cùng Cách dùng (Route)
  */
 async function queryAlternativeMedicines(productName: string, limit: number = 5): Promise<any[]> {
   try {
@@ -861,98 +892,144 @@ async function queryAlternativeMedicines(productName: string, limit: number = 5)
     const productsCollection = db.collection('products');
     const medicinesCollection = db.collection('medicines');
     
-    // Tìm sản phẩm gốc
-    const originalProduct = await productsCollection.findOne({
+    // Tìm sản phẩm gốc - ưu tiên medicines collection vì có đầy đủ thông tin hơn
+    let originalProduct = await medicinesCollection.findOne({
       $or: [
-        { name: { $regex: productName, $options: 'i' } },
-        { brand: { $regex: productName, $options: 'i' } }
-      ]
-    }) || await medicinesCollection.findOne({
-      $or: [
-        { name: { $regex: productName, $options: 'i' } },
-        { brand: { $regex: productName, $options: 'i' } }
+        { name: { $regex: productName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+        { brand: { $regex: productName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
       ]
     });
     
+    // Nếu không tìm thấy trong medicines, tìm trong products
     if (!originalProduct) {
+      originalProduct = await productsCollection.findOne({
+        $or: [
+          { name: { $regex: productName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { brand: { $regex: productName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+        ]
+      });
+    }
+    
+    if (!originalProduct) {
+      console.log(`[queryAlternativeMedicines] Không tìm thấy sản phẩm gốc: "${productName}"`);
       return [];
     }
     
-    // Lấy thông tin để tìm thuốc thay thế
+    console.log(`[queryAlternativeMedicines] Tìm thấy sản phẩm gốc: "${originalProduct.name}"`);
+    
+    // Lấy thông tin 4 điều kiện từ sản phẩm gốc
+    // QUAN TRỌNG: Field trong database là subCategory (chữ C viết hoa), không phải subcategory
     const originalName = (originalProduct.name || '').toLowerCase();
-    const originalIndication = (originalProduct.indication || originalProduct.description || '').toLowerCase();
-    const originalCategory = (originalProduct.categoryName || originalProduct.category || '').toLowerCase();
+    const originalCategory = (originalProduct.category || originalProduct.mainCategory || originalProduct.categoryName || '').trim();
+    const originalSubcategory = (originalProduct.subCategory || originalProduct.subcategory || originalProduct.subcategoryName || originalProduct.medicineGroup || originalProduct.group || '').trim();
+    const originalDosageForm = (originalProduct.dosageForm || originalProduct.form || originalProduct.dosage || '').trim();
+    const originalRoute = (originalProduct.route || originalProduct.administrationRoute || '').trim();
     
-    // Tìm các thuốc tương tự:
-    // 1. Cùng category/indication
-    // 2. Có tên tương tự (nhưng không phải chính nó)
-    // 3. Có trong kho
+    console.log(`[queryAlternativeMedicines] Thông tin sản phẩm gốc:`);
+    console.log(`  - Category: "${originalCategory}"`);
+    console.log(`  - Subcategory: "${originalSubcategory}"`);
+    console.log(`  - DosageForm: "${originalDosageForm}"`);
+    console.log(`  - Route: "${originalRoute}"`);
     
-    const alternatives: any[] = [];
+    // Xây dựng query tìm thuốc thay thế với 4 điều kiện
+    // QUAN TRỌNG: Tất cả 4 điều kiện phải khớp (AND logic)
+    const searchConditions: any[] = [
+      { name: { $not: { $regex: originalName, $options: 'i' } } } // Loại bỏ chính sản phẩm gốc
+    ];
     
-    // Tìm theo indication/description
-    if (originalIndication) {
-      const indicationKeywords = originalIndication.split(/\s+/).filter((w: string) => w.length > 3);
-      if (indicationKeywords.length > 0) {
-        const products = await productsCollection.find({
-          $and: [
-            {
-              $or: [
-                { indication: { $regex: indicationKeywords.join('|'), $options: 'i' } },
-                { description: { $regex: indicationKeywords.join('|'), $options: 'i' } }
-              ]
-            },
-            { name: { $not: { $regex: originalName, $options: 'i' } } },
-            { inStock: true },
-            { stockQuantity: { $gt: 0 } }
-          ]
-        })
-        .limit(limit)
-        .toArray();
-        
-        alternatives.push(...products);
-      }
-    }
-    
-    // Tìm theo category
+    // Điều kiện 1: Cùng Danh mục (Category)
     if (originalCategory) {
-      const medicines = await medicinesCollection.find({
-        $and: [
-          { categoryName: { $regex: originalCategory, $options: 'i' } },
-          { name: { $not: { $regex: originalName, $options: 'i' } } }
+      searchConditions.push({
+        $or: [
+          { category: { $regex: originalCategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { mainCategory: { $regex: originalCategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { categoryName: { $regex: originalCategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
         ]
-      })
-      .limit(limit)
-      .toArray();
-      
-      // Convert medicines to product format
-      const convertedMedicines = medicines.map(med => ({
-        _id: med._id,
-        name: med.name,
-        price: med.price || 0,
-        description: med.description || med.indication || '',
-        brand: med.brand || '',
-        inStock: (med.stockQuantity || 0) > 0,
-        stockQuantity: med.stockQuantity || 0,
-        unit: med.unit || 'đơn vị',
-        imageUrl: med.imageUrl || '',
-        indication: med.indication || '',
-        categoryName: med.categoryName || ''
-      }));
-      
-      alternatives.push(...convertedMedicines);
+      });
     }
     
-    // Loại bỏ trùng lặp
+    // Điều kiện 2: Cùng Nhóm thuốc (Subcategory)
+    // QUAN TRỌNG: Field trong database là subCategory (chữ C viết hoa)
+    if (originalSubcategory) {
+      searchConditions.push({
+        $or: [
+          { subCategory: { $regex: originalSubcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }, // Ưu tiên subCategory (chữ C viết hoa)
+          { subcategory: { $regex: originalSubcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { subcategoryName: { $regex: originalSubcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { medicineGroup: { $regex: originalSubcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { group: { $regex: originalSubcategory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+        ]
+      });
+    }
+    
+    // Điều kiện 3: Cùng Dạng bào chế (Dosage Form)
+    if (originalDosageForm) {
+      searchConditions.push({
+        $or: [
+          { dosageForm: { $regex: originalDosageForm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { form: { $regex: originalDosageForm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { dosage: { $regex: originalDosageForm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+        ]
+      });
+    }
+    
+    // Điều kiện 4: Cùng Cách dùng (Route)
+    if (originalRoute) {
+      searchConditions.push({
+        $or: [
+          { route: { $regex: originalRoute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } },
+          { administrationRoute: { $regex: originalRoute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } }
+        ]
+      });
+    }
+    
+    // Nếu không có đủ 4 điều kiện, không tìm được thuốc thay thế
+    if (searchConditions.length <= 1) {
+      console.log(`[queryAlternativeMedicines] ⚠️ Không đủ thông tin để tìm thuốc thay thế (thiếu category, subcategory, dosageForm, hoặc route)`);
+      return [];
+    }
+    
+    // Tìm trong medicines collection (ưu tiên vì có đầy đủ thông tin)
+    const alternatives = await medicinesCollection.find({
+      $and: searchConditions
+    })
+    .limit(limit * 2) // Lấy nhiều hơn để filter sau
+    .toArray();
+    
+    console.log(`[queryAlternativeMedicines] Tìm thấy ${alternatives.length} thuốc thay thế tiềm năng`);
+    
+    // Convert medicines to product format và giữ lại đầy đủ thông tin
+    const convertedAlternatives = alternatives.map(med => ({
+      _id: med._id,
+      name: med.name,
+      price: med.price || med.salePrice || 0,
+      description: med.description || med.indication || med.indications || med.uses || med.congDung || '',
+      brand: med.brand || '',
+      inStock: (med.stock || med.stockQuantity || 0) > 0,
+      stockQuantity: med.stock || med.stockQuantity || 0,
+      unit: med.unit || 'đơn vị',
+      imageUrl: med.imageUrl || med.image || med.imagePath || '',
+      indication: med.indication || med.indications || med.uses || med.congDung || '',
+        categoryName: med.category || med.mainCategory || med.categoryName || '',
+        category: med.category || med.mainCategory || med.categoryName || '',
+        subcategory: med.subCategory || med.subcategory || med.subcategoryName || med.medicineGroup || med.group || '', // QUAN TRỌNG: subCategory (chữ C viết hoa)
+        dosageForm: med.dosageForm || med.form || med.dosage || '',
+        route: med.route || med.administrationRoute || ''
+    }));
+    
+    // Loại bỏ trùng lặp và giới hạn số lượng
     const uniqueAlternatives = new Map<string, any>();
-    for (const alt of alternatives) {
-      const key = (alt.name || '').toLowerCase();
-      if (!uniqueAlternatives.has(key) && key !== originalName) {
+    for (const alt of convertedAlternatives) {
+      const key = (alt.name || '').toLowerCase().trim();
+      if (key && !uniqueAlternatives.has(key) && key !== originalName) {
         uniqueAlternatives.set(key, alt);
       }
     }
     
-    return Array.from(uniqueAlternatives.values()).slice(0, limit);
+    const result = Array.from(uniqueAlternatives.values()).slice(0, limit);
+    console.log(`[queryAlternativeMedicines] ✅ Trả về ${result.length} thuốc thay thế: ${result.map(r => r.name).join(', ')}`);
+    
+    return result;
   } catch (error) {
     console.error('Error querying alternative medicines:', error);
     return [];
@@ -2566,14 +2643,19 @@ async function generateAIResponse(
       return `Để mình tìm thuốc thay thế, bạn vui lòng cho mình biết tên sản phẩm cụ thể nhé.`;
     }
     
+    // Xác định loại câu hỏi: "có thay thế được cho" = tìm sản phẩm mà sản phẩm này có thể thay thế
+    const lowerMessage = normalizeText(userMessage);
+    const isReverseQuestion = lowerMessage.includes('có thay thế được cho') || lowerMessage.includes('thay thế được cho sản phẩm nào');
+    
     const alternatives = await queryAlternativeMedicines(productName, 5);
     if (alternatives.length > 0) {
       const aiService = await import('../services/aiService.js').catch(() => null);
       if (aiService) {
         const context: any = {
           queryType: 'alternative_inquiry',
-          originalProductName: extractedProductName,
-          alternatives: alternatives
+          originalProductName: productName,
+          alternatives: alternatives,
+          isReverseQuestion: isReverseQuestion // Flag để AI biết loại câu hỏi
         };
         const response = await aiService.generateAIResponseWithGemini({
           userMessage: userMessage,
@@ -2584,24 +2666,45 @@ async function generateAIResponse(
       }
       
       // Fallback: trả lời trực tiếp
-      let response = `Nếu bạn đang tìm sản phẩm thay thế cho "${extractedProductName}", nhà thuốc hiện có các lựa chọn sau:\n\n`;
-      alternatives.forEach((alt, idx) => {
-        response += `${idx + 1}. **${alt.name}**\n`;
-        if (alt.indication || alt.description) {
-          response += `   - Tác dụng: ${(alt.indication || alt.description).substring(0, 100)}\n`;
-        }
-        if (alt.price) {
-          response += `   - Giá: ${alt.price.toLocaleString('vi-VN')}đ/${alt.unit || 'sản phẩm'}\n`;
-        }
-        if (alt.stockQuantity) {
-          response += `   - Tồn kho: ${alt.stockQuantity} ${alt.unit || 'sản phẩm'}\n`;
-        }
-        response += '\n';
-      });
-      response += `Tùy độ tuổi và tình trạng sức khỏe, mình có thể tư vấn kỹ hơn cho bạn nhé.`;
-      return response;
+      if (isReverseQuestion) {
+        // Câu hỏi: "Siro Ích Nhi có thay thế được cho sản phẩm nào không?"
+        let response = `"${productName}" có thể thay thế cho các sản phẩm sau (cùng danh mục, nhóm thuốc, dạng bào chế và cách dùng):\n\n`;
+        alternatives.forEach((alt, idx) => {
+          response += `${idx + 1}. **${alt.name}**\n`;
+          if (alt.indication || alt.description) {
+            response += `   - Tác dụng: ${(alt.indication || alt.description).substring(0, 100)}\n`;
+          }
+          if (alt.price) {
+            response += `   - Giá: ${alt.price.toLocaleString('vi-VN')}đ/${alt.unit || 'sản phẩm'}\n`;
+          }
+          if (alt.stockQuantity) {
+            response += `   - Tồn kho: ${alt.stockQuantity} ${alt.unit || 'sản phẩm'}\n`;
+          }
+          response += '\n';
+        });
+        response += `\n⚠️ Lưu ý: Việc thay thế thuốc cần được tư vấn bởi dược sĩ để đảm bảo an toàn và hiệu quả.`;
+        return response;
+      } else {
+        // Câu hỏi: "Có sản phẩm nào thay thế cho Siro Ích Nhi không?"
+        let response = `Các sản phẩm thay thế cho "${productName}" (cùng danh mục, nhóm thuốc, dạng bào chế và cách dùng):\n\n`;
+        alternatives.forEach((alt, idx) => {
+          response += `${idx + 1}. **${alt.name}**\n`;
+          if (alt.indication || alt.description) {
+            response += `   - Tác dụng: ${(alt.indication || alt.description).substring(0, 100)}\n`;
+          }
+          if (alt.price) {
+            response += `   - Giá: ${alt.price.toLocaleString('vi-VN')}đ/${alt.unit || 'sản phẩm'}\n`;
+          }
+          if (alt.stockQuantity) {
+            response += `   - Tồn kho: ${alt.stockQuantity} ${alt.unit || 'sản phẩm'}\n`;
+          }
+          response += '\n';
+        });
+        response += `\n⚠️ Lưu ý: Việc thay thế thuốc cần được tư vấn bởi dược sĩ để đảm bảo an toàn và hiệu quả.`;
+        return response;
+      }
     } else {
-      return `Xin lỗi, mình không tìm thấy sản phẩm thay thế phù hợp cho "${productName}" trong kho hiện tại.\n\nBạn có thể liên hệ trực tiếp với dược sĩ tại quầy để được tư vấn cụ thể hơn.`;
+      return `Xin lỗi, mình không tìm thấy sản phẩm thay thế phù hợp cho "${productName}" trong kho hiện tại.\n\nSản phẩm thay thế cần có cùng:\n- Danh mục (Category)\n- Nhóm thuốc (Subcategory)\n- Dạng bào chế (Dosage Form)\n- Cách dùng (Route)\n\nBạn có thể liên hệ trực tiếp với dược sĩ tại quầy để được tư vấn cụ thể hơn.`;
     }
   }
 

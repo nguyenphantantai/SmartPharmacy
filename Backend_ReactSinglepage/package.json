@@ -41,7 +41,8 @@
     "db:check-supabase-files": "tsx check-supabase-files.ts",
     "db:fix-medicines-path": "tsx fix-medicines-path-urls.ts",
     "db:read-metadata": "tsx src/utils/readMetadataCollections.ts",
-    "db:read-categories": "tsx src/utils/readCategories.ts"
+    "db:read-categories": "tsx src/utils/readCategories.ts",
+    "db:check-medicine-fields": "tsx src/utils/checkMedicineFields.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
