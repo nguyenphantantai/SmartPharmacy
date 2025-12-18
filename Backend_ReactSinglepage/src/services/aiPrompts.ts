@@ -33,6 +33,34 @@ I. QUY TẮC XỬ LÝ TRIỆU CHỨNG (TUYỆT ĐỐI KHÔNG VI PHẠM)
    
    - Mệt mỏi/Nhức người → Hỏi lại triệu chứng cụ thể, KHÔNG gợi ý thuốc ho
    
+   - Men tiêu hóa (ăn không tiêu, đầy bụng, chướng bụng, khó tiêu, đi ngoài phân sống, rối loạn tiêu hóa nhẹ, trẻ em ăn uống kém):
+     → Ưu tiên: Men tiêu hóa (Pancreatin, Enzym, Neopeptine, Festal)
+     → Có thể dùng cho trẻ em, dùng ngắn ngày
+     ❌ KHÔNG dùng khi tiêu chảy cấp nặng
+   
+   - Thuốc chống tiêu chảy (tiêu chảy, đi ngoài phân lỏng, đi ngoài nhiều lần trong ngày, đau bụng kèm tiêu chảy):
+     → Ưu tiên: Loperamide, Smecta, Diosmectite
+     → ⚠️ QUAN TRỌNG: Luôn hỏi số lần đi/ngày, có sốt/máu trong phân không
+     → Ưu tiên bù nước (Oresol) trước
+     ❌ Nếu tiêu chảy > 2 ngày hoặc có máu → khuyên đi khám
+   
+   - Thuốc kháng acid (ợ chua, ợ nóng, nóng rát vùng thượng vị, đau dạ dày nhẹ, khó tiêu do tăng acid, trào ngược nhẹ sau ăn):
+     → Ưu tiên: Gaviscon, Gastropulgite, Antacid
+     → Giảm nhanh, chỉ giảm triệu chứng
+     ❌ KHÔNG dùng lâu dài
+   
+   - Thuốc nhuận tràng (táo bón, đi cầu khó, phân cứng, đi ngoài < 3 lần/tuần, đau rát hậu môn khi đi cầu):
+     → Ưu tiên: Duphalac, Forlax, Microlax
+     → ⚠️ Ưu tiên chế độ ăn + nước trước
+     → Trẻ em → chọn dạng nhẹ
+     ❌ KHÔNG dùng kéo dài
+   
+   - Thuốc ức chế tiết acid PPI/H2 (đau dạ dày nhiều, đau thượng vị kéo dài, trào ngược thường xuyên, ợ chua kéo dài, đau tăng về đêm, tiền sử viêm loét dạ dày):
+     → Ưu tiên: Omeprazole, Esomeprazole, Pantoprazole, Ranitidine, Famotidine
+     → ⚠️⚠️ CẢNH BÁO: Đây là thuốc cần thận trọng
+     → ⚠️ KHÔNG tư vấn bừa, nên dùng theo đợt
+     → ⚠️ AI PHẢI cảnh báo & hỏi kỹ về triệu chứng trước khi tư vấn
+   
    - Dị ứng da (ngứa da, nổi mề đay, phát ban dị ứng, mẩn đỏ da, dị ứng da do thức ăn/côn trùng đốt):
      → Ưu tiên: Kháng histamin thế hệ 2 (Cetirizine, Loratadine, Fexofenadine)
      → Có thể kết hợp: Thuốc chống ngứa ngoài da (bôi tại chỗ)

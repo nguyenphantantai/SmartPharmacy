@@ -96,12 +96,24 @@ const symptomToMedicines: { [key: string]: { keywords: string[]; medicineNames: 
     medicineNames: ['Domperidone', 'Men tiêu hóa', 'Enzym', 'Pancreatin']
   },
   'khó tiêu': {
-    keywords: ['khó tiêu', 'khó tiêu hóa', 'tiêu hóa kém', 'ăn không tiêu'],
-    medicineNames: ['Domperidone', 'Men tiêu hóa', 'Enzym', 'Pancreatin', 'Buscopan', 'Spasmaverine', 'Simethicone', 'Air-X', 'Espumisan', 'Neopeptine', 'Festal']
+    keywords: ['khó tiêu', 'khó tiêu hóa', 'tiêu hóa kém', 'ăn không tiêu', 'đầy bụng', 'chướng bụng', 'đi ngoài phân sống', 'rối loạn tiêu hóa nhẹ'],
+    medicineNames: ['Men tiêu hóa', 'Enzym', 'Pancreatin', 'Neopeptine', 'Festal', 'Domperidone', 'Simethicone', 'Air-X', 'Espumisan']
+  },
+  'ăn không tiêu': {
+    keywords: ['ăn không tiêu', 'đầy bụng', 'chướng bụng', 'khó tiêu', 'đi ngoài phân sống', 'rối loạn tiêu hóa nhẹ', 'trẻ em ăn uống kém'],
+    medicineNames: ['Men tiêu hóa', 'Enzym', 'Pancreatin', 'Neopeptine', 'Festal']
+  },
+  'ợ chua': {
+    keywords: ['ợ chua', 'ợ nóng', 'nóng rát vùng thượng vị', 'đau dạ dày nhẹ', 'khó tiêu do tăng acid', 'trào ngược nhẹ'],
+    medicineNames: ['Gaviscon', 'Gastropulgite', 'Antacid', 'Maalox', 'Tums']
+  },
+  'đau dạ dày nhiều': {
+    keywords: ['đau dạ dày nhiều', 'đau thượng vị kéo dài', 'trào ngược thường xuyên', 'ợ chua kéo dài', 'đau tăng về đêm', 'tiền sử viêm loét dạ dày'],
+    medicineNames: ['Omeprazole', 'Esomeprazole', 'Pantoprazole', 'Ranitidine', 'Famotidine', 'Lansoprazole']
   },
   'tiêu hóa': {
     keywords: ['tiêu hóa', 'rối loạn tiêu hóa', 'vấn đề tiêu hóa', 'bệnh tiêu hóa'],
-    medicineNames: ['Domperidone', 'Men tiêu hóa', 'Enzym', 'Pancreatin', 'Buscopan', 'Spasmaverine', 'Duspatalin', 'Simethicone', 'Air-X', 'Espumisan', 'Neopeptine', 'Festal', 'Gaviscon', 'Gastropulgite', 'Omeprazole', 'Esomeprazole', 'Pantoprazole']
+    medicineNames: ['Men tiêu hóa', 'Enzym', 'Pancreatin', 'Neopeptine', 'Festal', 'Loperamide', 'Smecta', 'Gaviscon', 'Gastropulgite', 'Omeprazole', 'Esomeprazole', 'Pantoprazole', 'Duphalac', 'Forlax']
   },
   'táo bón': {
     keywords: ['táo bón', 'khó đi ngoài'],
@@ -970,6 +982,7 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
   const brand = (product.brand || '').toLowerCase();
   const desc = (product.description || product.indication || product.uses || product.congDung || '').toLowerCase();
   const category = (product.categoryName || product.category || product.mainCategory || '').toLowerCase();
+  const subcategory = (product.subcategoryName || product.subcategory || '').toLowerCase();
 
   let score = 0;
   
@@ -993,6 +1006,37 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
     const digestiveKeywords = ['khó tiêu', 'kho tieu', 'indigestion', 'dyspepsia', 'antacid', 'kháng acid', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'gaviscon', 'gastropulgite', 'domperidone', 'men tiêu hóa', 'enzyme', 'pancreatin', 'simethicone', 'air-x', 'espumisan'];
     const isDigestive = digestiveKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('tiêu hóa') || category.includes('digestive'));
     if (isDigestive) score += 0.5; // High score for digestive medicines
+    // Penalty nếu không phải thuốc tiêu hóa
+    if (!category.includes('tiêu hóa') && !category.includes('digestive') && !category.includes('antacid') && !category.includes('kháng acid')) {
+      score -= 1.0; // Heavy penalty for non-digestive medicines
+    }
+  }
+  
+  // Ợ chua, ợ nóng scoring (Thuốc kháng acid)
+  // QUAN TRỌNG: Ưu tiên cao cho thuốc trong subcategory "Thuốc kháng acid"
+  if (q.includes('ợ chua') || q.includes('o chua') || q.includes('ợ nóng') || q.includes('o nong') || q.includes('heartburn') || q.includes('acid reflux')) {
+    const antacidKeywords = ['ợ chua', 'o chua', 'ợ nóng', 'o nong', 'heartburn', 'acid reflux', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite', 'maalox', 'tums'];
+    const isAntacid = antacidKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword));
+    const isAntacidCategory = category.includes('kháng acid') || category.includes('antacid') || category.includes('tiêu hóa') || category.includes('digestive');
+    const isAntacidSubcategory = subcategory.includes('kháng acid') || subcategory.includes('antacid');
+    
+    // QUAN TRỌNG: Bonus cao nhất cho thuốc trong subcategory "Thuốc kháng acid"
+    if (isAntacidSubcategory) {
+      score += 1.5; // Very high score for antacid subcategory
+    } else if (isAntacid || isAntacidCategory) {
+      score += 0.6; // High score for antacid medicines
+    }
+    
+    // Penalty nặng nếu không phải thuốc tiêu hóa/kháng acid
+    if (!isAntacidCategory && !isAntacidSubcategory && !isAntacid) {
+      score -= 2.0; // Very heavy penalty for non-digestive medicines (vitamin, probiotic, etc.)
+    }
+    
+    // Penalty đặc biệt cho thuốc vitamin/khoáng chất khi query về ợ chua/ợ nóng
+    if (category.includes('vitamin') || category.includes('khoáng chất') || category.includes('probiotic') || 
+        name.includes('vitamin') || name.includes('probiotic') || name.includes('neopeptine')) {
+      score -= 3.0; // Extremely heavy penalty - these are NOT antacids
+    }
   }
   
   if (q.includes('đầy bụng') || q.includes('day bung')) {
@@ -1013,6 +1057,21 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
       name.includes(keyword) || desc.includes(keyword) || category.includes(keyword)
     );
     if (isDigestiveCategory) score += 0.4; // Good score for digestive category
+    // Penalty nếu không phải thuốc tiêu hóa
+    if (!category.includes('tiêu hóa') && !category.includes('digestive') && !category.includes('antacid') && !category.includes('kháng acid')) {
+      score -= 1.0; // Heavy penalty for non-digestive medicines
+    }
+  }
+  
+  // QUAN TRỌNG: Bonus cho thuốc đúng category, penalty cho thuốc sai category
+  // Nếu query về tiêu hóa, chỉ ưu tiên thuốc tiêu hóa
+  if (q.includes('tiêu hóa') || q.includes('tieu hoa') || q.includes('ợ chua') || q.includes('o chua') || q.includes('ợ nóng') || q.includes('o nong') || q.includes('khó tiêu') || q.includes('kho tieu') || q.includes('đầy bụng') || q.includes('day bung') || q.includes('táo bón') || q.includes('tao bon') || q.includes('tiêu chảy') || q.includes('tieu chay')) {
+    const isDigestiveCategory = category.includes('tiêu hóa') || category.includes('digestive') || category.includes('antacid') || category.includes('kháng acid');
+    if (isDigestiveCategory) {
+      score += 0.8; // High bonus for correct category
+    } else {
+      score -= 2.0; // Very heavy penalty for wrong category (vitamin, probiotic, etc.)
+    }
   }
   
   // Allergy/antihistamine symptoms scoring (QUAN TRỌNG - thêm logic cho thuốc kháng dị ứng)
@@ -1120,6 +1179,24 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
   // Penalty for irrelevant products
   if (name.includes('probiotic') || desc.includes('probiotic')) score -= 1;
   
+  // QUAN TRỌNG: Bonus cho thuốc đúng category, penalty cho thuốc sai category
+  // Nếu query về tiêu hóa, chỉ ưu tiên thuốc tiêu hóa
+  if (q.includes('tiêu hóa') || q.includes('tieu hoa') || q.includes('ợ chua') || q.includes('o chua') || q.includes('ợ nóng') || q.includes('o nong') || q.includes('khó tiêu') || q.includes('kho tieu') || q.includes('đầy bụng') || q.includes('day bung') || q.includes('táo bón') || q.includes('tao bon') || q.includes('tiêu chảy') || q.includes('tieu chay')) {
+    const isDigestiveCategory = category.includes('tiêu hóa') || category.includes('digestive') || category.includes('antacid') || category.includes('kháng acid');
+    const isPediatricDigestiveCategory = category.includes('tiêu hóa cho trẻ') || category.includes('tieu hoa cho tre') || category.includes('pediatric digestive');
+    
+    // QUAN TRỌNG: Nếu query KHÔNG có "trẻ em", loại bỏ "Thuốc tiêu hóa cho trẻ"
+    const queryHasPediatricKeyword = q.includes('trẻ') || q.includes('tre') || q.includes('trẻ em') || q.includes('tre em') || q.includes('trẻ nhỏ') || q.includes('tre nho') || q.includes('kids') || q.includes('pediatric') || q.includes('infant');
+    
+    if (isPediatricDigestiveCategory && !queryHasPediatricKeyword) {
+      score -= 3.0; // Very heavy penalty for pediatric digestive medicines when user is adult
+    } else if (isDigestiveCategory && !isPediatricDigestiveCategory) {
+      score += 0.8; // High bonus for correct category (adult digestive medicines)
+    } else if (!isDigestiveCategory) {
+      score -= 2.0; // Very heavy penalty for wrong category (vitamin, probiotic, etc.)
+    }
+  }
+  
   return score;
 }
 
@@ -1130,12 +1207,16 @@ async function semanticSearch(query: string): Promise<any[]> {
     const matchedSymptoms: string[] = [];
     
     // Check symptom mapping for specific medicines
-    // Ưu tiên match chính xác symptom trước
+    // QUAN TRỌNG: Match triệu chứng từ cả symptomToMedicines VÀ symptomToCategoryKeywords
+    // Điều này đảm bảo hệ thống nhận diện được TẤT CẢ các triệu chứng đã được định nghĩa
+    
+    // Bước 1: Match từ symptomToMedicines (cho tên thuốc cụ thể)
     for (const [symptom, data] of Object.entries(symptomToMedicines)) {
-      // Check if query contains any keyword
       const hasKeyword = data.keywords.some(keyword => lowerQuery.includes(keyword));
+      const symptomLower = symptom.toLowerCase();
+      const matchesSymptom = lowerQuery.includes(symptomLower);
       
-      if (hasKeyword || lowerQuery.includes(symptom)) {
+      if (hasKeyword || matchesSymptom) {
         foundMedicines.push(...data.medicineNames);
         matchedSymptoms.push(symptom);
       }
@@ -1168,43 +1249,191 @@ async function semanticSearch(query: string): Promise<any[]> {
     
     // 2. Tìm theo category và indication/description (quan trọng cho trường hợp không có mapping)
     // Mapping symptom -> category và keywords để tìm trong database
-    // Dựa trên danh sách categories và subcategories thực tế từ database
+    // QUAN TRỌNG: Mapping đầy đủ cho TẤT CẢ triệu chứng trong 5 nhóm thuốc tiêu hóa
+    // Khi người dùng cung cấp triệu chứng, hệ thống sẽ tự động xác định nhóm và tìm TRỰC TIẾP trong nhóm đó
     const symptomToCategoryKeywords: { [key: string]: { categories: string[]; subcategories: string[]; keywords: string[] } } = {
-      'khó tiêu': {
-        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
-        subcategories: ['thuốc kháng acid', 'thuốc ức chế tiết acid', 'men tiêu hóa', 'ppi', 'h2'],
-        keywords: ['khó tiêu', 'khó tiêu hóa', 'ăn không tiêu', 'dyspepsia', 'indigestion', 'antacid', 'kháng acid', 'acid', 'digestive', 'tiêu hóa', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'gaviscon', 'gastropulgite']
-      },
-      'tiêu hóa': {
-        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre', 'tiêu hóa', 'digestive', 'gastrointestinal'],
-        subcategories: ['thuốc kháng acid', 'thuốc ức chế tiết acid', 'men tiêu hóa', 'thuốc chống tiêu chảy', 'thuốc nhuận tràng', 'men tiêu hóa trẻ em', 'thuốc chống tiêu chảy trẻ em', 'thuốc trị táo bón trẻ em'],
-        keywords: ['tiêu hóa', 'digestive', 'gastrointestinal', 'rối loạn tiêu hóa', 'digestion', 'khó tiêu', 'đầy bụng', 'antacid', 'kháng acid', 'men tiêu hóa', 'enzyme', 'pancreatin']
+      // ========== NHÓM A - MEN TIÊU HÓA ==========
+      'ăn không tiêu': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['men tiêu hóa'],
+        keywords: ['ăn không tiêu', 'men tiêu hóa', 'enzyme', 'pancreatin', 'neopeptine', 'festal', 'digestive enzyme']
       },
       'đầy bụng': {
         categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
-        subcategories: ['men tiêu hóa', 'thuốc kháng acid'],
+        subcategories: ['men tiêu hóa'],
         keywords: ['đầy bụng', 'chướng bụng', 'bloating', 'flatulence', 'simethicone', 'air-x', 'espumisan', 'men tiêu hóa', 'enzyme']
+      },
+      'chướng bụng': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['men tiêu hóa'],
+        keywords: ['chướng bụng', 'đầy bụng', 'bloating', 'flatulence', 'simethicone', 'air-x', 'espumisan', 'men tiêu hóa', 'enzyme']
+      },
+      'khó tiêu': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['men tiêu hóa'],
+        keywords: ['khó tiêu', 'khó tiêu hóa', 'dyspepsia', 'indigestion', 'men tiêu hóa', 'enzyme', 'pancreatin', 'neopeptine', 'festal']
+      },
+      'đi ngoài phân sống': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['men tiêu hóa'],
+        keywords: ['đi ngoài phân sống', 'phân sống', 'men tiêu hóa', 'enzyme', 'pancreatin']
+      },
+      'rối loạn tiêu hóa nhẹ': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['men tiêu hóa'],
+        keywords: ['rối loạn tiêu hóa nhẹ', 'rối loạn tiêu hóa', 'men tiêu hóa', 'enzyme']
+      },
+      'trẻ em ăn uống kém': {
+        categories: ['thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre'],
+        subcategories: ['men tiêu hóa'],
+        keywords: ['trẻ em ăn uống kém', 'trẻ ăn uống kém', 'men tiêu hóa cho trẻ']
+      },
+      
+      // ========== NHÓM B - THUỐC CHỐNG TIÊU CHẢY ==========
+      'tiêu chảy': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antidiarrheal'],
+        subcategories: ['thuốc chống tiêu chảy'],
+        keywords: ['tiêu chảy', 'diarrhea', 'loperamide', 'smecta', 'diosmectite', 'chống tiêu chảy', 'antidiarrheal', 'diarstop']
+      },
+      'đi ngoài phân lỏng': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antidiarrheal'],
+        subcategories: ['thuốc chống tiêu chảy'],
+        keywords: ['đi ngoài phân lỏng', 'phân lỏng', 'tiêu chảy', 'loperamide', 'smecta', 'diosmectite']
+      },
+      'đi ngoài nhiều lần': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antidiarrheal'],
+        subcategories: ['thuốc chống tiêu chảy'],
+        keywords: ['đi ngoài nhiều lần', 'đi ngoài nhiều lần trong ngày', 'tiêu chảy', 'loperamide', 'smecta']
+      },
+      'đau bụng kèm tiêu chảy': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antidiarrheal'],
+        subcategories: ['thuốc chống tiêu chảy'],
+        keywords: ['đau bụng kèm tiêu chảy', 'tiêu chảy', 'loperamide', 'smecta', 'diosmectite']
+      },
+      
+      // ========== NHÓM C - THUỐC KHÁNG ACID ==========
+      'ợ chua': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'antacid'],
+        keywords: ['ợ chua', 'o chua', 'ợ nóng', 'o nong', 'heartburn', 'acid reflux', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite', 'maalox', 'tums']
+      },
+      'ợ nóng': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'antacid'],
+        keywords: ['ợ chua', 'o chua', 'ợ nóng', 'o nong', 'heartburn', 'acid reflux', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite', 'maalox', 'tums']
+      },
+      'nóng rát vùng thượng vị': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'antacid'],
+        keywords: ['nóng rát vùng thượng vị', 'nóng rát', 'thượng vị', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite']
+      },
+      'đau dạ dày nhẹ': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'antacid'],
+        keywords: ['đau dạ dày nhẹ', 'đau dạ dày', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite']
+      },
+      'khó tiêu do tăng acid': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'antacid'],
+        keywords: ['khó tiêu do tăng acid', 'tăng acid', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite']
+      },
+      'trào ngược nhẹ sau ăn': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'antacid'],
+        keywords: ['trào ngược nhẹ sau ăn', 'trào ngược nhẹ', 'antacid', 'kháng acid', 'gaviscon', 'gastropulgite']
+      },
+      
+      // ========== NHÓM D - THUỐC NHUẬN TRÀNG ==========
+      'táo bón': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'laxative'],
+        subcategories: ['thuốc nhuận tràng'],
+        keywords: ['táo bón', 'constipation', 'duphalac', 'forlax', 'microlax', 'nhuận tràng', 'laxative']
+      },
+      'đi cầu khó': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'laxative'],
+        subcategories: ['thuốc nhuận tràng'],
+        keywords: ['đi cầu khó', 'táo bón', 'duphalac', 'forlax', 'nhuận tràng', 'laxative']
+      },
+      'phân cứng': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'laxative'],
+        subcategories: ['thuốc nhuận tràng'],
+        keywords: ['phân cứng', 'táo bón', 'duphalac', 'forlax', 'nhuận tràng', 'laxative']
+      },
+      'đi ngoài ít hơn 3 lần/tuần': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'laxative'],
+        subcategories: ['thuốc nhuận tràng'],
+        keywords: ['đi ngoài ít', 'táo bón', 'duphalac', 'forlax', 'nhuận tràng', 'laxative']
+      },
+      
+      // ========== NHÓM E - THUỐC ỨC CHẾ TIẾT ACID (PPI/H2) ==========
+      'đau dạ dày nhiều': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['thuốc ức chế tiết acid', 'ppi', 'h2'],
+        keywords: ['đau dạ dày nhiều', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'lansoprazole', 'ppi', 'h2']
+      },
+      'đau thượng vị kéo dài': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['thuốc ức chế tiết acid', 'ppi', 'h2'],
+        keywords: ['đau thượng vị kéo dài', 'đau thượng vị', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'ppi', 'h2']
+      },
+      'trào ngược thường xuyên': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['thuốc ức chế tiết acid', 'ppi', 'h2'],
+        keywords: ['trào ngược thường xuyên', 'trào ngược', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'ppi', 'h2']
+      },
+      'ợ chua kéo dài': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['thuốc ức chế tiết acid', 'ppi', 'h2'],
+        keywords: ['ợ chua kéo dài', 'ợ chua', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'ppi', 'h2']
+      },
+      'đau tăng về đêm': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['thuốc ức chế tiết acid', 'ppi', 'h2'],
+        keywords: ['đau tăng về đêm', 'đau về đêm', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'ppi', 'h2']
+      },
+      'tiền sử viêm loét dạ dày': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['thuốc ức chế tiết acid', 'ppi', 'h2'],
+        keywords: ['tiền sử viêm loét dạ dày', 'viêm loét dạ dày', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'ppi', 'h2']
+      },
+      
+      // ========== MAPPING CHUNG (fallback) ==========
+      'tiêu hóa': {
+        // QUAN TRỌNG: Chỉ tìm trong "Thuốc tiêu hóa" (người lớn), KHÔNG tìm "Thuốc tiêu hóa cho trẻ"
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'gastrointestinal'],
+        subcategories: ['thuốc kháng acid', 'thuốc ức chế tiết acid', 'men tiêu hóa', 'thuốc chống tiêu chảy', 'thuốc nhuận tràng'],
+        keywords: ['tiêu hóa', 'digestive', 'gastrointestinal', 'rối loạn tiêu hóa', 'digestion']
       },
       'đau bụng': {
         categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antispasmodic'],
-        subcategories: ['thuốc kháng acid', 'men tiêu hóa'],
+        subcategories: ['men tiêu hóa', 'thuốc kháng acid'],
         keywords: ['đau bụng', 'co thắt', 'spasm', 'buscopan', 'spasmaverine', 'duspatalin', 'antispasmodic']
-      },
-      'tiêu chảy': {
-        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre', 'tiêu hóa', 'digestive', 'antidiarrheal'],
-        subcategories: ['thuốc chống tiêu chảy', 'thuốc chống tiêu chảy trẻ em'],
-        keywords: ['tiêu chảy', 'diarrhea', 'loperamide', 'smecta', 'diosmectite', 'chống tiêu chảy', 'antidiarrheal']
-      },
-      'táo bón': {
-        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre', 'tiêu hóa', 'digestive', 'laxative'],
-        subcategories: ['thuốc nhuận tràng', 'thuốc trị táo bón trẻ em'],
-        keywords: ['táo bón', 'constipation', 'duphalac', 'forlax', 'microlax', 'nhuận tràng', 'laxative']
       }
     };
     
-    // Nếu có matched symptoms, tìm thêm theo category và keywords
-    if (matchedSymptoms.length > 0) {
-      for (const symptom of matchedSymptoms) {
+    // QUAN TRỌNG: Match triệu chứng từ symptomToCategoryKeywords TRỰC TIẾP từ query
+    // Điều này đảm bảo các triệu chứng dài như "nóng rát vùng thượng vị" được nhận diện
+    const matchedCategorySymptoms: string[] = [];
+    for (const [symptom, config] of Object.entries(symptomToCategoryKeywords)) {
+      const symptomLower = symptom.toLowerCase();
+      // Match nếu query chứa symptom name hoặc bất kỳ keyword nào
+      const matchesSymptomName = lowerQuery.includes(symptomLower);
+      const matchesKeyword = config.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()));
+      
+      if (matchesSymptomName || matchesKeyword) {
+        matchedCategorySymptoms.push(symptom);
+        // Thêm vào matchedSymptoms để dùng cho scoring
+        if (!matchedSymptoms.includes(symptom)) {
+          matchedSymptoms.push(symptom);
+        }
+      }
+    }
+    
+    // Nếu có matched symptoms (từ symptomToMedicines hoặc symptomToCategoryKeywords), tìm theo category và keywords
+    const allMatchedSymptoms = [...new Set([...matchedSymptoms, ...matchedCategorySymptoms])];
+    
+    if (allMatchedSymptoms.length > 0) {
+      for (const symptom of allMatchedSymptoms) {
         if (symptomToCategoryKeywords[symptom]) {
           const { categories, subcategories, keywords } = symptomToCategoryKeywords[symptom];
           
@@ -1219,7 +1448,8 @@ async function semanticSearch(query: string): Promise<any[]> {
             });
           }
           
-          // Tìm theo subcategory (tên subcategory chính xác từ database)
+          // QUAN TRỌNG: Tìm theo subcategory (tên subcategory chính xác từ database)
+          // Đây là bước then chốt để tìm TRỰC TIẾP trong nhóm thuốc đúng
           if (subcategories && subcategories.length > 0) {
             for (const subcategory of subcategories) {
               searchPatterns.push({
@@ -1273,27 +1503,61 @@ async function semanticSearch(query: string): Promise<any[]> {
       }
     }
     
+    // QUAN TRỌNG: Log search patterns để debug
+    console.log(`[semanticSearch] Search patterns count: ${searchPatterns.length}`);
+    if (searchPatterns.length > 0) {
+      console.log(`[semanticSearch] First 3 search patterns:`, JSON.stringify(searchPatterns.slice(0, 3), null, 2));
+    }
+    
     // Search in products collection
     let products: any[] = [];
     if (searchPatterns.length > 0) {
+      // QUAN TRỌNG: Đảm bảo tìm được TẤT CẢ thuốc trong subcategory "Thuốc kháng acid" khi query có "ợ chua" hoặc "ợ nóng"
+      // Thêm một search pattern riêng để tìm trực tiếp trong subcategory
+      if (lowerQuery.includes('ợ chua') || lowerQuery.includes('o chua') || lowerQuery.includes('ợ nóng') || lowerQuery.includes('o nong')) {
+        // Tìm TRỰC TIẾP trong subcategory "Thuốc kháng acid" với nhiều biến thể tên
+        const antacidSubcategoryPatterns = [
+          { subcategoryName: { $regex: 'kháng acid|khang acid|antacid', $options: 'i' } },
+          { subcategory: { $regex: 'kháng acid|khang acid|antacid', $options: 'i' } },
+          { medicineGroup: { $regex: 'kháng acid|khang acid|antacid', $options: 'i' } },
+          { group: { $regex: 'kháng acid|khang acid|antacid', $options: 'i' } },
+          { categoryName: { $regex: 'kháng acid|khang acid|antacid', $options: 'i' } },
+          { category: { $regex: 'kháng acid|khang acid|antacid', $options: 'i' } }
+        ];
+        searchPatterns.push(...antacidSubcategoryPatterns);
+        console.log(`[semanticSearch] ✅ Đã thêm ${antacidSubcategoryPatterns.length} patterns để tìm trực tiếp trong subcategory "Thuốc kháng acid"`);
+      }
+      
       products = await productsCollection.find({
         $or: searchPatterns,
-      inStock: true,
-      stockQuantity: { $gt: 0 }
-    })
-      .limit(15)
-    .toArray();
+        inStock: true,
+        stockQuantity: { $gt: 0 }
+      })
+      .limit(30) // Tăng limit để tìm được nhiều thuốc hơn
+      .toArray();
+      
+      console.log(`[semanticSearch] ✅ Tìm được ${products.length} products từ database`);
+      if (products.length > 0) {
+        console.log(`[semanticSearch] Sample products: ${products.slice(0, 5).map(p => `${p.name} (category: ${p.categoryName || p.category || 'N/A'}, subcategory: ${p.subcategoryName || p.subcategory || p.medicineGroup || 'N/A'})`).join(', ')}`);
+      }
     }
     
-    // If not enough results, search in medicines collection
-    if (products.length < 3 && searchPatterns.length > 0) {
+    // QUAN TRỌNG: Tìm trong medicines collection vì nó có field subcategory
+    // Products collection không có subcategory (không được sync từ medicines)
+    // Nên cần tìm trực tiếp trong medicines collection khi cần tìm theo subcategory
+    if (searchPatterns.length > 0) {
+      // Tìm trong medicines collection với cùng search patterns
+      // QUAN TRỌNG: Medicines collection có field subcategory, nên tìm ở đây sẽ chính xác hơn
+      // Không filter stock quá chặt vì có thể có thuốc không có stock field
       const medicines = await medicinesCollection.find({
         $or: searchPatterns
       })
-      .limit(15 - products.length)
+      .limit(30) // Tăng limit để tìm được nhiều thuốc hơn
       .toArray();
       
-      // Convert to product format
+      console.log(`[semanticSearch] ✅ Tìm được ${medicines.length} medicines từ database`);
+      
+      // Convert to product format và QUAN TRỌNG: giữ lại subcategory từ medicines
       const convertedMedicines = medicines.map(med => ({
         _id: med._id,
         name: med.name,
@@ -1303,13 +1567,36 @@ async function semanticSearch(query: string): Promise<any[]> {
         inStock: (med.stock || med.stockQuantity || 0) > 0,
         stockQuantity: med.stock || med.stockQuantity || 0,
         unit: med.unit || 'đơn vị',
-        imageUrl: med.imageUrl || '',
+        imageUrl: med.imageUrl || med.image || med.imagePath || '',
         indication: med.indication || med.indications || med.uses || med.congDung || '',
-        categoryName: med.category || med.mainCategory || '',
-        category: med.category || med.mainCategory || ''
+        categoryName: med.category || med.mainCategory || med.categoryName || '',
+        category: med.category || med.mainCategory || med.categoryName || '',
+        // QUAN TRỌNG: Giữ lại subcategory từ medicines collection
+        subcategoryName: med.subcategory || med.subcategoryName || med.medicineGroup || med.group || '',
+        subcategory: med.subcategory || med.subcategoryName || med.medicineGroup || med.group || '',
+        medicineGroup: med.medicineGroup || med.group || med.subcategory || med.subcategoryName || ''
       }));
       
-      products = [...products, ...convertedMedicines];
+      // Merge với products (ưu tiên medicines vì có subcategory)
+      // Loại bỏ duplicates dựa trên name
+      const allResults = [...convertedMedicines, ...products];
+      const uniqueResults = new Map<string, any>();
+      
+      for (const item of allResults) {
+        const key = (item.name || '').toLowerCase().trim();
+        if (key && !uniqueResults.has(key)) {
+          uniqueResults.set(key, item);
+        } else if (key && uniqueResults.has(key)) {
+          // Nếu đã có, ưu tiên item có subcategory
+          const existing = uniqueResults.get(key);
+          if (!existing.subcategory && !existing.subcategoryName && (item.subcategory || item.subcategoryName)) {
+            uniqueResults.set(key, item);
+          }
+        }
+      }
+      
+      products = Array.from(uniqueResults.values());
+      console.log(`[semanticSearch] ✅ Sau khi merge: ${products.length} products/medicines (ưu tiên medicines có subcategory)`);
     }
     
     console.log(`[semanticSearch] Found ${products.length} products from database`);
@@ -1397,12 +1684,21 @@ async function semanticSearch(query: string): Promise<any[]> {
           matchedSymptoms.includes('tiêu hóa') || 
           matchedSymptoms.includes('đầy bụng') ||
           matchedSymptoms.includes('đau bụng')) {
-        // Chỉ giữ thuốc tiêu hóa, loại bỏ TẤT CẢ thuốc khác
-        const digestiveMedicines = ['domperidone', 'men tiêu hóa', 'enzym', 'pancreatin', 'buscopan', 'spasmaverine', 'duspatalin', 'omeprazole', 'esomeprazole', 'pantoprazole', 'gaviscon', 'gastropulgite'];
+        // QUAN TRỌNG: Kiểm tra category thay vì chỉ kiểm tra tên thuốc
+        // Vì có thể có thuốc tiêu hóa với tên khác không có trong danh sách trên
+        const productCategory = (product.categoryName || product.category || product.mainCategory || '').toLowerCase();
+        const isDigestiveCategory = productCategory.includes('tiêu hóa') || 
+                                    productCategory.includes('digestive') || 
+                                    productCategory.includes('antacid') || 
+                                    productCategory.includes('kháng acid') ||
+                                    productCategory.includes('gastrointestinal');
+        
+        // Danh sách thuốc tiêu hóa phổ biến (để kiểm tra nếu category không rõ)
+        const digestiveMedicines = ['domperidone', 'men tiêu hóa', 'enzym', 'pancreatin', 'buscopan', 'spasmaverine', 'duspatalin', 'omeprazole', 'esomeprazole', 'pantoprazole', 'gaviscon', 'gastropulgite', 'simethicone', 'air-x', 'espumisan', 'neopeptine', 'festal', 'smecta', 'loperamide', 'diosmectite', 'duphalac', 'forlax', 'microlax', 'ranitidine', 'famotidine', 'maalox', 'tums'];
         const isDigestiveMedicine = digestiveMedicines.some(med => productNameLower.includes(med));
         
-        // Loại bỏ TẤT CẢ thuốc không phải thuốc tiêu hóa
-        if (!isDigestiveMedicine) {
+        // QUAN TRỌNG: Chỉ loại bỏ nếu KHÔNG phải thuốc tiêu hóa (theo category hoặc tên)
+        if (!isDigestiveCategory && !isDigestiveMedicine) {
           // Loại bỏ thuốc dị ứng
           if (productNameLower.includes('clorpheniramin') || 
               productNameLower.includes('chlorpheniramine') ||
@@ -1421,6 +1717,10 @@ async function semanticSearch(query: string): Promise<any[]> {
           }
           // Loại bỏ thuốc cảm cúm
           if (productNameLower.includes('decolgen') || productNameLower.includes('tiffy') || productNameLower.includes('coldacmin')) {
+            return false;
+          }
+          // Loại bỏ vitamin/probiotic nếu không phải thuốc tiêu hóa
+          if (productCategory.includes('vitamin') || productCategory.includes('probiotic') || productCategory.includes('khoáng chất')) {
             return false;
           }
         }
@@ -1503,7 +1803,45 @@ async function semanticSearch(query: string): Promise<any[]> {
                                        hasPainFeverSymptoms || hasAntibioticSymptoms || hasPediatricDigestiveSymptoms || 
                                        hasEyeEarNoseSymptoms;
     
-    const scoreThreshold = hasSpecialCategorySymptoms ? 0.2 : 0.3; // Lower threshold for all special categories
+    // QUAN TRỌNG: Điều chỉnh threshold dựa trên query
+    // Nếu query về tiêu hóa/ợ chua, threshold thấp hơn để lấy được thuốc đúng category
+    const isDigestiveQuery = lowerQuery.includes('tiêu hóa') || lowerQuery.includes('tieu hoa') || 
+                             lowerQuery.includes('ợ chua') || lowerQuery.includes('o chua') || 
+                             lowerQuery.includes('ợ nóng') || lowerQuery.includes('o nong') ||
+                             lowerQuery.includes('khó tiêu') || lowerQuery.includes('kho tieu') ||
+                             lowerQuery.includes('đầy bụng') || lowerQuery.includes('day bung');
+    
+    // QUAN TRỌNG: Giảm threshold xuống rất thấp cho digestive queries để đảm bảo có kết quả
+    const scoreThreshold = isDigestiveQuery ? 0.05 : (hasSpecialCategorySymptoms ? 0.15 : 0.25); // Lower threshold for digestive queries
+    
+    // Debug: Log scores của top products
+    const topScored = scored
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 5);
+    
+    console.log(`[semanticSearch] Top 5 products with scores:`);
+    topScored.forEach((p, idx) => {
+      console.log(`  ${idx + 1}. ${p.name}: score=${p._score.toFixed(3)}, category=${(p.categoryName || p.category || '').substring(0, 30)}`);
+    });
+    console.log(`[semanticSearch] Score threshold: ${scoreThreshold}`);
+    
+    // QUAN TRỌNG: Với digestive queries, ưu tiên trả về products từ database TRƯỚC KHI filter theo score
+    // Điều này đảm bảo AI luôn có thuốc từ database để dùng, không tự tạo
+    if (isDigestiveQuery && topScored.length > 0) {
+      // Lọc products có category đúng hoặc score không quá thấp
+      const digestiveProducts = topScored.filter(p => {
+        const pCategory = (p.categoryName || p.category || '').toLowerCase();
+        const isDigestiveCategory = pCategory.includes('tiêu hóa') || pCategory.includes('digestive') || pCategory.includes('antacid') || pCategory.includes('kháng acid');
+        // Trả về nếu category đúng HOẶC score > -2.0 (không quá thấp)
+        return isDigestiveCategory || p._score > -2.0;
+      });
+      
+      if (digestiveProducts.length > 0) {
+        console.log(`[semanticSearch] ✅ Digestive query: Trả về ${Math.min(3, digestiveProducts.length)} products từ DB để đảm bảo AI dùng thuốc thực tế`);
+        console.log(`[semanticSearch] Products: ${digestiveProducts.slice(0, 3).map(p => `${p.name} (score=${p._score.toFixed(3)}, category=${(p.categoryName || p.category || '').substring(0, 30)})`).join(', ')}`);
+        return digestiveProducts.slice(0, 3).map(({ _score, ...rest }) => rest);
+      }
+    }
     
     const finalResults = scored
       .filter(p => p._score > scoreThreshold)
@@ -1511,13 +1849,42 @@ async function semanticSearch(query: string): Promise<any[]> {
       .slice(0, 3) // Giới hạn tối đa 3 thuốc để tránh dài dòng
       .map(({ _score, ...rest }) => rest);
     
-    if (finalResults.length === 0) {
-      console.log(`[semanticSearch] Không tìm thấy thuốc phù hợp trong DB cho query: "${query}"`);
-      console.log(`[semanticSearch] Matched symptoms: ${matchedSymptoms.join(', ')}`);
-      console.log(`[semanticSearch] Medicine names to search: ${uniqueMedicineNames.slice(0, 10).join(', ')}`);
-    } else {
-      console.log(`[semanticSearch] Tìm thấy ${finalResults.length} thuốc phù hợp: ${finalResults.map(p => p.name).join(', ')}`);
-    }
+      if (finalResults.length === 0) {
+        console.log(`[semanticSearch] ⚠️ Không tìm thấy thuốc phù hợp trong DB cho query: "${query}"`);
+        console.log(`[semanticSearch] Matched symptoms: ${matchedSymptoms.join(', ')}`);
+        console.log(`[semanticSearch] Medicine names to search: ${uniqueMedicineNames.slice(0, 10).join(', ')}`);
+        console.log(`[semanticSearch] Top product score: ${topScored[0]?._score || 0}, threshold: ${scoreThreshold}`);
+        
+        // QUAN TRỌNG: Nếu có products từ database, PHẢI trả về chúng để AI dùng
+        // KHÔNG được để AI tự tạo thuốc
+        if (topScored.length > 0) {
+          const topProduct = topScored[0];
+          const topCategory = (topProduct.categoryName || topProduct.category || '').toLowerCase();
+          const isDigestiveCategory = topCategory.includes('tiêu hóa') || topCategory.includes('digestive') || topCategory.includes('antacid') || topCategory.includes('kháng acid');
+          
+          // Nếu là digestive query và product có category đúng, trả về top 3 (dù score thấp)
+          if (isDigestiveQuery && isDigestiveCategory) {
+            console.log(`[semanticSearch] ⚠️ Fallback: Trả về top ${Math.min(3, topScored.length)} products từ DB (digestive query, category đúng, score=${topProduct._score.toFixed(3)}) để tránh AI tự tạo thuốc`);
+            console.log(`[semanticSearch] Products: ${topScored.slice(0, 3).map(p => `${p.name} (${(p.categoryName || p.category || '').substring(0, 30)})`).join(', ')}`);
+            return topScored.slice(0, 3).map(({ _score, ...rest }) => rest);
+          }
+          // Nếu là digestive query nhưng category không đúng, vẫn trả về nếu score > -2.0
+          else if (isDigestiveQuery && topProduct._score > -2.0) {
+            console.log(`[semanticSearch] ⚠️ Fallback: Trả về top ${Math.min(3, topScored.length)} products từ DB (digestive query, score=${topProduct._score.toFixed(3)}) để tránh AI tự tạo thuốc`);
+            console.log(`[semanticSearch] Products: ${topScored.slice(0, 3).map(p => `${p.name} (${(p.categoryName || p.category || '').substring(0, 30)})`).join(', ')}`);
+            return topScored.slice(0, 3).map(({ _score, ...rest }) => rest);
+          }
+          // Với các query khác, chỉ trả về top 1 nếu score không quá thấp
+          else if (!isDigestiveQuery && topProduct._score > -1.0) {
+            console.log(`[semanticSearch] ⚠️ Fallback: Trả về top 1 product dù score thấp để tránh AI tự tạo thuốc`);
+            return [topScored[0]].map(({ _score, ...rest }) => rest);
+          }
+        }
+        
+        console.log(`[semanticSearch] ❌ Không có products nào từ DB phù hợp, trả về rỗng`);
+      } else {
+        console.log(`[semanticSearch] ✅ Tìm thấy ${finalResults.length} thuốc phù hợp: ${finalResults.map(p => p.name).join(', ')}`);
+      }
     
     return finalResults;
   } catch (error) {
@@ -1789,12 +2156,26 @@ function filterMedicinesByPatientInfo(medicines: any[], patientInfo: ReturnType<
         }
       }
       
-      // Người lớn (12+): loại bỏ thuốc trẻ em
+      // Người lớn (≥12 tuổi): loại bỏ thuốc dành cho trẻ em
       if (patientInfo.ageGroup === 'adult' && patientInfo.age && patientInfo.age >= 12) {
-        // Loại bỏ thuốc có "trẻ em" hoặc "trẻ nhỏ" trong tên (trừ khi là thuốc dùng chung)
-        if ((medName.includes('trẻ em') || medName.includes('trẻ nhỏ') || medName.includes('kids') || medName.includes('pediatric')) &&
-            !medIndication.includes('người lớn') && !medIndication.includes('cả trẻ em và người lớn')) {
-          return false;
+        // Loại bỏ thuốc có "trẻ em", "cho trẻ", "trẻ nhỏ", "kids", "pediatric", "infant" trong tên hoặc indication
+        const pediatricKeywords = ['trẻ em', 'tre em', 'cho trẻ', 'cho tre', 'trẻ nhỏ', 'tre nho', 'kids', 'pediatric', 'infant', 'trẻ sơ sinh', 'tre so sinh'];
+        const hasPediatricKeyword = pediatricKeywords.some(keyword => 
+          medName.includes(keyword) || medIndication.includes(keyword)
+        );
+        
+        // QUAN TRỌNG: Loại bỏ thuốc có category "Thuốc tiêu hóa cho trẻ" hoặc "Thuốc ... cho trẻ"
+        const medCategory = (med.categoryName || med.category || med.mainCategory || '').toLowerCase();
+        const isPediatricCategory = medCategory.includes('cho trẻ') || medCategory.includes('cho tre') || 
+                                    medCategory.includes('trẻ em') || medCategory.includes('tre em') ||
+                                    medCategory.includes('pediatric') || medCategory.includes('kids');
+        
+        // Chỉ loại bỏ nếu không có chỉ định dùng cho cả người lớn
+        if ((hasPediatricKeyword || isPediatricCategory) && 
+            !medIndication.includes('người lớn') && 
+            !medIndication.includes('cả trẻ em và người lớn') &&
+            !medIndication.includes('dùng cho người lớn')) {
+          return false; // Loại bỏ thuốc trẻ em cho người lớn
         }
       }
     }
@@ -2239,6 +2620,10 @@ async function generateAIResponse(
     : userMessage;
   const lowerCombinedMessage = normalizeText(combinedSymptomMessage);
   
+  // QUAN TRỌNG: Kiểm tra xem message hiện tại có triệu chứng cụ thể không
+  // Nếu có, ưu tiên dùng nó thay vì kết hợp với message cũ (tránh match nhầm)
+  const currentMessageHasSpecificSymptom = /(khó tiêu|đầy bụng|đau bụng|tiêu chảy|táo bón|ợ chua|ợ nóng|buồn nôn|nôn|ngứa|mề đay|ho|sổ mũi|nghẹt mũi|đau đầu|sốt|đau họng)/i.test(userMessage);
+  
   // Try to use AI LLM first (if configured)
   try {
     // Import AI service dynamically to avoid errors if not installed
@@ -2365,6 +2750,30 @@ async function generateAIResponse(
         }
       }
       
+      // Đặc biệt: Kiểm tra thuốc ức chế tiết acid (PPI/H2) - cần hỏi kỹ về triệu chứng TRƯỚC KHI tư vấn
+      const hasPPI_H2Symptoms = /(đau dạ dày nhiều|đau thượng vị kéo dài|trào ngược thường xuyên|ợ chua kéo dài|đau tăng về đêm|tiền sử viêm loét dạ dày)/i.test(lowerCombinedMessage);
+      if (hasPPI_H2Symptoms && patientInfo.hasAge) {
+        // Kiểm tra xem đã có thông tin chi tiết chưa (kéo dài, thường xuyên, nhiều, tiền sử)
+        const hasDetailedInfo = /(kéo dài|thường xuyên|nhiều|nhiều ngày|nhiều tuần|nhiều tháng|tăng về đêm|tiền sử|viêm loét)/i.test(lowerCombinedMessage);
+        if (!hasDetailedInfo) {
+          context.instruction = `Người dùng đã cung cấp thông tin an toàn và có triệu chứng liên quan đến thuốc ức chế tiết acid (PPI/H2), nhưng chưa có thông tin chi tiết. Bạn PHẢI hỏi lại về thời gian, tần suất, và tiền sử trước khi tư vấn thuốc. Hãy hỏi: "Để tư vấn thuốc phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn:\n\n1. Bạn bị đau dạ dày/ợ chua đã bao lâu rồi? (mới bị hay kéo dài)\n2. Tần suất xuất hiện như thế nào? (thỉnh thoảng hay thường xuyên)\n3. Có đau tăng về đêm không?\n4. Bạn có tiền sử viêm loét dạ dày không?\n\n⚠️ Lưu ý: Thuốc ức chế tiết acid (PPI/H2) cần được tư vấn cẩn thận và dùng theo đợt."\n\nKHÔNG được đưa thuốc PPI/H2 ngay khi chưa có thông tin chi tiết.`;
+          context.queryType = 'symptom_clarification_needed';
+        }
+      }
+      
+      // Đặc biệt: Kiểm tra tiêu chảy - cần hỏi số lần đi/ngày và có sốt/máu không
+      const hasDiarrhea = /(tiêu chảy|đi ngoài phân lỏng|đi ngoài nhiều lần|đau bụng kèm tiêu chảy)/i.test(lowerCombinedMessage);
+      if (hasDiarrhea && patientInfo.hasAge) {
+        // Kiểm tra xem đã có thông tin về số lần đi/ngày và sốt/máu chưa
+        const hasFrequencyInfo = /(\d+\s*lần|\d+\s*lần\/ngày|nhiều lần|ít lần|vài lần)/i.test(lowerCombinedMessage);
+        const hasFeverOrBloodInfo = /(sốt|máu|phân có máu|đi ngoài ra máu|không sốt|không có máu)/i.test(lowerCombinedMessage);
+        
+        if (!hasFrequencyInfo || !hasFeverOrBloodInfo) {
+          context.instruction = `Người dùng đã cung cấp thông tin an toàn và có triệu chứng "tiêu chảy", nhưng chưa có thông tin về số lần đi/ngày hoặc có sốt/máu. Bạn PHẢI hỏi lại trước khi tư vấn thuốc. Hãy hỏi: "Để tư vấn thuốc chống tiêu chảy phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn:\n\n1. Bạn đi ngoài bao nhiêu lần trong ngày?\n2. Có sốt không?\n3. Phân có máu không?\n\n⚠️ Lưu ý: Nếu tiêu chảy > 2 ngày hoặc có máu trong phân, bạn nên đi khám bác sĩ ngay."\n\nKHÔNG được đưa thuốc ngay khi chưa có thông tin này.`;
+          context.queryType = 'symptom_clarification_needed';
+        }
+      }
+      
       // Đặc biệt: Kiểm tra mề đay - cần hỏi thêm về thời gian (cấp hay mạn)
       const hasUrticaria = /(mề đay|me day|nổi mề đay|noi me day|urticaria)/i.test(lowerCombinedMessage);
       let urticariaDuration: 'acute' | 'chronic' | null = null;
@@ -2402,34 +2811,70 @@ async function generateAIResponse(
       // Nếu chỉ hỏi chung chung về một loại thuốc mà không có triệu chứng cụ thể, thêm instruction để AI hỏi lại
       if (generalMedicineCategory && patientInfo.hasAge && !hasUrticaria) {
         const categoryConfig = generalMedicineCategories[generalMedicineCategory as keyof typeof generalMedicineCategories];
-        context.instruction = `Người dùng đã cung cấp thông tin an toàn nhưng chỉ hỏi chung chung về "${generalMedicineCategory}" mà chưa có triệu chứng cụ thể. Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc. Hãy hỏi: "${categoryConfig.question}"`;
+        
+        // QUAN TRỌNG: Sử dụng câu hỏi chi tiết cho "tiêu hóa" và "kháng dị ứng" thay vì câu hỏi đơn giản
+        let detailedQuestion = categoryConfig.question;
+        if (generalMedicineCategory === 'tiêu hóa') {
+          detailedQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Men tiêu hóa:\n- Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Khó tiêu\n- Đi ngoài phân sống\n- Rối loạn tiêu hóa nhẹ\n- Trẻ em ăn uống kém\n\n🔹 Thuốc chống tiêu chảy:\n- Tiêu chảy\n- Đi ngoài phân lỏng\n- Đi ngoài nhiều lần trong ngày\n- Đau bụng kèm tiêu chảy\n\n🔹 Thuốc kháng acid:\n- Ợ chua / Ợ nóng\n- Nóng rát vùng thượng vị\n- Đau dạ dày nhẹ\n- Khó tiêu do tăng acid\n- Trào ngược nhẹ sau ăn\n\n🔹 Thuốc nhuận tràng:\n- Táo bón\n- Đi cầu khó\n- Phân cứng\n- Đi ngoài < 3 lần/tuần\n\n🔹 Thuốc ức chế tiết acid (PPI/H2):\n- Đau dạ dày nhiều / Đau thượng vị kéo dài\n- Trào ngược thường xuyên\n- Ợ chua kéo dài\n- Đau tăng về đêm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
+        } else if (generalMedicineCategory === 'kháng dị ứng') {
+          detailedQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Dị ứng da:\n- Ngứa da\n- Nổi mề đay\n- Phát ban dị ứng\n- Mẩn đỏ da\n- Dị ứng da do thức ăn\n- Dị ứng da do côn trùng đốt\n\n🔹 Dị ứng đường hô hấp:\n- Hắt hơi nhiều\n- Sổ mũi trong\n- Nghẹt mũi\n- Ngứa mũi\n- Chảy nước mắt\n- Đỏ mắt\n- Viêm mũi dị ứng theo mùa\n\n🔹 Ngứa khu trú/tại chỗ:\n- Ngứa da tại chỗ\n- Ngứa do côn trùng đốt\n- Ngứa da nhẹ, không nổi mề đay\n- Viêm da dị ứng nhẹ\n- Dị ứng mỹ phẩm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
+        }
+        
+        context.instruction = `Người dùng đã cung cấp thông tin an toàn nhưng chỉ hỏi chung chung về "${generalMedicineCategory}" mà chưa có triệu chứng cụ thể. Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc. Hãy hỏi CHÍNH XÁC như sau:\n\n${detailedQuestion}\n\nKHÔNG được tự ý thay đổi nội dung câu hỏi.`;
         context.queryType = 'symptom_clarification_needed';
       }
       
       // If not already set (not a follow-up), try to get relevant medicines for context
       if (!context.medicines || context.medicines.length === 0) {
+      // QUAN TRỌNG: Nếu message hiện tại có triệu chứng cụ thể, chỉ dùng nó để search (tránh match nhầm với message cũ)
+      const messageToSearch = currentMessageHasSpecificSymptom ? userMessage : combinedSymptomMessage;
+      const lowerMessageToSearch = normalizeText(messageToSearch);
+      
       const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
-          lowerCombinedMessage.includes(symptom)
+          lowerMessageToSearch.includes(symptom)
       );
       // Kiểm tra lại xem có phải là câu hỏi chung chung không
       const isGeneralMedicineQuery = generalMedicineCategory !== null;
       
       if (symptomKeywords.length > 0 && !isGeneralMedicineQuery) {
+        // QUAN TRỌNG: Tìm thuốc trong database TRƯỚC, rồi mới lọc
         // Use semanticSearch which already has filtering logic
-          const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
+        const suggestedMedicines = await semanticSearch(messageToSearch);
+        
         if (suggestedMedicines.length > 0) {
+          console.log(`[generateAIResponse] ✅ Tìm thấy ${suggestedMedicines.length} thuốc từ DB: ${suggestedMedicines.map(m => m.name).join(', ')}`);
+          
           // Filter thuốc theo điều kiện bệnh nhân
           const filteredMedicines = filterMedicinesByPatientInfo(suggestedMedicines, patientInfo);
           
-          // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
-          // Giới hạn tối đa 3 thuốc để tránh dài dòng
-          context.medicines = filteredMedicines.slice(0, 3);
+          if (filteredMedicines.length > 0) {
+            console.log(`[generateAIResponse] ✅ Sau khi filter theo patientInfo: ${filteredMedicines.length} thuốc: ${filteredMedicines.map(m => m.name).join(', ')}`);
+            
+            // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
+            // Giới hạn tối đa 3 thuốc để tránh dài dòng
+            context.medicines = filteredMedicines.slice(0, 3);
+            context.symptoms = symptomKeywords;
+            // Add explicit instruction about what medicines to suggest
+            context.queryType = 'symptom_based';
+            context.userQuery = userMessage;
+          } else {
+            console.log(`[generateAIResponse] ⚠️ Sau khi filter theo patientInfo: 0 thuốc, nhưng vẫn truyền ${suggestedMedicines.length} thuốc gốc để AI có thể dùng`);
+            // Nếu filter quá strict, vẫn truyền thuốc gốc (để AI có thể dùng, nhưng sẽ có instruction rõ ràng)
+            context.medicines = suggestedMedicines.slice(0, 3);
+            context.symptoms = symptomKeywords;
+            context.queryType = 'symptom_based';
+            context.userQuery = userMessage;
+          }
+        } else {
+          console.log(`[generateAIResponse] ❌ KHÔNG tìm thấy thuốc nào từ DB cho query: "${messageToSearch}"`);
+          // QUAN TRỌNG: Nếu không tìm thấy thuốc trong DB, KHÔNG truyền medicines vào context
+          // Để AI biết là không có thuốc và phải nói rõ
+          context.medicines = [];
           context.symptoms = symptomKeywords;
-          // Add explicit instruction about what medicines to suggest
           context.queryType = 'symptom_based';
           context.userQuery = userMessage;
-          }
         }
+      }
       } else if (context.medicines && context.medicines.length > 0) {
         // Filter thuốc đã có trong context
         context.medicines = filterMedicinesByPatientInfo(context.medicines, patientInfo);
@@ -2608,7 +3053,20 @@ async function generateAIResponse(
       const generalMedicineCategoriesRuleBased = {
         'tiêu hóa': {
           pattern: /thuốc\s*tiêu\s*hóa|tiêu\s*hóa/i,
-          symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'ợ nóng', 'buồn nôn', 'nôn', 'đầy hơi', 'chướng bụng']
+          symptoms: [
+            // NHÓM A - Men tiêu hóa
+            'ăn không tiêu', 'đầy bụng', 'chướng bụng', 'khó tiêu', 'đi ngoài phân sống', 'rối loạn tiêu hóa nhẹ', 'trẻ em ăn uống kém',
+            // NHÓM B - Thuốc chống tiêu chảy
+            'tiêu chảy', 'đi ngoài phân lỏng', 'đi ngoài nhiều lần', 'đau bụng kèm tiêu chảy',
+            // NHÓM C - Thuốc kháng acid
+            'ợ chua', 'ợ nóng', 'nóng rát vùng thượng vị', 'đau dạ dày nhẹ', 'khó tiêu do tăng acid', 'trào ngược nhẹ',
+            // NHÓM D - Thuốc nhuận tràng
+            'táo bón', 'đi cầu khó', 'phân cứng', 'đi ngoài ít hơn 3 lần/tuần',
+            // NHÓM E - Thuốc ức chế tiết acid (PPI/H2)
+            'đau dạ dày nhiều', 'đau thượng vị kéo dài', 'trào ngược thường xuyên', 'ợ chua kéo dài', 'đau tăng về đêm',
+            // Các triệu chứng cũ (để tương thích)
+            'đau bụng', 'buồn nôn', 'nôn', 'đầy hơi'
+          ]
         },
         'kháng dị ứng': {
           pattern: /thuốc\s*kháng\s*dị\s*ứng|thuốc\s*dị\s*ứng|kháng\s*dị\s*ứng/i,
@@ -2670,7 +3128,7 @@ async function generateAIResponse(
         
         switch (generalMedicineCategoryRuleBased) {
           case 'tiêu hóa':
-            clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Men tiêu hóa:\n- Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Khó tiêu\n- Đi ngoài phân sống\n- Rối loạn tiêu hóa nhẹ\n- Trẻ em ăn uống kém\n\n🔹 Thuốc chống tiêu chảy:\n- Tiêu chảy\n- Đi ngoài phân lỏng\n- Đi ngoài nhiều lần trong ngày\n- Đau bụng kèm tiêu chảy\n\n🔹 Thuốc kháng acid:\n- Ợ chua / Ợ nóng\n- Nóng rát vùng thượng vị\n- Đau dạ dày nhẹ\n- Khó tiêu do tăng acid\n- Trào ngược nhẹ sau ăn\n\n🔹 Thuốc nhuận tràng:\n- Táo bón\n- Đi cầu khó\n- Phân cứng\n- Đi ngoài < 3 lần/tuần\n\n🔹 Thuốc ức chế tiết acid (PPI/H2):\n- Đau dạ dày nhiều / Đau thượng vị kéo dài\n- Trào ngược thường xuyên\n- Ợ chua kéo dài\n- Đau tăng về đêm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
             break;
           case 'kháng dị ứng':
             clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Dị ứng da:\n- Ngứa da\n- Nổi mề đay\n- Phát ban dị ứng\n- Mẩn đỏ da\n- Dị ứng da do thức ăn\n- Dị ứng da do côn trùng đốt\n\n🔹 Dị ứng đường hô hấp:\n- Hắt hơi nhiều\n- Sổ mũi trong\n- Nghẹt mũi\n- Ngứa mũi\n- Chảy nước mắt\n- Đỏ mắt\n- Viêm mũi dị ứng theo mùa\n\n🔹 Ngứa khu trú/tại chỗ:\n- Ngứa da tại chỗ\n- Ngứa do côn trùng đốt\n- Ngứa da nhẹ, không nổi mề đay\n- Viêm da dị ứng nhẹ\n- Dị ứng mỹ phẩm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
@@ -2705,6 +3163,32 @@ async function generateAIResponse(
         
         console.log('⚠️ Rule-based: General medicine category detected, asking for specific symptoms:', generalMedicineCategoryRuleBased);
         return clarificationQuestion;
+      }
+      
+      // QUAN TRỌNG: Kiểm tra tiêu chảy - cần hỏi số lần đi/ngày và có sốt/máu không TRƯỚC KHI tư vấn
+      const hasDiarrhea = /(tiêu chảy|đi ngoài phân lỏng|đi ngoài nhiều lần|đau bụng kèm tiêu chảy)/i.test(lowerCombinedMessage);
+      if (hasDiarrhea) {
+        // Kiểm tra xem đã có thông tin về số lần đi/ngày và sốt/máu chưa
+        const hasFrequencyInfo = /(\d+\s*lần|\d+\s*lần\/ngày|nhiều lần|ít lần|vài lần)/i.test(lowerCombinedMessage);
+        const hasFeverOrBloodInfo = /(sốt|máu|phân có máu|đi ngoài ra máu|không sốt|không có máu)/i.test(lowerCombinedMessage);
+        
+        if (!hasFrequencyInfo || !hasFeverOrBloodInfo) {
+          const diarrheaQuestion = 'Để tư vấn thuốc chống tiêu chảy phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn:\n\n1. Bạn đi ngoài bao nhiêu lần trong ngày?\n2. Có sốt không?\n3. Phân có máu không?\n\n⚠️ Lưu ý: Nếu tiêu chảy > 2 ngày hoặc có máu trong phân, bạn nên đi khám bác sĩ ngay.';
+          console.log('⚠️ Rule-based: Diarrhea detected but need more info, asking for frequency and fever/blood');
+          return diarrheaQuestion;
+        }
+      }
+      
+      // QUAN TRỌNG: Kiểm tra thuốc ức chế tiết acid (PPI/H2) - cần hỏi kỹ về triệu chứng TRƯỚC KHI tư vấn
+      const hasPPI_H2Symptoms = /(đau dạ dày nhiều|đau thượng vị kéo dài|trào ngược thường xuyên|ợ chua kéo dài|đau tăng về đêm|tiền sử viêm loét dạ dày)/i.test(lowerCombinedMessage);
+      if (hasPPI_H2Symptoms) {
+        // Kiểm tra xem đã có thông tin chi tiết chưa (kéo dài, thường xuyên, nhiều, tiền sử)
+        const hasDetailedInfo = /(kéo dài|thường xuyên|nhiều|nhiều ngày|nhiều tuần|nhiều tháng|tăng về đêm|tiền sử|viêm loét)/i.test(lowerCombinedMessage);
+        if (!hasDetailedInfo) {
+          const ppiH2Question = 'Để tư vấn thuốc phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn:\n\n1. Bạn bị đau dạ dày/ợ chua đã bao lâu rồi? (mới bị hay kéo dài)\n2. Tần suất xuất hiện như thế nào? (thỉnh thoảng hay thường xuyên)\n3. Có đau tăng về đêm không?\n4. Bạn có tiền sử viêm loét dạ dày không?\n\n⚠️ Lưu ý: Thuốc ức chế tiết acid (PPI/H2) cần được tư vấn cẩn thận và dùng theo đợt.';
+          console.log('⚠️ Rule-based: PPI/H2 symptoms detected but need more info, asking for details');
+          return ppiH2Question;
+        }
       }
       
       // QUAN TRỌNG: Kiểm tra mề đay - cần hỏi về thời gian (cấp hay mạn) TRƯỚC KHI tìm thuốc
@@ -2947,7 +3431,20 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
     const generalMedicineCategoriesRuleBased = {
       'tiêu hóa': {
         pattern: /thuốc\s*tiêu\s*hóa|tiêu\s*hóa/i,
-        symptoms: ['khó tiêu', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón', 'ợ nóng', 'buồn nôn', 'nôn', 'đầy hơi', 'chướng bụng']
+        symptoms: [
+          // NHÓM A - Men tiêu hóa
+          'ăn không tiêu', 'đầy bụng', 'chướng bụng', 'khó tiêu', 'đi ngoài phân sống', 'rối loạn tiêu hóa nhẹ', 'trẻ em ăn uống kém',
+          // NHÓM B - Thuốc chống tiêu chảy
+          'tiêu chảy', 'đi ngoài phân lỏng', 'đi ngoài nhiều lần', 'đau bụng kèm tiêu chảy',
+          // NHÓM C - Thuốc kháng acid
+          'ợ chua', 'ợ nóng', 'nóng rát vùng thượng vị', 'đau dạ dày nhẹ', 'khó tiêu do tăng acid', 'trào ngược nhẹ',
+          // NHÓM D - Thuốc nhuận tràng
+          'táo bón', 'đi cầu khó', 'phân cứng', 'đi ngoài ít hơn 3 lần/tuần',
+          // NHÓM E - Thuốc ức chế tiết acid (PPI/H2)
+          'đau dạ dày nhiều', 'đau thượng vị kéo dài', 'trào ngược thường xuyên', 'ợ chua kéo dài', 'đau tăng về đêm',
+          // Các triệu chứng cũ (để tương thích)
+          'đau bụng', 'buồn nôn', 'nôn', 'đầy hơi'
+        ]
       },
       'kháng dị ứng': {
         pattern: /thuốc\s*kháng\s*dị\s*ứng|thuốc\s*dị\s*ứng|kháng\s*dị\s*ứng/i,
@@ -3015,7 +3512,7 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
       
       switch (generalMedicineCategoryRuleBased) {
         case 'tiêu hóa':
-          clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Men tiêu hóa:\n- Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Khó tiêu\n- Đi ngoài phân sống\n- Rối loạn tiêu hóa nhẹ\n- Trẻ em ăn uống kém\n\n🔹 Thuốc chống tiêu chảy:\n- Tiêu chảy\n- Đi ngoài phân lỏng\n- Đi ngoài nhiều lần trong ngày\n- Đau bụng kèm tiêu chảy\n\n🔹 Thuốc kháng acid:\n- Ợ chua / Ợ nóng\n- Nóng rát vùng thượng vị\n- Đau dạ dày nhẹ\n- Khó tiêu do tăng acid\n- Trào ngược nhẹ sau ăn\n\n🔹 Thuốc nhuận tràng:\n- Táo bón\n- Đi cầu khó\n- Phân cứng\n- Đi ngoài < 3 lần/tuần\n\n🔹 Thuốc ức chế tiết acid (PPI/H2):\n- Đau dạ dày nhiều / Đau thượng vị kéo dài\n- Trào ngược thường xuyên\n- Ợ chua kéo dài\n- Đau tăng về đêm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
           break;
         case 'kháng dị ứng':
           clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Ngứa\n- Nổi mề đay\n- Phát ban\n- Hắt hơi\n- Sổ mũi\n- Nghẹt mũi\n- Viêm mũi dị ứng\n- Chảy nước mắt\n- Đỏ mắt\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';

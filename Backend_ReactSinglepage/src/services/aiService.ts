@@ -489,9 +489,11 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
     
     if (context?.medicines && context.medicines.length > 0) {
       contextInfo += `\n\n=== THÔNG TIN THUỐC CÓ SẴN TRONG HỆ THỐNG ===\n`;
-      contextInfo += `QUAN TRỌNG: Danh sách thuốc dưới đây ĐÃ ĐƯỢC LỌC và CHỈ CHỨA THUỐC PHÙ HỢP với yêu cầu của người dùng.\n`;
-      contextInfo += `Bạn PHẢI chỉ gợi ý các thuốc trong danh sách này, KHÔNG được gợi ý thuốc khác.\n`;
-      contextInfo += `Chỉ gợi ý 3-5 thuốc phù hợp nhất từ danh sách này.\n\n`;
+      contextInfo += `⚠️⚠️⚠️ QUAN TRỌNG CỰC KỲ: Danh sách thuốc dưới đây ĐÃ ĐƯỢC LỌC và CHỈ CHỨA THUỐC PHÙ HỢP với yêu cầu của người dùng.\n`;
+      contextInfo += `⚠️⚠️⚠️ BẮT BUỘC: Bạn PHẢI CHỈ gợi ý các thuốc trong danh sách này, TUYỆT ĐỐI KHÔNG được gợi ý thuốc khác.\n`;
+      contextInfo += `⚠️⚠️⚠️ BẮT BUỘC: KHÔNG được tự tạo tên thuốc, KHÔNG được bịa thuốc không có trong danh sách.\n`;
+      contextInfo += `⚠️⚠️⚠️ BẮT BUỘC: Nếu thuốc không có trong danh sách này, bạn KHÔNG được gợi ý nó.\n`;
+      contextInfo += `Chỉ gợi ý tối đa 3 thuốc phù hợp nhất từ danh sách này.\n\n`;
       
       // Limit to 5 medicines max, prioritize by relevance
       context.medicines.slice(0, 3).forEach((med, idx) => {
@@ -545,6 +547,12 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `   - "Bạn có thể tham khảo các thuốc phổ biến như..."\n`;
       contextInfo += `   - "Vui lòng liên hệ dược sĩ để được tư vấn cụ thể hơn"\n`;
       contextInfo += `6. ✅✅✅ PHẢI trả lời kiểu: Liệt kê cụ thể từng thuốc với số thứ tự, tên thuốc in đậm, công dụng, liều dùng theo đúng format trên\n`;
+    } else {
+      // QUAN TRỌNG: Nếu KHÔNG có thuốc trong database, PHẢI báo rõ
+      contextInfo += `\n\n⚠️⚠️⚠️ QUAN TRỌNG CỰC KỲ: HỆ THỐNG KHÔNG TÌM THẤY THUỐC PHÙ HỢP TRONG DATABASE.\n`;
+      contextInfo += `⚠️⚠️⚠️ BẮT BUỘC: Bạn PHẢI nói rõ: "Hiện tại, trong danh mục thuốc có sẵn, tôi chưa tìm thấy thuốc cụ thể phù hợp. Để được tư vấn chính xác, bạn nên liên hệ trực tiếp với dược sĩ tại nhà thuốc."\n`;
+      contextInfo += `⚠️⚠️⚠️ TUYỆT ĐỐI KHÔNG được tự tạo thuốc, KHÔNG được bịa tên thuốc (như "Gaviscon Dual Action", "Gastropulgite", "Thuốc kháng acid (ví dụ: Gelusil, Maalox)" nếu chúng không có trong database).\n`;
+      contextInfo += `⚠️⚠️⚠️ TUYỆT ĐỐI KHÔNG được bịa giá cả, tồn kho, hoặc công dụng.\n`;
     }
 
     if (context?.symptoms && context.symptoms.length > 0) {

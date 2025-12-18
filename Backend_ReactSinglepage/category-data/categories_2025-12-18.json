@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-12-18T09:50:35.431Z",
+  "timestamp": "2025-12-18T18:39:21.712Z",
   "totalCategories": 28,
   "totalSubcategories": 234,
   "categories": [
@@ -220,13 +220,13 @@
       "createdAt": "2025-12-15T09:28:22.352Z"
     },
     {
-      "id": "6943cc5e0761d45c43001678",
+      "id": "694448fd3330e2a78d4f157c",
       "name": "Thuốc",
       "slug": "thuoc",
       "icon": "Pill",
       "description": "Các loại thuốc kê đơn và không kê đơn",
       "isActive": true,
-      "createdAt": "2025-12-18T09:41:50.778Z"
+      "createdAt": "2025-12-18T18:33:33.218Z"
     }
   ],
   "subcategories": [
@@ -3160,13 +3160,13 @@
     },
     {
       "category": {
-        "id": "6943cc5e0761d45c43001678",
+        "id": "694448fd3330e2a78d4f157c",
         "name": "Thuốc",
         "slug": "thuoc",
         "icon": "Pill",
         "description": "Các loại thuốc kê đơn và không kê đơn",
         "isActive": true,
-        "createdAt": "2025-12-18T09:41:50.778Z"
+        "createdAt": "2025-12-18T18:33:33.218Z"
       },
       "productCount": 261,
       "medicineCount": 0,
