@@ -22,8 +22,20 @@ const symptomToMedicines: { [key: string]: { keywords: string[]; medicineNames: 
     medicineNames: ['Clorpheniramin', 'Cetirizine', 'Loratadine', 'Chlorpheniramine', 'Cetirizin', 'Loratadin', 'Fexofenadine']
   },
   'ngứa': {
-    keywords: ['ngứa', 'dị ứng', 'mẩn ngứa'],
-    medicineNames: ['Clorpheniramin', 'Cetirizine', 'Loratadine', 'Chlorpheniramine']
+    keywords: ['ngứa', 'dị ứng', 'mẩn ngứa', 'ngứa da', 'ngứa da tại chỗ', 'ngứa do côn trùng đốt', 'ngứa da nhẹ'],
+    medicineNames: ['Clorpheniramin', 'Cetirizine', 'Loratadine', 'Chlorpheniramine', 'Fexofenadine']
+  },
+  'ngứa da tại chỗ': {
+    keywords: ['ngứa da tại chỗ', 'ngứa do côn trùng đốt', 'ngứa da nhẹ', 'viêm da dị ứng nhẹ', 'dị ứng mỹ phẩm'],
+    medicineNames: ['Thuốc chống ngứa ngoài da', 'Corticoid bôi ngoài da nhẹ']
+  },
+  'dị ứng da': {
+    keywords: ['dị ứng da', 'dị ứng da do thức ăn', 'dị ứng da do côn trùng đốt', 'mẩn đỏ da', 'phát ban dị ứng'],
+    medicineNames: ['Cetirizine', 'Loratadine', 'Fexofenadine', 'Clorpheniramin', 'Thuốc chống ngứa ngoài da']
+  },
+  'dị ứng đường hô hấp': {
+    keywords: ['hắt hơi nhiều', 'sổ mũi trong', 'nghẹt mũi', 'ngứa mũi', 'viêm mũi dị ứng theo mùa'],
+    medicineNames: ['Cetirizine', 'Loratadine', 'Fexofenadine', 'Rhinocort']
   },
   'cảm cúm': {
     keywords: ['cảm cúm', 'cảm', 'cúm', 'sốt', 'đau đầu', 'nhức đầu'],
@@ -1496,7 +1508,7 @@ async function semanticSearch(query: string): Promise<any[]> {
     const finalResults = scored
       .filter(p => p._score > scoreThreshold)
       .sort((a, b) => b._score - a._score)
-      .slice(0, 5)
+      .slice(0, 3) // Giới hạn tối đa 3 thuốc để tránh dài dòng
       .map(({ _score, ...rest }) => rest);
     
     if (finalResults.length === 0) {
@@ -2410,6 +2422,7 @@ async function generateAIResponse(
           const filteredMedicines = filterMedicinesByPatientInfo(suggestedMedicines, patientInfo);
           
           // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
+          // Giới hạn tối đa 3 thuốc để tránh dài dòng
           context.medicines = filteredMedicines.slice(0, 3);
           context.symptoms = symptomKeywords;
           // Add explicit instruction about what medicines to suggest
@@ -2660,7 +2673,7 @@ async function generateAIResponse(
             clarificationQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
             break;
           case 'kháng dị ứng':
-            clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Ngứa\n- Nổi mề đay\n- Phát ban\n- Hắt hơi\n- Sổ mũi\n- Nghẹt mũi\n- Viêm mũi dị ứng\n- Chảy nước mắt\n- Đỏ mắt\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Dị ứng da:\n- Ngứa da\n- Nổi mề đay\n- Phát ban dị ứng\n- Mẩn đỏ da\n- Dị ứng da do thức ăn\n- Dị ứng da do côn trùng đốt\n\n🔹 Dị ứng đường hô hấp:\n- Hắt hơi nhiều\n- Sổ mũi trong\n- Nghẹt mũi\n- Ngứa mũi\n- Chảy nước mắt\n- Đỏ mắt\n- Viêm mũi dị ứng theo mùa\n\n🔹 Ngứa khu trú/tại chỗ:\n- Ngứa da tại chỗ\n- Ngứa do côn trùng đốt\n- Ngứa da nhẹ, không nổi mề đay\n- Viêm da dị ứng nhẹ\n- Dị ứng mỹ phẩm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
             break;
           case 'kháng viêm':
             clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Viêm khớp\n- Viêm họng\n- Viêm mũi\n- Sưng đau\n- Đỏ nóng\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
@@ -2759,6 +2772,70 @@ async function generateAIResponse(
         if (urticariaDuration) {
           finalMedicines = filterAntihistaminesForUrticaria(suggestedMedicines, urticariaDuration, nightItchingStatus);
           console.log(`   Filtered medicines for urticaria (${urticariaDuration}, nightItching: ${nightItchingStatus}):`, finalMedicines.length, 'medicines');
+        }
+      }
+      
+      // QUAN TRỌNG: Nếu có "ngứa da" kèm "nổi mề đay", tìm thêm thuốc bôi ngoài da
+      const hasSkinItching = /(ngứa da|ngứa da tại chỗ|ngứa do côn trùng đốt|ngứa da nhẹ|viêm da dị ứng nhẹ|dị ứng mỹ phẩm)/i.test(lowerCombinedMessage);
+      if (hasUrticaria && hasSkinItching && finalMedicines.length > 0) {
+        // Tìm thuốc bôi ngoài da cho ngứa da
+        try {
+          const db = mongoose.connection.db;
+          if (db) {
+            const medicinesCollection = db.collection('medicines');
+            const productsCollection = db.collection('products');
+            
+            // Tìm thuốc bôi ngoài da với các keywords
+            const topicalKeywords = [
+              'bôi ngoài', 'bôi da', 'kem bôi', 'gel bôi', 'thuốc mỡ', 'cream', 'gel', 'ointment',
+              'chống ngứa ngoài da', 'topical', 'bôi tại chỗ', 'thuốc bôi', 'kem chống ngứa',
+              'corticoid bôi', 'hydrocortisone', 'betamethasone', 'clobetasol', 'triamcinolone',
+              'calamine', 'menthol', 'phenol', 'lidocaine'
+            ];
+            
+            const topicalSearchPattern = topicalKeywords.join('|');
+            
+            // Tìm trong cả medicines và products collection
+            const [topicalMedicines, topicalProducts] = await Promise.all([
+              medicinesCollection.find({
+                $or: [
+                  { name: { $regex: topicalSearchPattern, $options: 'i' } },
+                  { categoryName: { $regex: /(bôi ngoài|chống ngứa ngoài da|topical|cream|gel)/i } },
+                  { indication: { $regex: /(ngứa da|chống ngứa|bôi ngoài)/i } },
+                  { description: { $regex: /(ngứa da|chống ngứa|bôi ngoài)/i } }
+                ],
+                inStock: true,
+                stockQuantity: { $gt: 0 }
+              }).limit(3).toArray(),
+              
+              productsCollection.find({
+                $or: [
+                  { name: { $regex: topicalSearchPattern, $options: 'i' } },
+                  { categoryName: { $regex: /(bôi ngoài|chống ngứa ngoài da|topical|cream|gel)/i } },
+                  { description: { $regex: /(ngứa da|chống ngứa|bôi ngoài)/i } }
+                ],
+                inStock: true,
+                stockQuantity: { $gt: 0 }
+              }).limit(3).toArray()
+            ]);
+            
+            // Kết hợp và loại bỏ trùng lặp
+            const allTopicalMedicines = [...topicalMedicines, ...topicalProducts];
+            const uniqueTopicalMedicines = Array.from(
+              new Map(allTopicalMedicines.map(med => [med.name, med])).values()
+            ).slice(0, 1); // Chỉ lấy tối đa 1 thuốc bôi ngoài da (để tổng không quá 3 thuốc)
+            
+            if (uniqueTopicalMedicines.length > 0) {
+              // Thêm thuốc bôi ngoài da vào danh sách (ưu tiên sau thuốc uống)
+              // Đảm bảo tổng số thuốc không vượt quá 3
+              const maxOralMedicines = Math.max(1, 3 - uniqueTopicalMedicines.length); // Ưu tiên ít nhất 1 thuốc uống
+              finalMedicines = [...finalMedicines.slice(0, maxOralMedicines), ...uniqueTopicalMedicines].slice(0, 3);
+              console.log(`   Added ${uniqueTopicalMedicines.length} topical medicines for skin itching, total: ${finalMedicines.length} medicines`);
+            }
+          }
+        } catch (error) {
+          console.error('Error searching for topical medicines:', error);
+          // Không ảnh hưởng đến kết quả chính nếu lỗi
         }
       }
       
@@ -2874,7 +2951,16 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
       },
       'kháng dị ứng': {
         pattern: /thuốc\s*kháng\s*dị\s*ứng|thuốc\s*dị\s*ứng|kháng\s*dị\s*ứng/i,
-        symptoms: ['ngứa', 'mề đay', 'phát ban', 'hắt hơi', 'sổ mũi', 'nghẹt mũi', 'viêm mũi dị ứng', 'chảy nước mắt', 'đỏ mắt']
+        symptoms: [
+          // NHÓM A - Dị ứng da
+          'ngứa da', 'nổi mề đay', 'phát ban dị ứng', 'mẩn đỏ da', 'dị ứng da do thức ăn', 'dị ứng da do côn trùng đốt',
+          // NHÓM B - Dị ứng đường hô hấp
+          'hắt hơi nhiều', 'sổ mũi trong', 'nghẹt mũi', 'ngứa mũi', 'chảy nước mắt', 'đỏ mắt', 'viêm mũi dị ứng theo mùa',
+          // NHÓM C - Ngứa khu trú/tại chỗ
+          'ngứa da tại chỗ', 'ngứa do côn trùng đốt', 'ngứa da nhẹ', 'viêm da dị ứng nhẹ', 'dị ứng mỹ phẩm',
+          // Các triệu chứng cũ (để tương thích)
+          'ngứa', 'mề đay', 'phát ban', 'hắt hơi', 'sổ mũi', 'viêm mũi dị ứng', 'chảy nước mắt', 'đỏ mắt'
+        ]
       },
       'kháng viêm': {
         pattern: /thuốc\s*kháng\s*viêm|thuốc\s*chống\s*viêm|kháng\s*viêm|chống\s*viêm/i,
@@ -3680,9 +3766,9 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
   // QUAN TRỌNG: Phải dùng format bắt buộc
   let response = `Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
   
-  // Enrich medicine information - Limit to 5 medicines max
+  // Enrich medicine information - Limit to 3 medicines max (để tránh dài dòng)
   const enrichedMedicines = await Promise.all(
-    medicines.slice(0, 5).map(med => enrichMedicineInfo(med))
+    medicines.slice(0, 3).map(med => enrichMedicineInfo(med))
   );
   
   enrichedMedicines.forEach((medicine, index) => {

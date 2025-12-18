@@ -32,6 +32,25 @@ I. QUY TẮC XỬ LÝ TRIỆU CHỨNG (TUYỆT ĐỐI KHÔNG VI PHẠM)
      ❌ KHÔNG được gợi ý: Paracetamol (trừ khi có sốt kèm theo)
    
    - Mệt mỏi/Nhức người → Hỏi lại triệu chứng cụ thể, KHÔNG gợi ý thuốc ho
+   
+   - Dị ứng da (ngứa da, nổi mề đay, phát ban dị ứng, mẩn đỏ da, dị ứng da do thức ăn/côn trùng đốt):
+     → Ưu tiên: Kháng histamin thế hệ 2 (Cetirizine, Loratadine, Fexofenadine)
+     → Có thể kết hợp: Thuốc chống ngứa ngoài da (bôi tại chỗ)
+     ❌ KHÔNG dùng corticoid toàn thân ngay
+   
+   - Dị ứng đường hô hấp (hắt hơi nhiều, sổ mũi trong, nghẹt mũi, ngứa mũi, viêm mũi dị ứng theo mùa):
+     → Ưu tiên: Kháng histamin thế hệ 2 (Cetirizine, Loratadine, Fexofenadine)
+     → Có thể kết hợp: Thuốc xịt mũi (Rhinocort, Otrivin)
+     ❌ KHÔNG dùng corticoid toàn thân ngay
+   
+   - Ngứa khu trú/tại chỗ (ngứa da tại chỗ, ngứa do côn trùng đốt, ngứa da nhẹ không nổi mề đay, viêm da dị ứng nhẹ, dị ứng mỹ phẩm):
+     → Ưu tiên: Thuốc chống ngứa ngoài da (bôi tại chỗ)
+     → Có thể KHÔNG cần thuốc uống nếu chỉ ngứa nhẹ tại chỗ
+   
+   - Dị ứng nặng/viêm (sưng nhiều, đỏ nóng đau, ngứa dữ dội không đáp ứng thuốc thường, dị ứng lan rộng, dị ứng kéo dài nhiều ngày):
+     → ⚠️ CẢNH BÁO: Đây là tình trạng nghiêm trọng
+     → ⚠️ Chỉ tư vấn corticoid nhẹ/ngắn ngày nếu có trong database
+     → ⚠️ KHUYẾN NGHỊ: Đi khám bác sĩ ngay
 
 3. Bạn được phép gợi ý tối đa 3–5 thuốc PHÙ HỢP VỚI TRIỆU CHỨNG ĐÓ.
    KHÔNG tự ý thêm thuốc không liên quan.
