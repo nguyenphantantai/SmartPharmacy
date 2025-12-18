@@ -5,6 +5,63 @@ import { systemPrompt, systemInstructionGemini } from './aiPrompts.js';
 let openaiClient: any = null;
 let geminiClient: any = null;
 
+// Rate limiting cho Gemini API để tránh lỗi 503
+// Free tier: 5 RPM (requests per minute), 20 RPD (requests per day)
+// Chúng ta sẽ giới hạn ở 4 RPM để an toàn
+interface RateLimitState {
+  requests: number[];
+  lastRequestTime: number;
+}
+
+const geminiRateLimit: RateLimitState = {
+  requests: [],
+  lastRequestTime: 0
+};
+
+const GEMINI_RPM_LIMIT = 4; // Giới hạn 4 requests/phút (an toàn hơn 5)
+const GEMINI_MIN_DELAY_MS = 12000; // Tối thiểu 12 giây giữa các requests (60s / 5 = 12s, nhưng dùng 12s để an toàn)
+
+/**
+ * Kiểm tra và đợi nếu cần để tuân thủ rate limit của Gemini
+ */
+async function waitForGeminiRateLimit(): Promise<void> {
+  const now = Date.now();
+  
+  // Xóa các requests cũ hơn 1 phút
+  geminiRateLimit.requests = geminiRateLimit.requests.filter(
+    timestamp => now - timestamp < 60000
+  );
+  
+  // Nếu đã đạt giới hạn RPM, đợi đến khi có slot
+  if (geminiRateLimit.requests.length >= GEMINI_RPM_LIMIT) {
+    const oldestRequest = geminiRateLimit.requests[0];
+    const waitTime = 60000 - (now - oldestRequest) + 1000; // +1s buffer
+    if (waitTime > 0) {
+      console.log(`⏳ Gemini rate limit: waiting ${Math.ceil(waitTime / 1000)}s before next request...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      // Xóa lại sau khi đợi
+      geminiRateLimit.requests = geminiRateLimit.requests.filter(
+        timestamp => Date.now() - timestamp < 60000
+      );
+    }
+  }
+  
+  // Đảm bảo có delay tối thiểu giữa các requests (chỉ khi cần thiết)
+  // Chỉ delay nếu request trước đó quá gần (< 12 giây)
+  const timeSinceLastRequest = now - geminiRateLimit.lastRequestTime;
+  if (timeSinceLastRequest < GEMINI_MIN_DELAY_MS && geminiRateLimit.lastRequestTime > 0) {
+    const waitTime = GEMINI_MIN_DELAY_MS - timeSinceLastRequest;
+    if (waitTime > 0) {
+      console.log(`⏳ Gemini minimum delay: waiting ${Math.ceil(waitTime / 1000)}s...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  
+  // Ghi nhận request mới
+  geminiRateLimit.requests.push(Date.now());
+  geminiRateLimit.lastRequestTime = Date.now();
+}
+
 // Export initialization function for server startup
 export async function initializeAIClients() {
   await initializeClients();
@@ -200,7 +257,7 @@ export async function generateAIResponseWithLLM(options: AIChatOptions): Promise
 
 /**
  * Generate AI response using Google Gemini API
- * Free tier: 15 requests per minute, 1500 requests per day
+ * Free tier: 5 RPM (requests per minute), 20 RPD (requests per day)
  */
 export async function generateAIResponseWithGemini(options: AIChatOptions): Promise<string> {
   const { userMessage, conversationHistory, context } = options;
@@ -210,8 +267,14 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
 
   // If Gemini is not configured, return null to use rule-based system
   if (!geminiClient) {
+    console.log('⚠️ Gemini client not initialized. Check GEMINI_API_KEY in environment variables.');
     return null as any; // Signal to use fallback
   }
+  
+  console.log('✅ Using Gemini AI for response generation');
+
+  // Đợi để tuân thủ rate limit trước khi gọi API
+  await waitForGeminiRateLimit();
 
   try {
     // Get model (default: gemini-2.5-flash for stable and fast API)
@@ -455,6 +518,103 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `\n=== HƯỚNG DẪN ĐẶC BIỆT ===\n`;
       contextInfo += `${(context as any).instruction}\n`;
     }
+    
+    // Nếu cần làm rõ triệu chứng (đặc biệt với "thuốc tiêu hóa")
+    if ((context as any).queryType === 'symptom_clarification_needed') {
+      contextInfo += `\n⚠️⚠️⚠️ QUAN TRỌNG: Người dùng chỉ hỏi chung chung về "thuốc tiêu hóa" mà chưa có triệu chứng cụ thể.\n`;
+      contextInfo += `Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc.\n`;
+      contextInfo += `KHÔNG được tư vấn thuốc khi chưa biết triệu chứng cụ thể.\n`;
+    }
+
+    // Thêm thông tin bệnh nhân vào context
+    if (context?.patientInfo) {
+      const patient = context.patientInfo;
+      contextInfo += `\n=== THÔNG TIN BỆNH NHÂN (QUAN TRỌNG) ===\n`;
+      
+      if (patient.age !== null && patient.age !== undefined) {
+        contextInfo += `- Tuổi: ${patient.age} tuổi\n`;
+        
+        // Phân loại độ tuổi
+        if (patient.age >= 0 && patient.age < 1) {
+          contextInfo += `  → Nhóm: Trẻ sơ sinh (0 - < 1 tuổi)\n`;
+          contextInfo += `  ⚠️ CHỈ được dùng: Men vi sinh dạng giọt, thuốc theo chỉ định bác sĩ\n`;
+          contextInfo += `  ❌ KHÔNG được dùng: Thuốc kháng acid, cầm tiêu chảy tự ý\n`;
+          contextInfo += `  ⚠️ QUAN TRỌNG: Cần hỏi thêm cân nặng của trẻ để tính liều chính xác\n`;
+        } else if (patient.age >= 1 && patient.age < 6) {
+          contextInfo += `  → Nhóm: Trẻ nhỏ (1 - < 6 tuổi)\n`;
+          contextInfo += `  ⚠️ Thường dùng: Men vi sinh, Oresol, Siro tiêu hóa\n`;
+          contextInfo += `  ❌ KHÔNG được dùng: Thuốc người lớn\n`;
+          contextInfo += `  ⚠️ QUAN TRỌNG: Cần hỏi thêm cân nặng của trẻ để tính liều chính xác\n`;
+          contextInfo += `  ⚠️ Nếu trẻ có: Tiêu chảy > 2 ngày, nôn nhiều, sốt cao, phân có máu → PHẢI yêu cầu đi khám bác sĩ ngay\n`;
+        } else if (patient.age >= 6 && patient.age < 12) {
+          contextInfo += `  → Nhóm: Trẻ em (6 - < 12 tuổi)\n`;
+          contextInfo += `  ⚠️ Có thể dùng nhiều thuốc hơn nhưng liều thấp hơn người lớn\n`;
+          contextInfo += `  ⚠️ QUAN TRỌNG: Cần hỏi thêm cân nặng của trẻ để tính liều chính xác\n`;
+          contextInfo += `  ⚠️ Nếu trẻ có: Tiêu chảy > 2 ngày, nôn nhiều, sốt cao, phân có máu → PHẢI yêu cầu đi khám bác sĩ ngay\n`;
+        } else if (patient.age >= 12) {
+          contextInfo += `  → Nhóm: Người lớn (≥ 12 tuổi)\n`;
+          contextInfo += `  ⚠️ KHÔNG được gợi ý thuốc trẻ em (trừ khi thuốc dùng chung cho cả trẻ em và người lớn)\n`;
+        }
+      } else if (patient.ageGroup) {
+        contextInfo += `- Nhóm tuổi: ${patient.ageGroup}\n`;
+        if (patient.ageGroup === 'infant' || patient.ageGroup === 'toddler' || patient.ageGroup === 'child') {
+          contextInfo += `  ⚠️ QUAN TRỌNG: Cần hỏi thêm cân nặng của trẻ để tính liều chính xác\n`;
+          contextInfo += `  ⚠️ Nếu trẻ có: Tiêu chảy > 2 ngày, nôn nhiều, sốt cao, phân có máu → PHẢI yêu cầu đi khám bác sĩ ngay\n`;
+        }
+      }
+      
+      if (patient.isMale) {
+        contextInfo += `- Giới tính: Nam\n`;
+        contextInfo += `  → Không mang thai và không cho con bú\n`;
+      } else if (patient.isPregnant) {
+        contextInfo += `- Tình trạng: Đang mang thai\n`;
+        contextInfo += `  ⚠️⚠️⚠️ QUAN TRỌNG: PHẢI đề xuất thuốc an toàn cho phụ nữ mang thai\n`;
+        contextInfo += `  ❌ KHÔNG được gợi ý: Ibuprofen, Aspirin, NSAID, Corticoid (trừ khi có chỉ định bác sĩ)\n`;
+        contextInfo += `  ✅ Ưu tiên: Paracetamol (an toàn cho thai kỳ), Men vi sinh, Oresol\n`;
+      } else if (patient.isBreastfeeding) {
+        contextInfo += `- Tình trạng: Đang cho con bú\n`;
+        contextInfo += `  ⚠️⚠️⚠️ QUAN TRỌNG: PHẢI đề xuất thuốc an toàn cho phụ nữ cho con bú\n`;
+        contextInfo += `  ❌ KHÔNG được gợi ý: Ibuprofen, Aspirin, NSAID (trừ khi có chỉ định bác sĩ)\n`;
+        contextInfo += `  ✅ Ưu tiên: Paracetamol (an toàn khi cho con bú), Men vi sinh\n`;
+      } else {
+        contextInfo += `- Tình trạng: Không mang thai và không cho con bú\n`;
+      }
+      
+      if (patient.hasDrugAllergy && patient.allergyDrugs.length > 0) {
+        contextInfo += `- Dị ứng thuốc: CÓ - ${patient.allergyDrugs.join(', ')}\n`;
+        contextInfo += `  ⚠️⚠️⚠️ TUYỆT ĐỐI KHÔNG được gợi ý thuốc dị ứng hoặc thuốc cùng nhóm\n`;
+        contextInfo += `  ❌ Nếu dị ứng ${patient.allergyDrugs.join(' hoặc ')}, KHÔNG được gợi ý thuốc đó\n`;
+      } else {
+        contextInfo += `- Dị ứng thuốc: Không có\n`;
+      }
+      
+      if (patient.hasChronicDisease && patient.chronicDiseases.length > 0) {
+        contextInfo += `- Bệnh nền: CÓ - ${patient.chronicDiseases.join(', ')}\n`;
+        contextInfo += `  ⚠️⚠️⚠️ PHẢI tránh thuốc có chống chỉ định với bệnh nền\n`;
+        
+        if (patient.chronicDiseases.some(d => d.includes('gan'))) {
+          contextInfo += `  ❌ Bệnh gan: Tránh thuốc chuyển hóa qua gan, thận trọng với Paracetamol\n`;
+        }
+        if (patient.chronicDiseases.some(d => d.includes('thận'))) {
+          contextInfo += `  ❌ Bệnh thận: Tránh Ibuprofen, NSAID, thận trọng với thuốc chuyển hóa qua thận\n`;
+        }
+        if (patient.chronicDiseases.some(d => d.includes('dạ dày') || d.includes('bao tử'))) {
+          contextInfo += `  ❌ Bệnh dạ dày: Tránh Ibuprofen, Aspirin, NSAID (kích ứng dạ dày)\n`;
+        }
+        if (patient.chronicDiseases.some(d => d.includes('tim') || d.includes('huyết áp'))) {
+          contextInfo += `  ❌ Bệnh tim/huyết áp: Tránh thuốc ảnh hưởng tim mạch\n`;
+        }
+      } else {
+        contextInfo += `- Bệnh nền: Không có\n`;
+      }
+      
+      contextInfo += `\n⚠️⚠️⚠️ QUY TẮC BẮT BUỘC:\n`;
+      contextInfo += `1. CHỈ gợi ý thuốc PHÙ HỢP với tất cả điều kiện trên\n`;
+      contextInfo += `2. Nếu không có thuốc phù hợp trong danh sách hệ thống cung cấp, PHẢI nói rõ và đề xuất liên hệ dược sĩ\n`;
+      contextInfo += `3. KHÔNG được gợi ý thuốc không phù hợp với độ tuổi, mang thai, bệnh nền, dị ứng\n`;
+      contextInfo += `4. Nếu người dùng là người lớn (≥12 tuổi), KHÔNG được gợi ý thuốc trẻ em (trừ khi thuốc dùng chung)\n`;
+      contextInfo += `5. Nếu người dùng là trẻ em, KHÔNG được gợi ý thuốc người lớn\n`;
+    }
 
     if (context?.userHistory && context.userHistory.length > 0) {
       contextInfo += `\nLịch sử mua hàng của người dùng:\n`;
@@ -504,23 +664,61 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
     // Start chat session
     // systemInstruction must be an object with parts array, not a string
     const fullSystemInstruction = systemInstructionGemini + contextInfo;
-    const chat = model.startChat({
-      history: chatHistory.length > 0 ? chatHistory : undefined, // Only include if not empty
-      systemInstruction: {
-        parts: [{ text: fullSystemInstruction }]
-      },
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 4096, // Increased to prevent response truncation
-      },
-    });
+    
+    // Retry logic với exponential backoff cho lỗi 503
+    const maxRetries = 3;
+    let aiResponse: string | null = null;
+    let lastError: any = null;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const chat = model.startChat({
+          history: chatHistory.length > 0 ? chatHistory : undefined, // Only include if not empty
+          systemInstruction: {
+            parts: [{ text: fullSystemInstruction }]
+          },
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 4096, // Increased to prevent response truncation
+          },
+        });
 
-    // Send user message
-    const result = await chat.sendMessage(userMessage);
-    const response = await result.response;
-    let aiResponse = response.text();
+        // Send user message
+        const result = await chat.sendMessage(userMessage);
+        const response = await result.response;
+        aiResponse = response.text();
+        
+        // Success - break out of retry loop
+        break;
+      } catch (error: any) {
+        lastError = error;
+        const errorStatus = error?.status || error?.response?.status || 'N/A';
+        const errorMessage = error?.message || 'Unknown error';
+        
+        // Nếu là lỗi 503 (Service Unavailable) và chưa hết số lần retry
+        if ((errorStatus === 503 || errorMessage?.includes('503') || errorMessage?.includes('overloaded') || errorMessage?.includes('Service Unavailable')) && attempt < maxRetries - 1) {
+          const waitTime = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+          console.log(`⚠️ Gemini API overloaded (503), retrying in ${waitTime}ms... (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue; // Retry
+        } else {
+          // Không phải lỗi 503 hoặc đã hết số lần retry, throw error
+          throw error;
+        }
+      }
+    }
+    
+    // Nếu không có response sau tất cả các lần retry, throw error
+    if (!aiResponse && lastError) {
+      throw lastError;
+    }
+    
+    // Nếu có response, tiếp tục xử lý
+    if (!aiResponse) {
+      throw new Error('No response from Gemini API after retries');
+    }
     
     // Check if response was truncated (ends abruptly)
     // Gemini sometimes truncates if maxOutputTokens is reached
@@ -551,6 +749,9 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       }
     } else if (errorStatus === 429 || errorMessage?.includes('429') || errorMessage?.includes('quota') || errorMessage?.includes('rate limit')) {
       console.log('⚠️ Gemini API rate limit reached, falling back to rule-based system');
+    } else if (errorStatus === 503 || errorMessage?.includes('503') || errorMessage?.includes('overloaded') || errorMessage?.includes('Service Unavailable')) {
+      console.log('⚠️ Gemini API service unavailable (503 - model overloaded), falling back to rule-based system');
+      console.log('   This usually means the model is temporarily overloaded. The system will use rule-based fallback.');
     } else {
       // Log generic error without full error object (may contain sensitive info)
       console.error(`❌ Error calling Gemini API (Status: ${errorStatus}): ${errorMessage.substring(0, 200)}`);

@@ -83,6 +83,14 @@ const symptomToMedicines: { [key: string]: { keywords: string[]; medicineNames: 
     keywords: ['đầy bụng', 'khó tiêu', 'men tiêu hóa'],
     medicineNames: ['Domperidone', 'Men tiêu hóa', 'Enzym', 'Pancreatin']
   },
+  'khó tiêu': {
+    keywords: ['khó tiêu', 'khó tiêu hóa', 'tiêu hóa kém', 'ăn không tiêu'],
+    medicineNames: ['Domperidone', 'Men tiêu hóa', 'Enzym', 'Pancreatin', 'Buscopan', 'Spasmaverine', 'Simethicone', 'Air-X', 'Espumisan', 'Neopeptine', 'Festal']
+  },
+  'tiêu hóa': {
+    keywords: ['tiêu hóa', 'rối loạn tiêu hóa', 'vấn đề tiêu hóa', 'bệnh tiêu hóa'],
+    medicineNames: ['Domperidone', 'Men tiêu hóa', 'Enzym', 'Pancreatin', 'Buscopan', 'Spasmaverine', 'Duspatalin', 'Simethicone', 'Air-X', 'Espumisan', 'Neopeptine', 'Festal', 'Gaviscon', 'Gastropulgite', 'Omeprazole', 'Esomeprazole', 'Pantoprazole']
+  },
   'táo bón': {
     keywords: ['táo bón', 'khó đi ngoài'],
     medicineNames: ['Duphalac', 'Forlax', 'Microlax']
@@ -948,20 +956,59 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
   const q = query.toLowerCase();
   const name = (product.name || '').toLowerCase();
   const brand = (product.brand || '').toLowerCase();
-  const desc = (product.description || product.indication || '').toLowerCase();
+  const desc = (product.description || product.indication || product.uses || product.congDung || '').toLowerCase();
+  const category = (product.categoryName || product.category || product.mainCategory || '').toLowerCase();
 
   let score = 0;
+  
+  // Base score from matched symptoms
   matchedSymptoms.forEach(sym => {
     if (name.includes(sym)) score += 0.4;
     if (desc.includes(sym)) score += 0.3;
+    if (category.includes(sym)) score += 0.3;
   });
+  
+  // Specific symptom scoring
   if (q.includes('ho') && (name.includes('ho') || desc.includes('ho'))) score += 0.3;
   if (q.includes('nghẹt mũi') && (name.includes('nghẹt') || desc.includes('nghẹt'))) score += 0.3;
   if (q.includes('sổ mũi') && (name.includes('mũi') || desc.includes('mũi'))) score += 0.3;
   if (q.includes('sốt') && (name.includes('sốt') || desc.includes('sốt'))) score += 0.2;
   if (q.includes('đau họng') && (name.includes('họng') || desc.includes('họng'))) score += 0.3;
   if (q.includes('cảm')) score += 0.2;
+  
+  // Digestive symptoms scoring (QUAN TRỌNG - thêm logic cho tiêu hóa)
+  if (q.includes('khó tiêu') || q.includes('kho tieu')) {
+    const digestiveKeywords = ['khó tiêu', 'kho tieu', 'indigestion', 'dyspepsia', 'antacid', 'kháng acid', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'gaviscon', 'gastropulgite', 'domperidone', 'men tiêu hóa', 'enzyme', 'pancreatin', 'simethicone', 'air-x', 'espumisan'];
+    const isDigestive = digestiveKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('tiêu hóa') || category.includes('digestive'));
+    if (isDigestive) score += 0.5; // High score for digestive medicines
+  }
+  
+  if (q.includes('đầy bụng') || q.includes('day bung')) {
+    const bloatingKeywords = ['đầy bụng', 'day bung', 'bloating', 'flatulence', 'simethicone', 'air-x', 'espumisan', 'men tiêu hóa', 'enzyme'];
+    const isBloating = bloatingKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('tiêu hóa') || category.includes('digestive'));
+    if (isBloating) score += 0.5;
+  }
+  
+  if (q.includes('đau bụng') || q.includes('dau bung')) {
+    const stomachKeywords = ['đau bụng', 'dau bung', 'buscopan', 'spasmaverine', 'duspatalin', 'antispasmodic', 'co thắt'];
+    const isStomach = stomachKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword) || category.includes('tiêu hóa') || category.includes('digestive'));
+    if (isStomach) score += 0.5;
+  }
+  
+  if (q.includes('tiêu hóa') || q.includes('tieu hoa')) {
+    const digestiveCategoryKeywords = ['tiêu hóa', 'tieu hoa', 'digestive', 'gastrointestinal', 'antacid', 'kháng acid', 'men tiêu hóa', 'enzyme'];
+    const isDigestiveCategory = digestiveCategoryKeywords.some(keyword => 
+      name.includes(keyword) || desc.includes(keyword) || category.includes(keyword)
+    );
+    if (isDigestiveCategory) score += 0.4; // Good score for digestive category
+  }
+  
+  // Bonus score if product is in stock
+  if (product.inStock && product.stockQuantity > 0) score += 0.1;
+  
+  // Penalty for irrelevant products
   if (name.includes('probiotic') || desc.includes('probiotic')) score -= 1;
+  
   return score;
 }
 
@@ -983,7 +1030,7 @@ async function semanticSearch(query: string): Promise<any[]> {
       }
     }
     
-    if (foundMedicines.length === 0) return [];
+    console.log(`[semanticSearch] Query: "${query}" -> Matched symptoms: ${matchedSymptoms.join(', ')} -> Medicines: ${foundMedicines.slice(0, 5).join(', ')}`);
     
     // Remove duplicates from medicine names
     const uniqueMedicineNames = [...new Set(foundMedicines)];
@@ -994,48 +1041,167 @@ async function semanticSearch(query: string): Promise<any[]> {
     const productsCollection = db.collection('products');
     const medicinesCollection = db.collection('medicines');
     
-    // QUAN TRỌNG: Chỉ search theo medicineNames, KHÔNG search bằng keywords
-    // Điều này đảm bảo chỉ tìm đúng thuốc được mapping, không tìm thuốc không liên quan
+    // Build search patterns: tìm theo tên thuốc, category, indication, description
+    const searchPatterns: any[] = [];
+    
+    // 1. Tìm theo tên thuốc cụ thể (nếu có mapping)
+    if (uniqueMedicineNames.length > 0) {
     const medicineNameRegex = uniqueMedicineNames.map(name => ({
       $or: [
         { name: { $regex: name, $options: 'i' } },
         { brand: { $regex: name, $options: 'i' } }
       ]
     }));
+      searchPatterns.push(...medicineNameRegex);
+    }
     
-    // Search in products collection - CHỈ search theo medicineNames
-    let products = await productsCollection.find({
-      $or: medicineNameRegex,
+    // 2. Tìm theo category và indication/description (quan trọng cho trường hợp không có mapping)
+    // Mapping symptom -> category và keywords để tìm trong database
+    // Dựa trên danh sách categories và subcategories thực tế từ database
+    const symptomToCategoryKeywords: { [key: string]: { categories: string[]; subcategories: string[]; keywords: string[] } } = {
+      'khó tiêu': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antacid', 'kháng acid'],
+        subcategories: ['thuốc kháng acid', 'thuốc ức chế tiết acid', 'men tiêu hóa', 'ppi', 'h2'],
+        keywords: ['khó tiêu', 'khó tiêu hóa', 'ăn không tiêu', 'dyspepsia', 'indigestion', 'antacid', 'kháng acid', 'acid', 'digestive', 'tiêu hóa', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'gaviscon', 'gastropulgite']
+      },
+      'tiêu hóa': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre', 'tiêu hóa', 'digestive', 'gastrointestinal'],
+        subcategories: ['thuốc kháng acid', 'thuốc ức chế tiết acid', 'men tiêu hóa', 'thuốc chống tiêu chảy', 'thuốc nhuận tràng', 'men tiêu hóa trẻ em', 'thuốc chống tiêu chảy trẻ em', 'thuốc trị táo bón trẻ em'],
+        keywords: ['tiêu hóa', 'digestive', 'gastrointestinal', 'rối loạn tiêu hóa', 'digestion', 'khó tiêu', 'đầy bụng', 'antacid', 'kháng acid', 'men tiêu hóa', 'enzyme', 'pancreatin']
+      },
+      'đầy bụng': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive'],
+        subcategories: ['men tiêu hóa', 'thuốc kháng acid'],
+        keywords: ['đầy bụng', 'chướng bụng', 'bloating', 'flatulence', 'simethicone', 'air-x', 'espumisan', 'men tiêu hóa', 'enzyme']
+      },
+      'đau bụng': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antispasmodic'],
+        subcategories: ['thuốc kháng acid', 'men tiêu hóa'],
+        keywords: ['đau bụng', 'co thắt', 'spasm', 'buscopan', 'spasmaverine', 'duspatalin', 'antispasmodic']
+      },
+      'tiêu chảy': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre', 'tiêu hóa', 'digestive', 'antidiarrheal'],
+        subcategories: ['thuốc chống tiêu chảy', 'thuốc chống tiêu chảy trẻ em'],
+        keywords: ['tiêu chảy', 'diarrhea', 'loperamide', 'smecta', 'diosmectite', 'chống tiêu chảy', 'antidiarrheal']
+      },
+      'táo bón': {
+        categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'thuốc tiêu hóa cho trẻ', 'thuoc-tieu-hoa-cho-tre', 'tiêu hóa', 'digestive', 'laxative'],
+        subcategories: ['thuốc nhuận tràng', 'thuốc trị táo bón trẻ em'],
+        keywords: ['táo bón', 'constipation', 'duphalac', 'forlax', 'microlax', 'nhuận tràng', 'laxative']
+      }
+    };
+    
+    // Nếu có matched symptoms, tìm thêm theo category và keywords
+    if (matchedSymptoms.length > 0) {
+      for (const symptom of matchedSymptoms) {
+        if (symptomToCategoryKeywords[symptom]) {
+          const { categories, subcategories, keywords } = symptomToCategoryKeywords[symptom];
+          
+          // Tìm theo category name (tên category chính xác từ database)
+          for (const category of categories) {
+            searchPatterns.push({
+              $or: [
+                { categoryName: { $regex: category.replace(/-/g, '[-\\s]'), $options: 'i' } },
+                { category: { $regex: category.replace(/-/g, '[-\\s]'), $options: 'i' } },
+                { mainCategory: { $regex: category.replace(/-/g, '[-\\s]'), $options: 'i' } }
+              ]
+            });
+          }
+          
+          // Tìm theo subcategory (tên subcategory chính xác từ database)
+          if (subcategories && subcategories.length > 0) {
+            for (const subcategory of subcategories) {
+              searchPatterns.push({
+                $or: [
+                  { subcategoryName: { $regex: subcategory, $options: 'i' } },
+                  { subcategory: { $regex: subcategory, $options: 'i' } },
+                  { categoryName: { $regex: subcategory, $options: 'i' } },
+                  { category: { $regex: subcategory, $options: 'i' } }
+                ]
+              });
+            }
+          }
+          
+          // Tìm theo indication/description/uses
+          for (const keyword of keywords) {
+            searchPatterns.push({
+              $or: [
+                { indication: { $regex: keyword, $options: 'i' } },
+                { indications: { $regex: keyword, $options: 'i' } },
+                { description: { $regex: keyword, $options: 'i' } },
+                { uses: { $regex: keyword, $options: 'i' } },
+                { congDung: { $regex: keyword, $options: 'i' } },
+                { name: { $regex: keyword, $options: 'i' } },
+                { brand: { $regex: keyword, $options: 'i' } }
+              ]
+            });
+          }
+        }
+      }
+    }
+    
+    // Nếu không có mapping nhưng query có từ khóa tiêu hóa, tìm theo category/keywords
+    if (uniqueMedicineNames.length === 0) {
+      if (lowerQuery.includes('tiêu hóa') || lowerQuery.includes('khó tiêu') || lowerQuery.includes('đầy bụng') || lowerQuery.includes('đau bụng')) {
+        // Tìm theo category name chính xác từ database
+        searchPatterns.push(
+          { categoryName: { $regex: 'thuốc tiêu hóa|thuoc-tieu-hoa|tiêu hóa|digestive|antacid|kháng acid', $options: 'i' } },
+          { category: { $regex: 'thuốc tiêu hóa|thuoc-tieu-hoa|tiêu hóa|digestive|antacid|kháng acid', $options: 'i' } },
+          { mainCategory: { $regex: 'thuốc tiêu hóa|thuoc-tieu-hoa|tiêu hóa|digestive|antacid|kháng acid', $options: 'i' } },
+          // Tìm theo subcategory
+          { subcategoryName: { $regex: 'thuốc kháng acid|thuốc ức chế tiết acid|men tiêu hóa|thuốc chống tiêu chảy|thuốc nhuận tràng', $options: 'i' } },
+          { subcategory: { $regex: 'thuốc kháng acid|thuốc ức chế tiết acid|men tiêu hóa|thuốc chống tiêu chảy|thuốc nhuận tràng', $options: 'i' } },
+          // Tìm theo indication/description
+          { indication: { $regex: 'tiêu hóa|khó tiêu|đầy bụng|digestive|antacid|indigestion|dyspepsia|kháng acid|men tiêu hóa|enzyme', $options: 'i' } },
+          { indications: { $regex: 'tiêu hóa|khó tiêu|đầy bụng|digestive|antacid|indigestion|dyspepsia|kháng acid|men tiêu hóa|enzyme', $options: 'i' } },
+          { description: { $regex: 'tiêu hóa|khó tiêu|đầy bụng|digestive|antacid|indigestion|dyspepsia|kháng acid|men tiêu hóa|enzyme', $options: 'i' } },
+          { uses: { $regex: 'tiêu hóa|khó tiêu|đầy bụng|digestive|antacid|indigestion|dyspepsia|kháng acid|men tiêu hóa|enzyme', $options: 'i' } },
+          // Tìm theo tên thuốc phổ biến
+          { name: { $regex: 'antacid|omeprazole|esomeprazole|pantoprazole|ranitidine|famotidine|gaviscon|gastropulgite|simethicone|air-x|espumisan|domperidone|buscopan|spasmaverine|duspatalin|men tiêu hóa|enzyme|pancreatin', $options: 'i' } }
+        );
+      }
+    }
+    
+    // Search in products collection
+    let products: any[] = [];
+    if (searchPatterns.length > 0) {
+      products = await productsCollection.find({
+        $or: searchPatterns,
       inStock: true,
       stockQuantity: { $gt: 0 }
     })
-    .limit(10)
+      .limit(15)
     .toArray();
+    }
     
     // If not enough results, search in medicines collection
-    if (products.length < 3) {
+    if (products.length < 3 && searchPatterns.length > 0) {
       const medicines = await medicinesCollection.find({
-        $or: medicineNameRegex
+        $or: searchPatterns
       })
-      .limit(10 - products.length)
+      .limit(15 - products.length)
       .toArray();
       
       // Convert to product format
       const convertedMedicines = medicines.map(med => ({
         _id: med._id,
         name: med.name,
-        price: med.price || 0,
-        description: med.description || med.indication || '',
+        price: med.price || med.salePrice || 0,
+        description: med.description || med.indication || med.indications || med.uses || med.congDung || '',
         brand: med.brand || '',
-        inStock: true,
-        stockQuantity: med.stockQuantity || 0,
+        inStock: (med.stock || med.stockQuantity || 0) > 0,
+        stockQuantity: med.stock || med.stockQuantity || 0,
         unit: med.unit || 'đơn vị',
         imageUrl: med.imageUrl || '',
-        indication: med.indication || ''
+        indication: med.indication || med.indications || med.uses || med.congDung || '',
+        categoryName: med.category || med.mainCategory || '',
+        category: med.category || med.mainCategory || ''
       }));
       
       products = [...products, ...convertedMedicines];
     }
+    
+    console.log(`[semanticSearch] Found ${products.length} products from database`);
     
     // Filter out irrelevant medicines based on matched symptoms
     // QUAN TRỌNG: Loại bỏ thuốc không liên quan đến triệu chứng
@@ -1115,6 +1281,40 @@ async function semanticSearch(query: string): Promise<any[]> {
         }
       }
       
+      // Nếu hỏi về tiêu hóa, khó tiêu, đầy bụng
+      if (matchedSymptoms.includes('khó tiêu') || 
+          matchedSymptoms.includes('tiêu hóa') || 
+          matchedSymptoms.includes('đầy bụng') ||
+          matchedSymptoms.includes('đau bụng')) {
+        // Chỉ giữ thuốc tiêu hóa, loại bỏ TẤT CẢ thuốc khác
+        const digestiveMedicines = ['domperidone', 'men tiêu hóa', 'enzym', 'pancreatin', 'buscopan', 'spasmaverine', 'duspatalin', 'omeprazole', 'esomeprazole', 'pantoprazole', 'gaviscon', 'gastropulgite'];
+        const isDigestiveMedicine = digestiveMedicines.some(med => productNameLower.includes(med));
+        
+        // Loại bỏ TẤT CẢ thuốc không phải thuốc tiêu hóa
+        if (!isDigestiveMedicine) {
+          // Loại bỏ thuốc dị ứng
+          if (productNameLower.includes('clorpheniramin') || 
+              productNameLower.includes('chlorpheniramine') ||
+              productNameLower.includes('cetirizine') || 
+              productNameLower.includes('loratadine') || 
+              productNameLower.includes('fexofenadine')) {
+            return false;
+          }
+          // Loại bỏ thuốc sốt/đau
+          if (productNameLower.includes('paracetamol') || productNameLower.includes('panadol') || productNameLower.includes('efferalgan') || productNameLower.includes('ibuprofen')) {
+            return false;
+          }
+          // Loại bỏ thuốc ho
+          if (productNameLower.includes('terpin') || productNameLower.includes('acetylcysteine') || productNameLower.includes('bromhexin') || productNameLower.includes('ambroxol')) {
+            return false;
+          }
+          // Loại bỏ thuốc cảm cúm
+          if (productNameLower.includes('decolgen') || productNameLower.includes('tiffy') || productNameLower.includes('coldacmin')) {
+            return false;
+          }
+        }
+      }
+      
       // Nếu hỏi "cảm" hoặc "cảm cúm"
       if (matchedSymptoms.includes('cảm') || matchedSymptoms.includes('cảm cúm')) {
         // Loại bỏ Probiotics - KHÔNG liên quan đến cảm
@@ -1170,11 +1370,28 @@ async function semanticSearch(query: string): Promise<any[]> {
       _score: relevanceScore(query, p, matchedSymptoms)
     }));
 
-    return scored
-      .filter(p => p._score > 0.3)
+    // For digestive symptoms, lower the threshold to ensure we get results
+    // If we have matched digestive symptoms, accept lower scores
+    const hasDigestiveSymptoms = matchedSymptoms.some(s => 
+      ['khó tiêu', 'tiêu hóa', 'đầy bụng', 'đau bụng', 'tiêu chảy', 'táo bón'].includes(s)
+    );
+    const scoreThreshold = hasDigestiveSymptoms ? 0.2 : 0.3; // Lower threshold for digestive
+    
+    const finalResults = scored
+      .filter(p => p._score > scoreThreshold)
       .sort((a, b) => b._score - a._score)
       .slice(0, 5)
       .map(({ _score, ...rest }) => rest);
+    
+    if (finalResults.length === 0) {
+      console.log(`[semanticSearch] Không tìm thấy thuốc phù hợp trong DB cho query: "${query}"`);
+      console.log(`[semanticSearch] Matched symptoms: ${matchedSymptoms.join(', ')}`);
+      console.log(`[semanticSearch] Medicine names to search: ${uniqueMedicineNames.slice(0, 10).join(', ')}`);
+    } else {
+      console.log(`[semanticSearch] Tìm thấy ${finalResults.length} thuốc phù hợp: ${finalResults.map(p => p.name).join(', ')}`);
+    }
+    
+    return finalResults;
   } catch (error) {
     console.error('Error in semantic search:', error);
     return [];
@@ -1267,8 +1484,10 @@ function checkSafetyWarnings(message: string): string | null {
     { pattern: /đau\s*ngực/i, warning: safetyWarnings['đau ngực'] },
     { pattern: /trẻ\s*(em|nhỏ|<|dưới)\s*[0-5]\s*(tháng|th)/i, warning: '⚠️ Trẻ dưới 6 tháng cần được khám bác sĩ ngay. Không tự ý dùng thuốc.' },
     { pattern: /mang\s*thai\s*(3|ba)\s*tháng\s*đầu/i, warning: '⚠️ Phụ nữ mang thai 3 tháng đầu cần khám bác sĩ trước khi dùng thuốc.' },
-    { pattern: /(nôn\s*ra\s*máu|đi\s*ngoài\s*ra\s*máu|ho\s*ra\s*máu)/i, warning: '⚠️ Đây là triệu chứng nghiêm trọng. Bạn cần đi khám bác sĩ ngay lập tức hoặc đến cơ sở y tế gần nhất. Không tự ý điều trị tại nhà.' },
-    { pattern: /(co giật|động kinh|hôn mê)/i, warning: '⚠️ Đây là tình trạng khẩn cấp. Bạn cần gọi cấp cứu 115 hoặc đến bệnh viện ngay lập tức.' }
+    { pattern: /(nôn\s*ra\s*máu|đi\s*ngoài\s*ra\s*máu|ho\s*ra\s*máu|phân\s*có\s*máu)/i, warning: '⚠️ Đây là triệu chứng nghiêm trọng. Bạn cần đi khám bác sĩ ngay lập tức hoặc đến cơ sở y tế gần nhất. Không tự ý điều trị tại nhà.' },
+    { pattern: /(co giật|động kinh|hôn mê)/i, warning: '⚠️ Đây là tình trạng khẩn cấp. Bạn cần gọi cấp cứu 115 hoặc đến bệnh viện ngay lập tức.' },
+    { pattern: /tiêu\s*chảy\s*(?:hơn|trên|>|quá)\s*2\s*ngày/i, warning: '⚠️ Tiêu chảy kéo dài hơn 2 ngày là dấu hiệu nghiêm trọng, đặc biệt với trẻ em. Bạn cần đi khám bác sĩ ngay. Không tự ý điều trị tại nhà.' },
+    { pattern: /nôn\s*(?:nhiều|liên\s*tục|thường\s*xuyên)/i, warning: '⚠️ Nôn nhiều hoặc nôn liên tục là dấu hiệu nghiêm trọng, đặc biệt với trẻ em. Bạn cần đi khám bác sĩ ngay. Không tự ý điều trị tại nhà.' }
   ];
 
   for (const { pattern, warning } of criticalPatterns) {
@@ -1317,26 +1536,78 @@ function parsePatientInfo(message: string, conversationHistory?: ChatMessage[]) 
   }
   
   const lower = combinedText;
-  const hasSymptom = ['cảm', 'cúm', 'sốt', 'ho', 'sổ mũi', 'nghẹt mũi', 'đau họng', 'nhức đầu']
+  const hasSymptom = ['cảm', 'cúm', 'sốt', 'ho', 'sổ mũi', 'nghẹt mũi', 'đau họng', 'nhức đầu', 'tiêu hóa', 'khó tiêu', 'đầy bụng', 'đau bụng']
     .some(sym => lower.includes(sym));
 
-  const hasAge =
-    /\d{1,2}\s*tuổi/.test(lower) ||  // "22 tuổi", "tôi 22 tuổi"
-    lower.includes('trẻ em') ||
-    lower.includes('người lớn') ||
-    /\d{1,2}\s*yo/i.test(lower) ||
-    /tôi\s+\d{1,2}/.test(lower);  // "tôi 22" (fallback)
+  // Extract age
+  let age: number | null = null;
+  let ageGroup: 'infant' | 'toddler' | 'child' | 'adolescent' | 'adult' | null = null;
+  
+  const ageMatch = lower.match(/(\d{1,3})\s*tuổi/i) || lower.match(/tôi\s+(\d{1,3})/i) || lower.match(/(\d{1,3})\s*yo/i);
+  if (ageMatch) {
+    age = parseInt(ageMatch[1]);
+    if (age >= 0 && age < 1) ageGroup = 'infant';
+    else if (age >= 1 && age < 6) ageGroup = 'toddler';
+    else if (age >= 6 && age < 12) ageGroup = 'child';
+    else if (age >= 12) ageGroup = 'adult'; // Từ 12 tuổi trở lên được coi là người lớn
+  } else if (lower.includes('trẻ sơ sinh') || lower.includes('trẻ dưới 1 tuổi')) {
+    ageGroup = 'infant';
+  } else if (lower.includes('trẻ nhỏ') || lower.includes('trẻ em dưới 6')) {
+    ageGroup = 'toddler';
+  } else if (lower.includes('trẻ em') && !lower.includes('dưới')) {
+    ageGroup = 'child';
+  } else if (lower.includes('người lớn') || lower.includes('vị thành niên')) {
+    ageGroup = 'adult';
+  }
 
-  const hasPregnancyInfo = /(mang\s*thai|bầu|có\s*thai|cho\s*con\s*bú|không\s*mang\s*thai|không\s*bầu|không\s*có\s*thai)/i.test(lower);
-  const hasDrugAllergyInfo = /(dị\s*ứng|dị\s*thuốc|không\s*dị\s*ứng|không\s*dị\s*thuốc|tiền\s*sử\s*dị\s*ứng)/i.test(lower);
-  const hasChronicInfo = /(bệnh\s*nền|bệnh\s*gan|bệnh\s*thận|tim|dạ\s*dày|cao\s*huyết\s*áp|tiểu\s*đường|không\s*bệnh\s*nền|không\s*có\s*bệnh)/i.test(lower);
+  const hasAge = age !== null || ageGroup !== null || /\d{1,2}\s*tuổi/.test(lower) || lower.includes('trẻ em') || lower.includes('người lớn');
+
+  // Extract pregnancy/breastfeeding info
+  const isPregnant = /(mang\s*thai|có\s*thai|bầu|đang\s*thai)/i.test(lower) && !/(không\s*mang\s*thai|không\s*có\s*thai|không\s*bầu)/i.test(lower);
+  const isBreastfeeding = /(cho\s*con\s*bú|đang\s*cho\s*con\s*bú)/i.test(lower) && !/(không\s*cho\s*con\s*bú)/i.test(lower);
+  const isMale = /(nam|đàn\s*ông|con\s*trai)/i.test(lower);
+  const hasPregnancyInfo = isPregnant || isBreastfeeding || /(không\s*mang\s*thai|không\s*bầu|không\s*có\s*thai|không\s*cho\s*con\s*bú)/i.test(lower) || isMale;
+
+  // Extract drug allergy info
+  const hasDrugAllergy = /(dị\s*ứng|dị\s*thuốc|tiền\s*sử\s*dị\s*ứng)/i.test(lower) && !/(không\s*dị\s*ứng|không\s*dị\s*thuốc)/i.test(lower);
+  const allergyDrugs: string[] = [];
+  if (hasDrugAllergy) {
+    // Try to extract drug names from allergy info
+    const allergyMatch = lower.match(/dị\s*ứng\s*(?:với|thuốc)?\s*([^,.\n]+)/i);
+    if (allergyMatch) {
+      allergyDrugs.push(allergyMatch[1].trim());
+    }
+  }
+  const hasDrugAllergyInfo = hasDrugAllergy || /(không\s*dị\s*ứng|không\s*dị\s*thuốc)/i.test(lower);
+
+  // Extract chronic disease info
+  const hasChronicDisease = /(bệnh\s*nền|có\s*bệnh)/i.test(lower) && !/(không\s*bệnh\s*nền|không\s*có\s*bệnh)/i.test(lower);
+  const chronicDiseases: string[] = [];
+  if (hasChronicDisease) {
+    const diseases = ['gan', 'thận', 'tim', 'dạ dày', 'huyết áp', 'tiểu đường', 'đái tháo đường', 'cao huyết áp'];
+    diseases.forEach(disease => {
+      if (lower.includes(disease)) {
+        chronicDiseases.push(disease);
+      }
+    });
+  }
+  const hasChronicInfo = hasChronicDisease || /(không\s*bệnh\s*nền|không\s*có\s*bệnh)/i.test(lower);
 
   return {
     hasSymptom,
     hasAge,
+    age,
+    ageGroup,
     hasPregnancyInfo,
+    isPregnant,
+    isBreastfeeding,
+    isMale,
     hasDrugAllergyInfo,
-    hasChronicInfo
+    hasDrugAllergy,
+    allergyDrugs,
+    hasChronicInfo,
+    hasChronicDisease,
+    chronicDiseases
   };
 }
 
@@ -1357,6 +1628,124 @@ function buildMissingInfoQuestions(info: ReturnType<typeof parsePatientInfo>): s
   response += '\nCảm ơn bạn!';
   
   return response;
+}
+
+/**
+ * Filter thuốc theo thông tin bệnh nhân (độ tuổi, mang thai, bệnh nền, dị ứng)
+ */
+function filterMedicinesByPatientInfo(medicines: any[], patientInfo: ReturnType<typeof parsePatientInfo>): any[] {
+  if (!medicines || medicines.length === 0) return medicines;
+  
+  return medicines.filter(med => {
+    const medName = (med.name || '').toLowerCase();
+    const medIndication = (med.indication || med.description || '').toLowerCase();
+    
+    // 1. Filter theo độ tuổi
+    if (patientInfo.ageGroup) {
+      // Trẻ sơ sinh (0-1 tuổi): chỉ men vi sinh dạng giọt
+      if (patientInfo.ageGroup === 'infant') {
+        if (!medName.includes('men vi sinh') && !medName.includes('probiotic') && !medIndication.includes('men vi sinh')) {
+          return false; // Loại bỏ thuốc không phải men vi sinh cho trẻ sơ sinh
+        }
+        // Chỉ giữ men vi sinh dạng giọt
+        if (!medName.includes('giọt') && !medName.includes('drop')) {
+          return false;
+        }
+      }
+      
+      // Trẻ nhỏ (1-6 tuổi): tránh thuốc người lớn
+      if (patientInfo.ageGroup === 'toddler') {
+        // Loại bỏ thuốc có "người lớn" trong tên hoặc indication
+        if (medName.includes('người lớn') || medIndication.includes('người lớn')) {
+          return false;
+        }
+      }
+      
+      // Người lớn (12+): loại bỏ thuốc trẻ em
+      if (patientInfo.ageGroup === 'adult' && patientInfo.age && patientInfo.age >= 12) {
+        // Loại bỏ thuốc có "trẻ em" hoặc "trẻ nhỏ" trong tên (trừ khi là thuốc dùng chung)
+        if ((medName.includes('trẻ em') || medName.includes('trẻ nhỏ') || medName.includes('kids') || medName.includes('pediatric')) &&
+            !medIndication.includes('người lớn') && !medIndication.includes('cả trẻ em và người lớn')) {
+          return false;
+        }
+      }
+    }
+    
+    // 2. Filter theo mang thai/cho con bú
+    if (patientInfo.isPregnant || patientInfo.isBreastfeeding) {
+      // Loại bỏ thuốc có chống chỉ định cho phụ nữ mang thai
+      const contraindicatedForPregnancy = ['ibuprofen', 'aspirin', 'nsaid', 'corticoid', 'prednisolone', 'dexamethasone'];
+      if (contraindicatedForPregnancy.some(drug => medName.includes(drug) || medIndication.includes(drug))) {
+        return false;
+      }
+    }
+    
+    // 3. Filter theo dị ứng thuốc
+    if (patientInfo.hasDrugAllergy && patientInfo.allergyDrugs.length > 0) {
+      for (const allergyDrug of patientInfo.allergyDrugs) {
+        const allergyLower = allergyDrug.toLowerCase();
+        // Loại bỏ thuốc dị ứng hoặc thuốc cùng nhóm
+        if (medName.includes(allergyLower) || medIndication.includes(allergyLower)) {
+          return false;
+        }
+        
+        // Loại bỏ thuốc cùng nhóm (ví dụ: dị ứng Paracetamol thì tránh tất cả Paracetamol)
+        const drugGroups: { [key: string]: string[] } = {
+          'paracetamol': ['paracetamol', 'acetaminophen', 'panadol', 'efferalgan', 'hapacol'],
+          'ibuprofen': ['ibuprofen', 'nsaid', 'diclofenac', 'meloxicam'],
+          'aspirin': ['aspirin', 'acetylsalicylic'],
+          'penicillin': ['penicillin', 'amoxicillin', 'ampicillin', 'augmentin'],
+        };
+        
+        for (const [group, drugs] of Object.entries(drugGroups)) {
+          if (drugs.some(d => allergyLower.includes(d) || d.includes(allergyLower))) {
+            if (drugs.some(d => medName.includes(d) || medIndication.includes(d))) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    
+    // 4. Filter theo bệnh nền
+    if (patientInfo.hasChronicDisease && patientInfo.chronicDiseases.length > 0) {
+      for (const disease of patientInfo.chronicDiseases) {
+        const diseaseLower = disease.toLowerCase();
+        
+        // Bệnh gan: tránh thuốc chuyển hóa qua gan
+        if (diseaseLower.includes('gan')) {
+          if (medIndication.includes('chuyển hóa qua gan') || medName.includes('paracetamol')) {
+            // Paracetamol vẫn có thể dùng nhưng cần thận trọng - để AI quyết định
+            // Chỉ loại bỏ nếu có chống chỉ định rõ ràng
+          }
+        }
+        
+        // Bệnh thận: tránh thuốc chuyển hóa qua thận
+        if (diseaseLower.includes('thận')) {
+          if (medIndication.includes('chống chỉ định suy thận') || medName.includes('ibuprofen')) {
+            // Ibuprofen cần thận trọng với bệnh thận
+          }
+        }
+        
+        // Bệnh dạ dày: tránh thuốc kích ứng dạ dày
+        if (diseaseLower.includes('dạ dày') || diseaseLower.includes('bao tử')) {
+          if (medName.includes('ibuprofen') || medName.includes('aspirin') || medName.includes('nsaid') || 
+              medIndication.includes('kích ứng dạ dày') || medIndication.includes('loét dạ dày')) {
+            return false;
+          }
+        }
+        
+        // Bệnh tim/huyết áp: tránh thuốc ảnh hưởng tim mạch
+        if (diseaseLower.includes('tim') || diseaseLower.includes('huyết áp')) {
+          if (medIndication.includes('chống chỉ định bệnh tim') || medIndication.includes('tăng huyết áp')) {
+            return false;
+          }
+        }
+      }
+    }
+    
+    return true;
+  });
 }
 
 // Detect if current message is a follow-up answer to previous questions
@@ -1420,6 +1809,31 @@ async function generateAIResponse(
   userId?: string
 ): Promise<string> {
   const lowerMessage = normalizeText(userMessage);
+
+  // ============================================
+  // KIỂM TRA NẾU LÀ MESSAGE ĐẦU TIÊN - HỎI THÔNG TIN CÁ NHÂN NGAY
+  // ============================================
+  // Nếu conversationHistory chỉ có 1 message (chào mừng) hoặc không có, đây là lần đầu tiên
+  const isFirstMessage = conversationHistory.length <= 1 || 
+    (conversationHistory.length === 1 && conversationHistory[0].role === 'assistant');
+  
+  // Parse thông tin từ message hiện tại và conversation history
+  const patientInfo = parsePatientInfo(userMessage, conversationHistory);
+  
+  // Nếu là message đầu tiên và chưa có đủ thông tin cá nhân, hỏi ngay
+  if (isFirstMessage) {
+    const missingInfo = buildMissingInfoQuestions(patientInfo);
+    if (missingInfo) {
+      // Kiểm tra xem message có phải là chào hỏi không (không phải câu hỏi về thuốc)
+      const isGreeting = /^(xin chào|chào|hi|hello|hey|tôi cần|tôi muốn|cho tôi|giúp tôi)/i.test(userMessage.trim());
+      const hasMedicalQuery = /(tư vấn|thuốc|bị|đau|sốt|ho|cảm|cúm|tiêu hóa|khó tiêu|đầy bụng)/i.test(userMessage);
+      
+      // Nếu chỉ là chào hỏi hoặc chưa có câu hỏi y tế cụ thể, hỏi thông tin cá nhân ngay
+      if (isGreeting || !hasMedicalQuery) {
+        return `Xin chào! Tôi là trợ lý AI của Nhà Thuốc Thông Minh. Tôi có thể giúp bạn tìm thông tin về thuốc, tư vấn sức khỏe, và hỗ trợ mua sắm.\n\n${missingInfo}`;
+      }
+    }
+  }
 
   // ============================================
   // PHÂN LOẠI INTENT CÂU HỎI
@@ -1672,26 +2086,58 @@ async function generateAIResponse(
         }
       }
 
+      // Parse patient info để filter thuốc
+      const patientInfo = parsePatientInfo(combinedSymptomMessage, conversationHistory);
+
       // Get context for AI (medicines, user history, etc.)
       const context: any = { ...forcedContext };
+      
+      // Thêm thông tin bệnh nhân vào context
+      context.patientInfo = {
+        age: patientInfo.age,
+        ageGroup: patientInfo.ageGroup,
+        isPregnant: patientInfo.isPregnant,
+        isBreastfeeding: patientInfo.isBreastfeeding,
+        isMale: patientInfo.isMale,
+        hasDrugAllergy: patientInfo.hasDrugAllergy,
+        allergyDrugs: patientInfo.allergyDrugs,
+        hasChronicDisease: patientInfo.hasChronicDisease,
+        chronicDiseases: patientInfo.chronicDiseases
+      };
+      
+      // Kiểm tra xem có triệu chứng cụ thể không (đặc biệt với "tiêu hóa")
+      const hasSpecificSymptom = /(khó tiêu|đầy bụng|đau bụng|tiêu chảy|táo bón|ợ nóng|buồn nôn|nôn)/i.test(lowerCombinedMessage);
+      const onlyGeneralDigestive = /tiêu hóa/i.test(lowerCombinedMessage) && !hasSpecificSymptom;
+      
+      // Nếu chỉ hỏi "thuốc tiêu hóa" mà không có triệu chứng cụ thể, thêm instruction để AI hỏi lại
+      if (onlyGeneralDigestive && patientInfo.hasAge) {
+        context.instruction = `Người dùng đã cung cấp thông tin an toàn nhưng chỉ hỏi chung chung về "thuốc tiêu hóa" mà chưa có triệu chứng cụ thể. Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc. Hãy hỏi: "Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải (ví dụ: khó tiêu, đầy bụng, đau bụng, tiêu chảy, táo bón, ợ nóng, buồn nôn...)".`;
+        context.queryType = 'symptom_clarification_needed';
+      }
       
       // If not already set (not a follow-up), try to get relevant medicines for context
       if (!context.medicines || context.medicines.length === 0) {
       const symptomKeywords = Object.keys(symptomToMedicines).filter(symptom => 
           lowerCombinedMessage.includes(symptom)
       );
-      if (symptomKeywords.length > 0) {
+      if (symptomKeywords.length > 0 && !onlyGeneralDigestive) {
         // Use semanticSearch which already has filtering logic
           const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
         if (suggestedMedicines.length > 0) {
+          // Filter thuốc theo điều kiện bệnh nhân
+          const filteredMedicines = filterMedicinesByPatientInfo(suggestedMedicines, patientInfo);
+          
           // QUAN TRỌNG: Chỉ truyền thuốc đã được filter, đảm bảo không có thuốc không liên quan
-          context.medicines = suggestedMedicines.slice(0, 3);
+          context.medicines = filteredMedicines.slice(0, 3);
           context.symptoms = symptomKeywords;
           // Add explicit instruction about what medicines to suggest
           context.queryType = 'symptom_based';
           context.userQuery = userMessage;
           }
         }
+      } else if (context.medicines && context.medicines.length > 0) {
+        // Filter thuốc đã có trong context
+        context.medicines = filterMedicinesByPatientInfo(context.medicines, patientInfo);
       }
       
       // Get user purchase history if available
@@ -1704,6 +2150,7 @@ async function generateAIResponse(
       
       // Try Google Gemini first (free tier, good for Vietnamese)
       // QUAN TRỌNG: Use messageForAI (combined message for follow-up) instead of just userMessage
+      console.log('🔄 Attempting to use Gemini AI...');
       const geminiResponse = await aiService.generateAIResponseWithGemini({
         userMessage: messageForAI,
         conversationHistory,
@@ -1711,6 +2158,7 @@ async function generateAIResponse(
       });
       
       if (geminiResponse) {
+        console.log('✅ Gemini AI response received, length:', geminiResponse.length);
         // Check if response is a default/generic message (AI reset) - only fallback if really needed
         const lowerResponse = geminiResponse.toLowerCase();
         // More strict check: must have multiple default keywords AND be a follow-up answer
@@ -1984,8 +2432,17 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
       return followup;
     }
     
-    // Nếu đã có đủ thông tin (có age), gợi ý thuốc ngay
-    if (parsed.hasAge && hasSymptomKeyword) {
+    // Kiểm tra xem có triệu chứng cụ thể không (đặc biệt với "tiêu hóa")
+    const hasSpecificSymptom = /(khó tiêu|đầy bụng|đau bụng|tiêu chảy|táo bón|ợ nóng|buồn nôn|nôn)/i.test(lowerCombinedMessage);
+    const onlyGeneralDigestive = /tiêu hóa/i.test(lowerCombinedMessage) && !hasSpecificSymptom;
+    
+    // Nếu chỉ hỏi "thuốc tiêu hóa" mà không có triệu chứng cụ thể, hỏi lại triệu chứng
+    if (onlyGeneralDigestive && parsed.hasAge) {
+      return 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Khó tiêu / Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Đau bụng\n- Tiêu chảy\n- Táo bón\n- Ợ nóng / Ợ chua\n- Buồn nôn / Nôn\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+    }
+    
+    // Nếu đã có đủ thông tin (có age) và có triệu chứng cụ thể, gợi ý thuốc ngay
+    if (parsed.hasAge && hasSymptomKeyword && (hasSpecificSymptom || !onlyGeneralDigestive)) {
       console.log('✅ Rule-based: Has age and symptom, suggesting medicines');
       const suggestedMedicines = await semanticSearch(combinedSymptomMessage);
       if (suggestedMedicines.length > 0) {

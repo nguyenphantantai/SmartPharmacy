@@ -33,7 +33,7 @@ export function AIChat() {
     {
       id: "1",
       role: "assistant",
-      content: "Xin chào! Tôi là trợ lý AI của Nhà Thuốc Thông Minh. Tôi có thể giúp bạn tìm thông tin về thuốc, tư vấn sức khỏe, và hỗ trợ mua sắm. Bạn cần hỗ trợ gì hôm nay?",
+      content: "Xin chào! Tôi là trợ lý AI của Nhà Thuốc Thông Minh. Tôi có thể giúp bạn tìm thông tin về thuốc, tư vấn sức khỏe, và hỗ trợ mua sắm.\n\nĐể tư vấn an toàn, bạn vui lòng cho biết thêm:\n\n1. Bạn bao nhiêu tuổi?\n2. Bạn có đang mang thai hoặc cho con bú không?\n3. Bạn có bị dị ứng thuốc nào không?\n4. Bạn có bệnh nền (tim mạch, gan, thận, huyết áp...) không?\n\nCảm ơn bạn!",
       timestamp: new Date(),
     },
   ]);

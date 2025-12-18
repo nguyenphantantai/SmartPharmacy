@@ -1,0 +1,3176 @@
+{
+  "timestamp": "2025-12-18T09:50:35.431Z",
+  "totalCategories": 28,
+  "totalSubcategories": 234,
+  "categories": [
+    {
+      "id": "693fd4b2107a406945f5afb5",
+      "name": "Thuốc ngừa thai",
+      "slug": "thuoc-ngua-thai",
+      "description": "Danh mục thuốc ngừa thai và các sản phẩm tránh thai",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:18.876Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afbc",
+      "name": "Thuốc kháng dị ứng",
+      "slug": "thuoc-khang-di-ung",
+      "description": "Danh mục thuốc điều trị dị ứng và các phản ứng dị ứng",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.022Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afc0",
+      "name": "Thuốc kháng viêm",
+      "slug": "thuoc-khang-viem",
+      "description": "Danh mục thuốc chống viêm và giảm đau do viêm",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.158Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afc4",
+      "name": "Thuốc cảm lạnh",
+      "slug": "thuoc-cam-lanh",
+      "description": "Danh mục thuốc điều trị cảm lạnh và các triệu chứng cảm cúm",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.284Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afc7",
+      "name": "Thuốc giảm cân",
+      "slug": "thuoc-giam-can",
+      "description": "Danh mục thuốc và sản phẩm hỗ trợ giảm cân",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.411Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afca",
+      "name": "Thuốc Mắt/Tai/Mũi",
+      "slug": "thuoc-mat-tai-mui",
+      "description": "Danh mục thuốc điều trị các bệnh về mắt, tai và mũi",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.556Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afcd",
+      "name": "Thuốc tiêu hóa",
+      "slug": "thuoc-tieu-hoa",
+      "description": "Danh mục thuốc điều trị các bệnh về đường tiêu hóa",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.688Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afd0",
+      "name": "Thuốc dành cho nam",
+      "slug": "thuoc-danh-cho-nam",
+      "description": "Danh mục thuốc và sản phẩm chăm sóc sức khỏe nam giới",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.812Z"
+    },
+    {
+      "id": "693fd4b3107a406945f5afd3",
+      "name": "Giảm đau, hạ sốt",
+      "slug": "giam-dau-ha-sot",
+      "description": "Danh mục thuốc giảm đau và hạ sốt",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:19.967Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afd6",
+      "name": "Thuốc da liễu",
+      "slug": "thuoc-da-lieu",
+      "description": "Danh mục thuốc điều trị các bệnh về da",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.098Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afd9",
+      "name": "Thuốc dành cho phụ nữ",
+      "slug": "thuoc-danh-cho-phu-nu",
+      "description": "Danh mục thuốc và sản phẩm chăm sóc sức khỏe phụ nữ",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.227Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afdc",
+      "name": "Thuốc thần kinh",
+      "slug": "thuoc-than-kinh",
+      "description": "Danh mục thuốc điều trị các bệnh về thần kinh",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.350Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afdf",
+      "name": "Thuốc cơ xương khớp",
+      "slug": "thuoc-co-xuong-khop",
+      "description": "Danh mục thuốc điều trị các bệnh về cơ, xương và khớp",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.476Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afe2",
+      "name": "Dầu, Cao xoa bóp",
+      "slug": "dau-cao-xoa-bop",
+      "description": "Danh mục dầu và cao xoa bóp giảm đau",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.620Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afe5",
+      "name": "Thuốc khác",
+      "slug": "thuoc-khac",
+      "description": "Danh mục các loại thuốc khác",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.757Z"
+    },
+    {
+      "id": "693fd4b4107a406945f5afe8",
+      "name": "Vitamin & Khoáng chất",
+      "slug": "vitamin-khoang-chat",
+      "description": "Danh mục vitamin và khoáng chất bổ sung",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:20.883Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5afeb",
+      "name": "Thuốc kháng sinh",
+      "slug": "thuoc-khang-sinh",
+      "description": "Danh mục thuốc kháng sinh điều trị nhiễm khuẩn",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.041Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5afee",
+      "name": "Thuốc tiết niệu",
+      "slug": "thuoc-tiet-nieu",
+      "description": "Danh mục thuốc điều trị các bệnh về đường tiết niệu",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.177Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5aff1",
+      "name": "Thuốc tiểu đường",
+      "slug": "thuoc-tieu-duong",
+      "description": "Danh mục thuốc điều trị bệnh tiểu đường",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.305Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5aff4",
+      "name": "Thuốc tim mạch, huyết áp",
+      "slug": "thuoc-tim-mach-huyet-ap",
+      "description": "Danh mục thuốc điều trị các bệnh tim mạch và huyết áp",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.431Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5aff7",
+      "name": "Thuốc ung thư",
+      "slug": "thuoc-ung-thu",
+      "description": "Danh mục thuốc điều trị ung thư",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.573Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5affa",
+      "name": "Thuốc tiêu hóa cho trẻ",
+      "slug": "thuoc-tieu-hoa-cho-tre",
+      "description": "Danh mục thuốc điều trị các bệnh tiêu hóa dành cho trẻ em",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.702Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5affd",
+      "name": "Thuốc nhỏ mắt",
+      "slug": "thuoc-nho-mat",
+      "description": "Danh mục thuốc nhỏ mắt và chăm sóc mắt",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.824Z"
+    },
+    {
+      "id": "693fd4b5107a406945f5b000",
+      "name": "Chăm sóc vết thương",
+      "slug": "cham-soc-vet-thuong",
+      "description": "Danh mục sản phẩm chăm sóc và điều trị vết thương",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:21.957Z"
+    },
+    {
+      "id": "693fd4b6107a406945f5b003",
+      "name": "Xịt mũi",
+      "slug": "xit-mui",
+      "description": "Danh mục thuốc xịt mũi và chăm sóc mũi",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:22.090Z"
+    },
+    {
+      "id": "693fd4b6107a406945f5b006",
+      "name": "Sản phẩm trị mụn",
+      "slug": "san-pham-tri-mun",
+      "description": "Danh mục sản phẩm điều trị mụn và chăm sóc da",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:22.214Z"
+    },
+    {
+      "id": "693fd4b6107a406945f5b009",
+      "name": "Thuốc ho, long đờm",
+      "slug": "thuoc-ho-long-dom",
+      "description": "Danh mục thuốc ho và long đờm",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:22.352Z"
+    },
+    {
+      "id": "6943cc5e0761d45c43001678",
+      "name": "Thuốc",
+      "slug": "thuoc",
+      "icon": "Pill",
+      "description": "Các loại thuốc kê đơn và không kê đơn",
+      "isActive": true,
+      "createdAt": "2025-12-18T09:41:50.778Z"
+    }
+  ],
+  "subcategories": [
+    {
+      "id": "693fc7aaf56bc11cf9c80a2c",
+      "name": "Thuốc tránh thai hằng ngày",
+      "_id": "693fc7aaf56bc11cf9c80a2c",
+      "slug": "thuoc-tranh-thai-hang-ngay",
+      "parentCategory": "6923687128be20235d4522dc",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:42.941Z",
+      "updatedAt": "2025-12-15T08:32:42.941Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7abf56bc11cf9c80a30",
+      "name": "Thuốc tránh thai khẩn cấp",
+      "_id": "693fc7abf56bc11cf9c80a30",
+      "slug": "thuoc-tranh-thai-khan-cap",
+      "parentCategory": "6923687128be20235d4522dc",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:43.925Z",
+      "updatedAt": "2025-12-15T08:32:43.925Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7acf56bc11cf9c80a34",
+      "name": "Thuốc tránh thai nội tiết phối hợp",
+      "_id": "693fc7acf56bc11cf9c80a34",
+      "slug": "thuoc-tranh-thai-noi-tiet-phoi-hop",
+      "parentCategory": "6923687128be20235d4522dc",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:44.793Z",
+      "updatedAt": "2025-12-15T08:32:44.793Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7adf56bc11cf9c80a38",
+      "name": "Thuốc tránh thai progestin đơn thuần",
+      "_id": "693fc7adf56bc11cf9c80a38",
+      "slug": "thuoc-tranh-thai-progestin-don-thuan",
+      "parentCategory": "6923687128be20235d4522dc",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:45.582Z",
+      "updatedAt": "2025-12-15T08:32:45.582Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7aef56bc11cf9c80a3f",
+      "name": "Kháng histamin thế hệ 1",
+      "_id": "693fc7aef56bc11cf9c80a3f",
+      "slug": "khang-histamin-the-he-1",
+      "parentCategory": "6923687128be20235d4522df",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:46.447Z",
+      "updatedAt": "2025-12-15T08:32:46.447Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7aef56bc11cf9c80a43",
+      "name": "Kháng histamin thế hệ 2",
+      "_id": "693fc7aef56bc11cf9c80a43",
+      "slug": "khang-histamin-the-he-2",
+      "parentCategory": "6923687128be20235d4522df",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:46.733Z",
+      "updatedAt": "2025-12-15T08:32:46.733Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7aff56bc11cf9c80a47",
+      "name": "Corticoid chống dị ứng",
+      "_id": "693fc7aff56bc11cf9c80a47",
+      "slug": "corticoid-chong-di-ung",
+      "parentCategory": "6923687128be20235d4522df",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:47.820Z",
+      "updatedAt": "2025-12-15T08:32:47.820Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b0f56bc11cf9c80a4b",
+      "name": "Thuốc chống ngứa ngoài da",
+      "_id": "693fc7b0f56bc11cf9c80a4b",
+      "slug": "thuoc-chong-ngua-ngoai-da",
+      "parentCategory": "6923687128be20235d4522df",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:48.620Z",
+      "updatedAt": "2025-12-15T08:32:48.620Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b1f56bc11cf9c80a52",
+      "name": "NSAIDs",
+      "_id": "693fc7b1f56bc11cf9c80a52",
+      "slug": "nsaids",
+      "parentCategory": "6923687128be20235d4522e2",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:49.409Z",
+      "updatedAt": "2025-12-15T08:32:49.409Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b1f56bc11cf9c80a56",
+      "name": "Corticoid",
+      "_id": "693fc7b1f56bc11cf9c80a56",
+      "slug": "corticoid",
+      "parentCategory": "6923687128be20235d4522e2",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:49.849Z",
+      "updatedAt": "2025-12-15T08:32:49.849Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b2f56bc11cf9c80a5a",
+      "name": "Kháng viêm không steroid bôi ngoài",
+      "_id": "693fc7b2f56bc11cf9c80a5a",
+      "slug": "khang-viem-khong-steroid-boi-ngoai",
+      "parentCategory": "6923687128be20235d4522e2",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:50.107Z",
+      "updatedAt": "2025-12-15T08:32:50.107Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b2f56bc11cf9c80a5e",
+      "name": "Enzyme chống viêm",
+      "_id": "693fc7b2f56bc11cf9c80a5e",
+      "slug": "enzyme-chong-viem",
+      "parentCategory": "6923687128be20235d4522e2",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:50.370Z",
+      "updatedAt": "2025-12-15T08:32:50.370Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b3f56bc11cf9c80a65",
+      "name": "Thuốc cảm cúm phối hợp",
+      "_id": "693fc7b3f56bc11cf9c80a65",
+      "slug": "thuoc-cam-cum-phoi-hop",
+      "parentCategory": "6923687128be20235d4522e5",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:51.570Z",
+      "updatedAt": "2025-12-15T08:32:51.570Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b4f56bc11cf9c80a69",
+      "name": "Thuốc hạ sốt – giảm đau",
+      "_id": "693fc7b4f56bc11cf9c80a69",
+      "slug": "thuoc-ha-sot-giam-dau",
+      "parentCategory": "6923687128be20235d4522e5",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:52.336Z",
+      "updatedAt": "2025-12-15T08:32:52.336Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b4f56bc11cf9c80a6d",
+      "name": "Thuốc thông mũi",
+      "_id": "693fc7b4f56bc11cf9c80a6d",
+      "slug": "thuoc-thong-mui",
+      "parentCategory": "6923687128be20235d4522e5",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:52.568Z",
+      "updatedAt": "2025-12-15T08:32:52.568Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b4f56bc11cf9c80a71",
+      "name": "Thuốc kháng histamin trong cảm cúm",
+      "_id": "693fc7b4f56bc11cf9c80a71",
+      "slug": "thuoc-khang-histamin-trong-cam-cum",
+      "parentCategory": "6923687128be20235d4522e5",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:52.810Z",
+      "updatedAt": "2025-12-15T08:32:52.810Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b5f56bc11cf9c80a78",
+      "name": "Thuốc ức chế hấp thu chất béo",
+      "_id": "693fc7b5f56bc11cf9c80a78",
+      "slug": "thuoc-uc-che-hap-thu-chat-beo",
+      "parentCategory": "6923687128be20235d4522e8",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:53.303Z",
+      "updatedAt": "2025-12-15T08:32:53.303Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b5f56bc11cf9c80a7c",
+      "name": "Thuốc giảm cảm giác thèm ăn",
+      "_id": "693fc7b5f56bc11cf9c80a7c",
+      "slug": "thuoc-giam-cam-giac-them-an",
+      "parentCategory": "6923687128be20235d4522e8",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:53.635Z",
+      "updatedAt": "2025-12-15T08:32:53.635Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b5f56bc11cf9c80a80",
+      "name": "Thực phẩm hỗ trợ giảm cân",
+      "_id": "693fc7b5f56bc11cf9c80a80",
+      "slug": "thuc-pham-ho-tro-giam-can",
+      "parentCategory": "6923687128be20235d4522e8",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:53.953Z",
+      "updatedAt": "2025-12-15T08:32:53.953Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b6f56bc11cf9c80a87",
+      "name": "Thuốc nhỏ mắt kháng sinh",
+      "_id": "693fc7b6f56bc11cf9c80a87",
+      "slug": "thuoc-nho-mat-khang-sinh",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:54.458Z",
+      "updatedAt": "2025-12-15T08:32:54.458Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b6f56bc11cf9c80a8b",
+      "name": "Thuốc nhỏ mắt kháng viêm",
+      "_id": "693fc7b6f56bc11cf9c80a8b",
+      "slug": "thuoc-nho-mat-khang-viem",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:54.732Z",
+      "updatedAt": "2025-12-15T08:32:54.732Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b7f56bc11cf9c80a8f",
+      "name": "Thuốc nhỏ mắt dưỡng ẩm",
+      "_id": "693fc7b7f56bc11cf9c80a8f",
+      "slug": "thuoc-nho-mat-duong-am",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:55.642Z",
+      "updatedAt": "2025-12-15T08:32:55.642Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b8f56bc11cf9c80a93",
+      "name": "Thuốc điều trị glôcôm",
+      "_id": "693fc7b8f56bc11cf9c80a93",
+      "slug": "thuoc-dieu-tri-glocom",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:56.125Z",
+      "updatedAt": "2025-12-15T08:32:56.125Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b8f56bc11cf9c80a97",
+      "name": "Thuốc nhỏ tai kháng sinh",
+      "_id": "693fc7b8f56bc11cf9c80a97",
+      "slug": "thuoc-nho-tai-khang-sinh",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:56.584Z",
+      "updatedAt": "2025-12-15T08:32:56.584Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b8f56bc11cf9c80a9b",
+      "name": "Thuốc nhỏ tai kháng viêm",
+      "_id": "693fc7b8f56bc11cf9c80a9b",
+      "slug": "thuoc-nho-tai-khang-viem",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:56.887Z",
+      "updatedAt": "2025-12-15T08:32:56.887Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b9f56bc11cf9c80a9f",
+      "name": "Thuốc làm mềm ráy tai",
+      "_id": "693fc7b9f56bc11cf9c80a9f",
+      "slug": "thuoc-lam-mem-ray-tai",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:57.127Z",
+      "updatedAt": "2025-12-15T08:32:57.127Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b9f56bc11cf9c80aa3",
+      "name": "Thuốc xịt mũi kháng viêm",
+      "_id": "693fc7b9f56bc11cf9c80aa3",
+      "slug": "thuoc-xit-mui-khang-viem",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:57.388Z",
+      "updatedAt": "2025-12-15T08:32:57.388Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b9f56bc11cf9c80aa7",
+      "name": "Thuốc xịt mũi thông mũi",
+      "_id": "693fc7b9f56bc11cf9c80aa7",
+      "slug": "thuoc-xit-mui-thong-mui",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:57.671Z",
+      "updatedAt": "2025-12-15T08:32:57.671Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7b9f56bc11cf9c80aab",
+      "name": "Nước muối sinh lý",
+      "_id": "693fc7b9f56bc11cf9c80aab",
+      "slug": "nuoc-muoi-sinh-ly",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:57.931Z",
+      "updatedAt": "2025-12-15T08:32:57.931Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7baf56bc11cf9c80aaf",
+      "name": "Thuốc xịt mũi dị ứng",
+      "_id": "693fc7baf56bc11cf9c80aaf",
+      "slug": "thuoc-xit-mui-di-ung",
+      "parentCategory": "6923687128be20235d4522eb",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:58.217Z",
+      "updatedAt": "2025-12-15T08:32:58.217Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7baf56bc11cf9c80ab6",
+      "name": "Thuốc kháng acid",
+      "_id": "693fc7baf56bc11cf9c80ab6",
+      "slug": "thuoc-khang-acid",
+      "parentCategory": "6923687128be20235d4522ee",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:58.722Z",
+      "updatedAt": "2025-12-15T08:32:58.722Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7bbf56bc11cf9c80aba",
+      "name": "Thuốc ức chế tiết acid (PPI/H2)",
+      "_id": "693fc7bbf56bc11cf9c80aba",
+      "slug": "thuoc-uc-che-tiet-acid-ppi-h2",
+      "parentCategory": "6923687128be20235d4522ee",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:59.278Z",
+      "updatedAt": "2025-12-15T08:32:59.278Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7bbf56bc11cf9c80abe",
+      "name": "Men tiêu hóa",
+      "_id": "693fc7bbf56bc11cf9c80abe",
+      "slug": "men-tieu-hoa",
+      "parentCategory": "6923687128be20235d4522ee",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:32:59.727Z",
+      "updatedAt": "2025-12-15T08:32:59.727Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7bcf56bc11cf9c80ac2",
+      "name": "Thuốc chống tiêu chảy",
+      "_id": "693fc7bcf56bc11cf9c80ac2",
+      "slug": "thuoc-chong-tieu-chay",
+      "parentCategory": "6923687128be20235d4522ee",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:00.210Z",
+      "updatedAt": "2025-12-15T08:33:00.210Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7bcf56bc11cf9c80ac6",
+      "name": "Thuốc nhuận tràng",
+      "_id": "693fc7bcf56bc11cf9c80ac6",
+      "slug": "thuoc-nhuan-trang",
+      "parentCategory": "6923687128be20235d4522ee",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:00.502Z",
+      "updatedAt": "2025-12-15T08:33:00.502Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7bef56bc11cf9c80acd",
+      "name": "Thuốc tăng cường sinh lý nam",
+      "_id": "693fc7bef56bc11cf9c80acd",
+      "slug": "thuoc-tang-cuong-sinh-ly-nam",
+      "parentCategory": "6923687228be20235d4522f1",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:02.461Z",
+      "updatedAt": "2025-12-15T08:33:02.461Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7bff56bc11cf9c80ad1",
+      "name": "Thuốc điều trị rối loạn cương",
+      "_id": "693fc7bff56bc11cf9c80ad1",
+      "slug": "thuoc-dieu-tri-roi-loan-cuong",
+      "parentCategory": "6923687228be20235d4522f1",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:03.783Z",
+      "updatedAt": "2025-12-15T08:33:03.783Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c0f56bc11cf9c80ad5",
+      "name": "Thuốc điều trị phì đại tiền liệt tuyến",
+      "_id": "693fc7c0f56bc11cf9c80ad5",
+      "slug": "thuoc-dieu-tri-phi-dai-tien-liet-tuyen",
+      "parentCategory": "6923687228be20235d4522f1",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:04.117Z",
+      "updatedAt": "2025-12-15T08:33:04.117Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c1f56bc11cf9c80adc",
+      "name": "Giảm đau không opioid",
+      "_id": "693fc7c1f56bc11cf9c80adc",
+      "slug": "giam-dau-khong-opioid",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:05.716Z",
+      "updatedAt": "2025-12-15T08:33:05.716Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c2f56bc11cf9c80ae0",
+      "name": "Giảm đau opioid nhẹ",
+      "_id": "693fc7c2f56bc11cf9c80ae0",
+      "slug": "giam-dau-opioid-nhe",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:06.725Z",
+      "updatedAt": "2025-12-15T08:33:06.725Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c4f56bc11cf9c80ae4",
+      "name": "Giảm đau thần kinh",
+      "_id": "693fc7c4f56bc11cf9c80ae4",
+      "slug": "giam-dau-than-kinh",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:08.596Z",
+      "updatedAt": "2025-12-15T08:33:08.596Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c4f56bc11cf9c80ae8",
+      "name": "Thuốc giảm đau bôi ngoài",
+      "_id": "693fc7c4f56bc11cf9c80ae8",
+      "slug": "thuoc-giam-dau-boi-ngoai",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:08.952Z",
+      "updatedAt": "2025-12-15T08:33:08.952Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c5f56bc11cf9c80aec",
+      "name": "Paracetamol",
+      "_id": "693fc7c5f56bc11cf9c80aec",
+      "slug": "paracetamol",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:09.187Z",
+      "updatedAt": "2025-12-15T08:33:09.187Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c5f56bc11cf9c80af0",
+      "name": "Ibuprofen",
+      "_id": "693fc7c5f56bc11cf9c80af0",
+      "slug": "ibuprofen",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:09.447Z",
+      "updatedAt": "2025-12-15T08:33:09.447Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c5f56bc11cf9c80af4",
+      "name": "Thuốc hạ sốt cho trẻ em",
+      "_id": "693fc7c5f56bc11cf9c80af4",
+      "slug": "thuoc-ha-sot-cho-tre-em",
+      "parentCategory": "6923687228be20235d4522f4",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:09.688Z",
+      "updatedAt": "2025-12-15T08:33:09.688Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c6f56bc11cf9c80afb",
+      "name": "Thuốc trị nấm da",
+      "_id": "693fc7c6f56bc11cf9c80afb",
+      "slug": "thuoc-tri-nam-da",
+      "parentCategory": "6923687228be20235d4522f7",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:10.339Z",
+      "updatedAt": "2025-12-15T08:33:10.339Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c7f56bc11cf9c80aff",
+      "name": "Thuốc kháng khuẩn da",
+      "_id": "693fc7c7f56bc11cf9c80aff",
+      "slug": "thuoc-khang-khuan-da",
+      "parentCategory": "6923687228be20235d4522f7",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:11.617Z",
+      "updatedAt": "2025-12-15T08:33:11.617Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c8f56bc11cf9c80b03",
+      "name": "Corticoid bôi da",
+      "_id": "693fc7c8f56bc11cf9c80b03",
+      "slug": "corticoid-boi-da",
+      "parentCategory": "6923687228be20235d4522f7",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:12.266Z",
+      "updatedAt": "2025-12-15T08:33:12.266Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c8f56bc11cf9c80b07",
+      "name": "Thuốc trị viêm da – dị ứng",
+      "_id": "693fc7c8f56bc11cf9c80b07",
+      "slug": "thuoc-tri-viem-da-di-ung",
+      "parentCategory": "6923687228be20235d4522f7",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:12.507Z",
+      "updatedAt": "2025-12-15T08:33:12.507Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c8f56bc11cf9c80b0b",
+      "name": "Thuốc dưỡng da – phục hồi da",
+      "_id": "693fc7c8f56bc11cf9c80b0b",
+      "slug": "thuoc-duong-da-phuc-hoi-da",
+      "parentCategory": "6923687228be20235d4522f7",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:12.876Z",
+      "updatedAt": "2025-12-15T08:33:12.876Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c9f56bc11cf9c80b12",
+      "name": "Thuốc phụ khoa",
+      "_id": "693fc7c9f56bc11cf9c80b12",
+      "slug": "thuoc-phu-khoa",
+      "parentCategory": "6923687228be20235d4522fa",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:13.749Z",
+      "updatedAt": "2025-12-15T08:33:13.749Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7c9f56bc11cf9c80b16",
+      "name": "Thuốc điều hòa kinh nguyệt",
+      "_id": "693fc7c9f56bc11cf9c80b16",
+      "slug": "thuoc-dieu-hoa-kinh-nguyet",
+      "parentCategory": "6923687228be20235d4522fa",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:13.978Z",
+      "updatedAt": "2025-12-15T08:33:13.978Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7caf56bc11cf9c80b1a",
+      "name": "Thuốc bổ cho phụ nữ",
+      "_id": "693fc7caf56bc11cf9c80b1a",
+      "slug": "thuoc-bo-cho-phu-nu",
+      "parentCategory": "6923687228be20235d4522fa",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:14.429Z",
+      "updatedAt": "2025-12-15T08:33:14.429Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7caf56bc11cf9c80b1e",
+      "name": "Thuốc hỗ trợ thai kỳ",
+      "_id": "693fc7caf56bc11cf9c80b1e",
+      "slug": "thuoc-ho-tro-thai-ky",
+      "parentCategory": "6923687228be20235d4522fa",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:14.847Z",
+      "updatedAt": "2025-12-15T08:33:14.847Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7ccf56bc11cf9c80b25",
+      "name": "Thuốc an thần – gây ngủ",
+      "_id": "693fc7ccf56bc11cf9c80b25",
+      "slug": "thuoc-an-than-gay-ngu",
+      "parentCategory": "6923687228be20235d4522fd",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:16.046Z",
+      "updatedAt": "2025-12-15T08:33:16.046Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7ccf56bc11cf9c80b29",
+      "name": "Thuốc chống trầm cảm",
+      "_id": "693fc7ccf56bc11cf9c80b29",
+      "slug": "thuoc-chong-tram-cam",
+      "parentCategory": "6923687228be20235d4522fd",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:16.573Z",
+      "updatedAt": "2025-12-15T08:33:16.573Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7cdf56bc11cf9c80b2d",
+      "name": "Thuốc chống lo âu",
+      "_id": "693fc7cdf56bc11cf9c80b2d",
+      "slug": "thuoc-chong-lo-au",
+      "parentCategory": "6923687228be20235d4522fd",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:17.016Z",
+      "updatedAt": "2025-12-15T08:33:17.016Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7cdf56bc11cf9c80b31",
+      "name": "Thuốc điều trị động kinh",
+      "_id": "693fc7cdf56bc11cf9c80b31",
+      "slug": "thuoc-dieu-tri-dong-kinh",
+      "parentCategory": "6923687228be20235d4522fd",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:17.353Z",
+      "updatedAt": "2025-12-15T08:33:17.353Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7cdf56bc11cf9c80b35",
+      "name": "Thuốc bổ thần kinh",
+      "_id": "693fc7cdf56bc11cf9c80b35",
+      "slug": "thuoc-bo-than-kinh",
+      "parentCategory": "6923687228be20235d4522fd",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:17.616Z",
+      "updatedAt": "2025-12-15T08:33:17.616Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7cef56bc11cf9c80b3c",
+      "name": "NSAIDs điều trị xương khớp",
+      "_id": "693fc7cef56bc11cf9c80b3c",
+      "slug": "nsaids-dieu-tri-xuong-khop",
+      "parentCategory": "6923687228be20235d452300",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:18.282Z",
+      "updatedAt": "2025-12-15T08:33:18.282Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7cef56bc11cf9c80b40",
+      "name": "Thuốc giãn cơ",
+      "_id": "693fc7cef56bc11cf9c80b40",
+      "slug": "thuoc-gian-co",
+      "parentCategory": "6923687228be20235d452300",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:18.570Z",
+      "updatedAt": "2025-12-15T08:33:18.570Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7cff56bc11cf9c80b44",
+      "name": "Thuốc bổ xương khớp",
+      "_id": "693fc7cff56bc11cf9c80b44",
+      "slug": "thuoc-bo-xuong-khop",
+      "parentCategory": "6923687228be20235d452300",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:19.317Z",
+      "updatedAt": "2025-12-15T08:33:19.317Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d0f56bc11cf9c80b48",
+      "name": "Thuốc điều trị gout",
+      "_id": "693fc7d0f56bc11cf9c80b48",
+      "slug": "thuoc-dieu-tri-gout",
+      "parentCategory": "6923687228be20235d452300",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:20.172Z",
+      "updatedAt": "2025-12-15T08:33:20.172Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d1f56bc11cf9c80b4f",
+      "name": "Dầu nóng giảm đau",
+      "_id": "693fc7d1f56bc11cf9c80b4f",
+      "slug": "dau-nong-giam-dau",
+      "parentCategory": "6923687228be20235d452303",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:21.420Z",
+      "updatedAt": "2025-12-15T08:33:21.420Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d2f56bc11cf9c80b53",
+      "name": "Dầu lạnh giảm đau",
+      "_id": "693fc7d2f56bc11cf9c80b53",
+      "slug": "dau-lanh-giam-dau",
+      "parentCategory": "6923687228be20235d452303",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:22.589Z",
+      "updatedAt": "2025-12-15T08:33:22.589Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d2f56bc11cf9c80b57",
+      "name": "Cao xoa bóp thảo dược",
+      "_id": "693fc7d2f56bc11cf9c80b57",
+      "slug": "cao-xoa-bop-thao-duoc",
+      "parentCategory": "6923687228be20235d452303",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:22.815Z",
+      "updatedAt": "2025-12-15T08:33:22.815Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d3f56bc11cf9c80b5b",
+      "name": "Gel xoa bóp",
+      "_id": "693fc7d3f56bc11cf9c80b5b",
+      "slug": "gel-xoa-bop",
+      "parentCategory": "6923687228be20235d452303",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:23.400Z",
+      "updatedAt": "2025-12-15T08:33:23.400Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d3f56bc11cf9c80b62",
+      "name": "Thuốc sát trùng",
+      "_id": "693fc7d3f56bc11cf9c80b62",
+      "slug": "thuoc-sat-trung",
+      "parentCategory": "6923687228be20235d452306",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:23.847Z",
+      "updatedAt": "2025-12-15T08:33:23.847Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d4f56bc11cf9c80b66",
+      "name": "Thuốc giải độc",
+      "_id": "693fc7d4f56bc11cf9c80b66",
+      "slug": "thuoc-giai-doc",
+      "parentCategory": "6923687228be20235d452306",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:24.070Z",
+      "updatedAt": "2025-12-15T08:33:24.070Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d4f56bc11cf9c80b6a",
+      "name": "Thuốc chống say tàu xe",
+      "_id": "693fc7d4f56bc11cf9c80b6a",
+      "slug": "thuoc-chong-say-tau-xe",
+      "parentCategory": "6923687228be20235d452306",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:24.288Z",
+      "updatedAt": "2025-12-15T08:33:24.288Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d4f56bc11cf9c80b6e",
+      "name": "Thuốc hỗ trợ miễn dịch",
+      "_id": "693fc7d4f56bc11cf9c80b6e",
+      "slug": "thuoc-ho-tro-mien-dich",
+      "parentCategory": "6923687228be20235d452306",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:24.514Z",
+      "updatedAt": "2025-12-15T08:33:24.514Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d4f56bc11cf9c80b75",
+      "name": "Vitamin đơn chất",
+      "_id": "693fc7d4f56bc11cf9c80b75",
+      "slug": "vitamin-don-chat",
+      "parentCategory": "6923687228be20235d452309",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:24.977Z",
+      "updatedAt": "2025-12-15T08:33:24.977Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d5f56bc11cf9c80b79",
+      "name": "Vitamin tổng hợp",
+      "_id": "693fc7d5f56bc11cf9c80b79",
+      "slug": "vitamin-tong-hop",
+      "parentCategory": "6923687228be20235d452309",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:25.233Z",
+      "updatedAt": "2025-12-15T08:33:25.233Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d5f56bc11cf9c80b7d",
+      "name": "Khoáng chất đơn",
+      "_id": "693fc7d5f56bc11cf9c80b7d",
+      "slug": "khoang-chat-don",
+      "parentCategory": "6923687228be20235d452309",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:25.464Z",
+      "updatedAt": "2025-12-15T08:33:25.464Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d5f56bc11cf9c80b81",
+      "name": "Vitamin cho trẻ em",
+      "_id": "693fc7d5f56bc11cf9c80b81",
+      "slug": "vitamin-cho-tre-em",
+      "parentCategory": "6923687228be20235d452309",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:25.828Z",
+      "updatedAt": "2025-12-15T08:33:25.828Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d6f56bc11cf9c80b85",
+      "name": "Vitamin cho người lớn tuổi",
+      "_id": "693fc7d6f56bc11cf9c80b85",
+      "slug": "vitamin-cho-nguoi-lon-tuoi",
+      "parentCategory": "6923687228be20235d452309",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:26.060Z",
+      "updatedAt": "2025-12-15T08:33:26.060Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d6f56bc11cf9c80b8c",
+      "name": "Penicillin",
+      "_id": "693fc7d6f56bc11cf9c80b8c",
+      "slug": "penicillin",
+      "parentCategory": "6923687228be20235d45230c",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:26.524Z",
+      "updatedAt": "2025-12-15T08:33:26.524Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d6f56bc11cf9c80b90",
+      "name": "Cephalosporin",
+      "_id": "693fc7d6f56bc11cf9c80b90",
+      "slug": "cephalosporin",
+      "parentCategory": "6923687228be20235d45230c",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:26.745Z",
+      "updatedAt": "2025-12-15T08:33:26.745Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d7f56bc11cf9c80b94",
+      "name": "Macrolid",
+      "_id": "693fc7d7f56bc11cf9c80b94",
+      "slug": "macrolid",
+      "parentCategory": "6923687228be20235d45230c",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:27.220Z",
+      "updatedAt": "2025-12-15T08:33:27.220Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d7f56bc11cf9c80b98",
+      "name": "Quinolon",
+      "_id": "693fc7d7f56bc11cf9c80b98",
+      "slug": "quinolon",
+      "parentCategory": "6923687228be20235d45230c",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:27.755Z",
+      "updatedAt": "2025-12-15T08:33:27.755Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d8f56bc11cf9c80b9c",
+      "name": "Aminoglycosid",
+      "_id": "693fc7d8f56bc11cf9c80b9c",
+      "slug": "aminoglycosid",
+      "parentCategory": "6923687228be20235d45230c",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:28.014Z",
+      "updatedAt": "2025-12-15T08:33:28.014Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d8f56bc11cf9c80ba0",
+      "name": "Kháng sinh phối hợp",
+      "_id": "693fc7d8f56bc11cf9c80ba0",
+      "slug": "khang-sinh-phoi-hop",
+      "parentCategory": "6923687228be20235d45230c",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:28.339Z",
+      "updatedAt": "2025-12-15T08:33:28.339Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d8f56bc11cf9c80ba7",
+      "name": "Thuốc điều trị viêm đường tiết niệu",
+      "_id": "693fc7d8f56bc11cf9c80ba7",
+      "slug": "thuoc-dieu-tri-viem-duong-tiet-nieu",
+      "parentCategory": "6923687328be20235d45230f",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:28.826Z",
+      "updatedAt": "2025-12-15T08:33:28.826Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d9f56bc11cf9c80bab",
+      "name": "Thuốc lợi tiểu",
+      "_id": "693fc7d9f56bc11cf9c80bab",
+      "slug": "thuoc-loi-tieu",
+      "parentCategory": "6923687328be20235d45230f",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:29.078Z",
+      "updatedAt": "2025-12-15T08:33:29.078Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d9f56bc11cf9c80baf",
+      "name": "Thuốc điều trị sỏi thận",
+      "_id": "693fc7d9f56bc11cf9c80baf",
+      "slug": "thuoc-dieu-tri-soi-than",
+      "parentCategory": "6923687328be20235d45230f",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:29.417Z",
+      "updatedAt": "2025-12-15T08:33:29.417Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7d9f56bc11cf9c80bb6",
+      "name": "Insulin",
+      "_id": "693fc7d9f56bc11cf9c80bb6",
+      "slug": "insulin",
+      "parentCategory": "6923687328be20235d452312",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:29.862Z",
+      "updatedAt": "2025-12-15T08:33:29.862Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7daf56bc11cf9c80bba",
+      "name": "Thuốc hạ đường huyết uống",
+      "_id": "693fc7daf56bc11cf9c80bba",
+      "slug": "thuoc-ha-duong-huyet-uong",
+      "parentCategory": "6923687328be20235d452312",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:30.087Z",
+      "updatedAt": "2025-12-15T08:33:30.087Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7daf56bc11cf9c80bbe",
+      "name": "Thuốc hỗ trợ kiểm soát đường huyết",
+      "_id": "693fc7daf56bc11cf9c80bbe",
+      "slug": "thuoc-ho-tro-kiem-soat-duong-huyet",
+      "parentCategory": "6923687328be20235d452312",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:30.600Z",
+      "updatedAt": "2025-12-15T08:33:30.600Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7def56bc11cf9c80bc5",
+      "name": "Thuốc hạ huyết áp",
+      "_id": "693fc7def56bc11cf9c80bc5",
+      "slug": "thuoc-ha-huyet-ap",
+      "parentCategory": "6923687328be20235d452315",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:34.298Z",
+      "updatedAt": "2025-12-15T08:33:34.298Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7def56bc11cf9c80bc9",
+      "name": "Thuốc điều trị rối loạn mỡ máu",
+      "_id": "693fc7def56bc11cf9c80bc9",
+      "slug": "thuoc-dieu-tri-roi-loan-mo-mau",
+      "parentCategory": "6923687328be20235d452315",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:34.598Z",
+      "updatedAt": "2025-12-15T08:33:34.598Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7dff56bc11cf9c80bcd",
+      "name": "Thuốc chống đông – kháng kết tập tiểu cầu",
+      "_id": "693fc7dff56bc11cf9c80bcd",
+      "slug": "thuoc-chong-dong-khang-ket-tap-tieu-cau",
+      "parentCategory": "6923687328be20235d452315",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:35.050Z",
+      "updatedAt": "2025-12-15T08:33:35.050Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7dff56bc11cf9c80bd1",
+      "name": "Thuốc trợ tim",
+      "_id": "693fc7dff56bc11cf9c80bd1",
+      "slug": "thuoc-tro-tim",
+      "parentCategory": "6923687328be20235d452315",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:35.294Z",
+      "updatedAt": "2025-12-15T08:33:35.294Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7dff56bc11cf9c80bd8",
+      "name": "Thuốc hóa trị",
+      "_id": "693fc7dff56bc11cf9c80bd8",
+      "slug": "thuoc-hoa-tri",
+      "parentCategory": "6923687328be20235d452318",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:35.842Z",
+      "updatedAt": "2025-12-15T08:33:35.842Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e0f56bc11cf9c80bdc",
+      "name": "Thuốc điều trị đích",
+      "_id": "693fc7e0f56bc11cf9c80bdc",
+      "slug": "thuoc-dieu-tri-dich",
+      "parentCategory": "6923687328be20235d452318",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:36.066Z",
+      "updatedAt": "2025-12-15T08:33:36.066Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e0f56bc11cf9c80be0",
+      "name": "Thuốc hỗ trợ điều trị ung thư",
+      "_id": "693fc7e0f56bc11cf9c80be0",
+      "slug": "thuoc-ho-tro-dieu-tri-ung-thu",
+      "parentCategory": "6923687328be20235d452318",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:36.289Z",
+      "updatedAt": "2025-12-15T08:33:36.289Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e0f56bc11cf9c80be7",
+      "name": "Men tiêu hóa trẻ em",
+      "_id": "693fc7e0f56bc11cf9c80be7",
+      "slug": "men-tieu-hoa-tre-em",
+      "parentCategory": "6923687328be20235d45231b",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:36.803Z",
+      "updatedAt": "2025-12-15T08:33:36.803Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e1f56bc11cf9c80beb",
+      "name": "Thuốc chống tiêu chảy trẻ em",
+      "_id": "693fc7e1f56bc11cf9c80beb",
+      "slug": "thuoc-chong-tieu-chay-tre-em",
+      "parentCategory": "6923687328be20235d45231b",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:37.037Z",
+      "updatedAt": "2025-12-15T08:33:37.037Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e1f56bc11cf9c80bef",
+      "name": "Thuốc trị táo bón trẻ em",
+      "_id": "693fc7e1f56bc11cf9c80bef",
+      "slug": "thuoc-tri-tao-bon-tre-em",
+      "parentCategory": "6923687328be20235d45231b",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:37.270Z",
+      "updatedAt": "2025-12-15T08:33:37.270Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e1f56bc11cf9c80bf6",
+      "name": "Kháng sinh nhỏ mắt",
+      "_id": "693fc7e1f56bc11cf9c80bf6",
+      "slug": "khang-sinh-nho-mat",
+      "parentCategory": "6923687328be20235d45231e",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:37.711Z",
+      "updatedAt": "2025-12-15T08:33:37.711Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e1f56bc11cf9c80bfa",
+      "name": "Kháng viêm nhỏ mắt",
+      "_id": "693fc7e1f56bc11cf9c80bfa",
+      "slug": "khang-viem-nho-mat",
+      "parentCategory": "6923687328be20235d45231e",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:37.944Z",
+      "updatedAt": "2025-12-15T08:33:37.944Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e2f56bc11cf9c80bfe",
+      "name": "Dưỡng ẩm – nước mắt nhân tạo",
+      "_id": "693fc7e2f56bc11cf9c80bfe",
+      "slug": "duong-am-nuoc-mat-nhan-tao",
+      "parentCategory": "6923687328be20235d45231e",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:38.180Z",
+      "updatedAt": "2025-12-15T08:33:38.180Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e2f56bc11cf9c80c02",
+      "name": "Kháng dị ứng nhỏ mắt",
+      "_id": "693fc7e2f56bc11cf9c80c02",
+      "slug": "khang-di-ung-nho-mat",
+      "parentCategory": "6923687328be20235d45231e",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:38.418Z",
+      "updatedAt": "2025-12-15T08:33:38.418Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e3f56bc11cf9c80c09",
+      "name": "Dung dịch sát khuẩn",
+      "_id": "693fc7e3f56bc11cf9c80c09",
+      "slug": "dung-dich-sat-khuan",
+      "parentCategory": "6923687328be20235d452321",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:39.110Z",
+      "updatedAt": "2025-12-15T08:33:39.110Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e3f56bc11cf9c80c0d",
+      "name": "Thuốc bôi liền da",
+      "_id": "693fc7e3f56bc11cf9c80c0d",
+      "slug": "thuoc-boi-lien-da",
+      "parentCategory": "6923687328be20235d452321",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:39.721Z",
+      "updatedAt": "2025-12-15T08:33:39.721Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e3f56bc11cf9c80c11",
+      "name": "Băng gạc y tế",
+      "_id": "693fc7e3f56bc11cf9c80c11",
+      "slug": "bang-gac-y-te",
+      "parentCategory": "6923687328be20235d452321",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:39.956Z",
+      "updatedAt": "2025-12-15T08:33:39.956Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e4f56bc11cf9c80c15",
+      "name": "Gel trị bỏng",
+      "_id": "693fc7e4f56bc11cf9c80c15",
+      "slug": "gel-tri-bong",
+      "parentCategory": "6923687328be20235d452321",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:40.176Z",
+      "updatedAt": "2025-12-15T08:33:40.176Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e4f56bc11cf9c80c1c",
+      "name": "Xịt mũi nước muối",
+      "_id": "693fc7e4f56bc11cf9c80c1c",
+      "slug": "xit-mui-nuoc-muoi",
+      "parentCategory": "6923687328be20235d452324",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:40.652Z",
+      "updatedAt": "2025-12-15T08:33:40.652Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e5f56bc11cf9c80c20",
+      "name": "Xịt mũi kháng viêm",
+      "_id": "693fc7e5f56bc11cf9c80c20",
+      "slug": "xit-mui-khang-viem",
+      "parentCategory": "6923687328be20235d452324",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:41.392Z",
+      "updatedAt": "2025-12-15T08:33:41.392Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e6f56bc11cf9c80c24",
+      "name": "Xịt mũi dị ứng",
+      "_id": "693fc7e6f56bc11cf9c80c24",
+      "slug": "xit-mui-di-ung",
+      "parentCategory": "6923687328be20235d452324",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:42.010Z",
+      "updatedAt": "2025-12-15T08:33:42.010Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e6f56bc11cf9c80c28",
+      "name": "Xịt mũi thông mũi",
+      "_id": "693fc7e6f56bc11cf9c80c28",
+      "slug": "xit-mui-thong-mui",
+      "parentCategory": "6923687328be20235d452324",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:42.418Z",
+      "updatedAt": "2025-12-15T08:33:42.418Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e8f56bc11cf9c80c2f",
+      "name": "Trị mụn kháng khuẩn",
+      "_id": "693fc7e8f56bc11cf9c80c2f",
+      "slug": "tri-mun-khang-khuan",
+      "parentCategory": "6923687328be20235d452327",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:44.858Z",
+      "updatedAt": "2025-12-15T08:33:44.858Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e9f56bc11cf9c80c33",
+      "name": "Trị mụn kháng viêm",
+      "_id": "693fc7e9f56bc11cf9c80c33",
+      "slug": "tri-mun-khang-viem",
+      "parentCategory": "6923687328be20235d452327",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:45.391Z",
+      "updatedAt": "2025-12-15T08:33:45.391Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7e9f56bc11cf9c80c37",
+      "name": "Trị mụn retinoid",
+      "_id": "693fc7e9f56bc11cf9c80c37",
+      "slug": "tri-mun-retinoid",
+      "parentCategory": "6923687328be20235d452327",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:45.997Z",
+      "updatedAt": "2025-12-15T08:33:45.997Z",
+      "__v": 0
+    },
+    {
+      "id": "693fc7eaf56bc11cf9c80c3b",
+      "name": "Sản phẩm hỗ trợ giảm thâm mụn",
+      "_id": "693fc7eaf56bc11cf9c80c3b",
+      "slug": "san-pham-ho-tro-giam-tham-mun",
+      "parentCategory": "6923687328be20235d452327",
+      "isActive": true,
+      "createdAt": "2025-12-15T08:33:46.228Z",
+      "updatedAt": "2025-12-15T08:33:46.228Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4bd82455de092e12086",
+      "name": "Thuốc tránh thai hằng ngày",
+      "_id": "693fd4bd82455de092e12086",
+      "slug": "thuoc-tranh-thai-hang-ngay-1",
+      "parentCategory": "693fd4b2107a406945f5afb5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:29.814Z",
+      "updatedAt": "2025-12-15T09:28:29.814Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4be82455de092e12090",
+      "name": "Thuốc tránh thai khẩn cấp",
+      "_id": "693fd4be82455de092e12090",
+      "slug": "thuoc-tranh-thai-khan-cap-1",
+      "parentCategory": "693fd4b2107a406945f5afb5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:30.115Z",
+      "updatedAt": "2025-12-15T09:28:30.115Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4be82455de092e12096",
+      "name": "Thuốc tránh thai nội tiết phối hợp",
+      "_id": "693fd4be82455de092e12096",
+      "slug": "thuoc-tranh-thai-noi-tiet-phoi-hop-1",
+      "parentCategory": "693fd4b2107a406945f5afb5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:30.365Z",
+      "updatedAt": "2025-12-15T09:28:30.365Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4be82455de092e1209b",
+      "name": "Thuốc tránh thai progestin đơn thuần",
+      "_id": "693fd4be82455de092e1209b",
+      "slug": "thuoc-tranh-thai-progestin-don-thuan-1",
+      "parentCategory": "693fd4b2107a406945f5afb5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:30.883Z",
+      "updatedAt": "2025-12-15T09:28:30.883Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4bf82455de092e120a3",
+      "name": "Kháng histamin thế hệ 1",
+      "_id": "693fd4bf82455de092e120a3",
+      "slug": "khang-histamin-the-he-1-1",
+      "parentCategory": "693fd4b3107a406945f5afbc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:31.399Z",
+      "updatedAt": "2025-12-15T09:28:31.399Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4bf82455de092e120a8",
+      "name": "Kháng histamin thế hệ 2",
+      "_id": "693fd4bf82455de092e120a8",
+      "slug": "khang-histamin-the-he-2-1",
+      "parentCategory": "693fd4b3107a406945f5afbc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:31.636Z",
+      "updatedAt": "2025-12-15T09:28:31.636Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4bf82455de092e120ad",
+      "name": "Corticoid chống dị ứng",
+      "_id": "693fd4bf82455de092e120ad",
+      "slug": "corticoid-chong-di-ung-1",
+      "parentCategory": "693fd4b3107a406945f5afbc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:31.907Z",
+      "updatedAt": "2025-12-15T09:28:31.907Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c082455de092e120b2",
+      "name": "Thuốc chống ngứa ngoài da",
+      "_id": "693fd4c082455de092e120b2",
+      "slug": "thuoc-chong-ngua-ngoai-da-1",
+      "parentCategory": "693fd4b3107a406945f5afbc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:32.136Z",
+      "updatedAt": "2025-12-15T09:28:32.136Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c082455de092e120ba",
+      "name": "NSAIDs",
+      "_id": "693fd4c082455de092e120ba",
+      "slug": "nsaids-1",
+      "parentCategory": "693fd4b3107a406945f5afc0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:32.545Z",
+      "updatedAt": "2025-12-15T09:28:32.545Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c082455de092e120bf",
+      "name": "Corticoid",
+      "_id": "693fd4c082455de092e120bf",
+      "slug": "corticoid-1",
+      "parentCategory": "693fd4b3107a406945f5afc0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:32.811Z",
+      "updatedAt": "2025-12-15T09:28:32.811Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c182455de092e120c4",
+      "name": "Kháng viêm không steroid bôi ngoài",
+      "_id": "693fd4c182455de092e120c4",
+      "slug": "khang-viem-khong-steroid-boi-ngoai-1",
+      "parentCategory": "693fd4b3107a406945f5afc0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:33.103Z",
+      "updatedAt": "2025-12-15T09:28:33.103Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c182455de092e120c9",
+      "name": "Enzyme chống viêm",
+      "_id": "693fd4c182455de092e120c9",
+      "slug": "enzyme-chong-viem-1",
+      "parentCategory": "693fd4b3107a406945f5afc0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:33.358Z",
+      "updatedAt": "2025-12-15T09:28:33.358Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c182455de092e120d1",
+      "name": "Thuốc cảm cúm phối hợp",
+      "_id": "693fd4c182455de092e120d1",
+      "slug": "thuoc-cam-cum-phoi-hop-1",
+      "parentCategory": "693fd4b3107a406945f5afc4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:33.766Z",
+      "updatedAt": "2025-12-15T09:28:33.766Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c182455de092e120d6",
+      "name": "Thuốc hạ sốt – giảm đau",
+      "_id": "693fd4c182455de092e120d6",
+      "slug": "thuoc-ha-sot-giam-dau-1",
+      "parentCategory": "693fd4b3107a406945f5afc4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:33.999Z",
+      "updatedAt": "2025-12-15T09:28:33.999Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c282455de092e120db",
+      "name": "Thuốc thông mũi",
+      "_id": "693fd4c282455de092e120db",
+      "slug": "thuoc-thong-mui-1",
+      "parentCategory": "693fd4b3107a406945f5afc4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:34.237Z",
+      "updatedAt": "2025-12-15T09:28:34.237Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c282455de092e120e0",
+      "name": "Thuốc kháng histamin trong cảm cúm",
+      "_id": "693fd4c282455de092e120e0",
+      "slug": "thuoc-khang-histamin-trong-cam-cum-1",
+      "parentCategory": "693fd4b3107a406945f5afc4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:34.481Z",
+      "updatedAt": "2025-12-15T09:28:34.481Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c282455de092e120e8",
+      "name": "Thuốc ức chế hấp thu chất béo",
+      "_id": "693fd4c282455de092e120e8",
+      "slug": "thuoc-uc-che-hap-thu-chat-beo-1",
+      "parentCategory": "693fd4b3107a406945f5afc7",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:34.943Z",
+      "updatedAt": "2025-12-15T09:28:34.943Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c382455de092e120ed",
+      "name": "Thuốc giảm cảm giác thèm ăn",
+      "_id": "693fd4c382455de092e120ed",
+      "slug": "thuoc-giam-cam-giac-them-an-1",
+      "parentCategory": "693fd4b3107a406945f5afc7",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:35.303Z",
+      "updatedAt": "2025-12-15T09:28:35.303Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c382455de092e120f2",
+      "name": "Thực phẩm hỗ trợ giảm cân",
+      "_id": "693fd4c382455de092e120f2",
+      "slug": "thuc-pham-ho-tro-giam-can-1",
+      "parentCategory": "693fd4b3107a406945f5afc7",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:35.777Z",
+      "updatedAt": "2025-12-15T09:28:35.777Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c482455de092e120fa",
+      "name": "Thuốc nhỏ mắt kháng sinh",
+      "_id": "693fd4c482455de092e120fa",
+      "slug": "thuoc-nho-mat-khang-sinh-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:36.691Z",
+      "updatedAt": "2025-12-15T09:28:36.691Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c582455de092e120ff",
+      "name": "Thuốc nhỏ mắt kháng viêm",
+      "_id": "693fd4c582455de092e120ff",
+      "slug": "thuoc-nho-mat-khang-viem-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:37.178Z",
+      "updatedAt": "2025-12-15T09:28:37.178Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c582455de092e12104",
+      "name": "Thuốc nhỏ mắt dưỡng ẩm",
+      "_id": "693fd4c582455de092e12104",
+      "slug": "thuoc-nho-mat-duong-am-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:37.723Z",
+      "updatedAt": "2025-12-15T09:28:37.723Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c682455de092e12109",
+      "name": "Thuốc điều trị glôcôm",
+      "_id": "693fd4c682455de092e12109",
+      "slug": "thuoc-dieu-tri-glocom-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:38.314Z",
+      "updatedAt": "2025-12-15T09:28:38.314Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c682455de092e1210e",
+      "name": "Thuốc nhỏ tai kháng sinh",
+      "_id": "693fd4c682455de092e1210e",
+      "slug": "thuoc-nho-tai-khang-sinh-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:38.611Z",
+      "updatedAt": "2025-12-15T09:28:38.611Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c782455de092e12113",
+      "name": "Thuốc nhỏ tai kháng viêm",
+      "_id": "693fd4c782455de092e12113",
+      "slug": "thuoc-nho-tai-khang-viem-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:39.094Z",
+      "updatedAt": "2025-12-15T09:28:39.094Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c782455de092e12118",
+      "name": "Thuốc làm mềm ráy tai",
+      "_id": "693fd4c782455de092e12118",
+      "slug": "thuoc-lam-mem-ray-tai-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:39.505Z",
+      "updatedAt": "2025-12-15T09:28:39.505Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c782455de092e1211d",
+      "name": "Thuốc xịt mũi kháng viêm",
+      "_id": "693fd4c782455de092e1211d",
+      "slug": "thuoc-xit-mui-khang-viem-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:39.742Z",
+      "updatedAt": "2025-12-15T09:28:39.742Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c782455de092e12122",
+      "name": "Thuốc xịt mũi thông mũi",
+      "_id": "693fd4c782455de092e12122",
+      "slug": "thuoc-xit-mui-thong-mui-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:39.983Z",
+      "updatedAt": "2025-12-15T09:28:39.983Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c882455de092e12127",
+      "name": "Nước muối sinh lý",
+      "_id": "693fd4c882455de092e12127",
+      "slug": "nuoc-muoi-sinh-ly-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:40.221Z",
+      "updatedAt": "2025-12-15T09:28:40.221Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c882455de092e1212c",
+      "name": "Thuốc xịt mũi dị ứng",
+      "_id": "693fd4c882455de092e1212c",
+      "slug": "thuoc-xit-mui-di-ung-1",
+      "parentCategory": "693fd4b3107a406945f5afca",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:40.451Z",
+      "updatedAt": "2025-12-15T09:28:40.451Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c982455de092e12134",
+      "name": "Thuốc kháng acid",
+      "_id": "693fd4c982455de092e12134",
+      "slug": "thuoc-khang-acid-1",
+      "parentCategory": "693fd4b3107a406945f5afcd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:41.354Z",
+      "updatedAt": "2025-12-15T09:28:41.354Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c982455de092e12139",
+      "name": "Thuốc ức chế tiết acid (PPI/H2)",
+      "_id": "693fd4c982455de092e12139",
+      "slug": "thuoc-uc-che-tiet-acid-ppi-h2-1",
+      "parentCategory": "693fd4b3107a406945f5afcd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:41.659Z",
+      "updatedAt": "2025-12-15T09:28:41.659Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4c982455de092e1213e",
+      "name": "Men tiêu hóa",
+      "_id": "693fd4c982455de092e1213e",
+      "slug": "men-tieu-hoa-1",
+      "parentCategory": "693fd4b3107a406945f5afcd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:41.898Z",
+      "updatedAt": "2025-12-15T09:28:41.898Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4ca82455de092e12143",
+      "name": "Thuốc chống tiêu chảy",
+      "_id": "693fd4ca82455de092e12143",
+      "slug": "thuoc-chong-tieu-chay-1",
+      "parentCategory": "693fd4b3107a406945f5afcd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:42.143Z",
+      "updatedAt": "2025-12-15T09:28:42.143Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4ca82455de092e12148",
+      "name": "Thuốc nhuận tràng",
+      "_id": "693fd4ca82455de092e12148",
+      "slug": "thuoc-nhuan-trang-1",
+      "parentCategory": "693fd4b3107a406945f5afcd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:42.493Z",
+      "updatedAt": "2025-12-15T09:28:42.493Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4ca82455de092e12150",
+      "name": "Thuốc tăng cường sinh lý nam",
+      "_id": "693fd4ca82455de092e12150",
+      "slug": "thuoc-tang-cuong-sinh-ly-nam-1",
+      "parentCategory": "693fd4b3107a406945f5afd0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:42.948Z",
+      "updatedAt": "2025-12-15T09:28:42.948Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cb82455de092e12155",
+      "name": "Thuốc điều trị rối loạn cương",
+      "_id": "693fd4cb82455de092e12155",
+      "slug": "thuoc-dieu-tri-roi-loan-cuong-1",
+      "parentCategory": "693fd4b3107a406945f5afd0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:43.228Z",
+      "updatedAt": "2025-12-15T09:28:43.228Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cb82455de092e1215a",
+      "name": "Thuốc điều trị phì đại tiền liệt tuyến",
+      "_id": "693fd4cb82455de092e1215a",
+      "slug": "thuoc-dieu-tri-phi-dai-tien-liet-tuyen-1",
+      "parentCategory": "693fd4b3107a406945f5afd0",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:43.639Z",
+      "updatedAt": "2025-12-15T09:28:43.639Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cc82455de092e12162",
+      "name": "Giảm đau không opioid",
+      "_id": "693fd4cc82455de092e12162",
+      "slug": "giam-dau-khong-opioid-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:44.078Z",
+      "updatedAt": "2025-12-15T09:28:44.078Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cc82455de092e12167",
+      "name": "Giảm đau opioid nhẹ",
+      "_id": "693fd4cc82455de092e12167",
+      "slug": "giam-dau-opioid-nhe-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:44.334Z",
+      "updatedAt": "2025-12-15T09:28:44.334Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cc82455de092e1216c",
+      "name": "Giảm đau thần kinh",
+      "_id": "693fd4cc82455de092e1216c",
+      "slug": "giam-dau-than-kinh-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:44.579Z",
+      "updatedAt": "2025-12-15T09:28:44.579Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cc82455de092e12171",
+      "name": "Thuốc giảm đau bôi ngoài",
+      "_id": "693fd4cc82455de092e12171",
+      "slug": "thuoc-giam-dau-boi-ngoai-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:44.827Z",
+      "updatedAt": "2025-12-15T09:28:44.827Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cd82455de092e12176",
+      "name": "Paracetamol",
+      "_id": "693fd4cd82455de092e12176",
+      "slug": "paracetamol-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:45.203Z",
+      "updatedAt": "2025-12-15T09:28:45.203Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cd82455de092e1217b",
+      "name": "Ibuprofen",
+      "_id": "693fd4cd82455de092e1217b",
+      "slug": "ibuprofen-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:45.450Z",
+      "updatedAt": "2025-12-15T09:28:45.450Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cd82455de092e12180",
+      "name": "Thuốc hạ sốt cho trẻ em",
+      "_id": "693fd4cd82455de092e12180",
+      "slug": "thuoc-ha-sot-cho-tre-em-1",
+      "parentCategory": "693fd4b3107a406945f5afd3",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:45.734Z",
+      "updatedAt": "2025-12-15T09:28:45.734Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4ce82455de092e12188",
+      "name": "Thuốc trị nấm da",
+      "_id": "693fd4ce82455de092e12188",
+      "slug": "thuoc-tri-nam-da-1",
+      "parentCategory": "693fd4b4107a406945f5afd6",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:46.243Z",
+      "updatedAt": "2025-12-15T09:28:46.243Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4ce82455de092e1218d",
+      "name": "Thuốc kháng khuẩn da",
+      "_id": "693fd4ce82455de092e1218d",
+      "slug": "thuoc-khang-khuan-da-1",
+      "parentCategory": "693fd4b4107a406945f5afd6",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:46.512Z",
+      "updatedAt": "2025-12-15T09:28:46.512Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4ce82455de092e12192",
+      "name": "Corticoid bôi da",
+      "_id": "693fd4ce82455de092e12192",
+      "slug": "corticoid-boi-da-1",
+      "parentCategory": "693fd4b4107a406945f5afd6",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:46.748Z",
+      "updatedAt": "2025-12-15T09:28:46.748Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cf82455de092e12197",
+      "name": "Thuốc trị viêm da – dị ứng",
+      "_id": "693fd4cf82455de092e12197",
+      "slug": "thuoc-tri-viem-da-di-ung-1",
+      "parentCategory": "693fd4b4107a406945f5afd6",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:47.016Z",
+      "updatedAt": "2025-12-15T09:28:47.016Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cf82455de092e1219c",
+      "name": "Thuốc dưỡng da – phục hồi da",
+      "_id": "693fd4cf82455de092e1219c",
+      "slug": "thuoc-duong-da-phuc-hoi-da-1",
+      "parentCategory": "693fd4b4107a406945f5afd6",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:47.246Z",
+      "updatedAt": "2025-12-15T09:28:47.246Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cf82455de092e121a4",
+      "name": "Thuốc phụ khoa",
+      "_id": "693fd4cf82455de092e121a4",
+      "slug": "thuoc-phu-khoa-1",
+      "parentCategory": "693fd4b4107a406945f5afd9",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:47.660Z",
+      "updatedAt": "2025-12-15T09:28:47.660Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4cf82455de092e121a9",
+      "name": "Thuốc điều hòa kinh nguyệt",
+      "_id": "693fd4cf82455de092e121a9",
+      "slug": "thuoc-dieu-hoa-kinh-nguyet-1",
+      "parentCategory": "693fd4b4107a406945f5afd9",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:47.914Z",
+      "updatedAt": "2025-12-15T09:28:47.914Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d082455de092e121ae",
+      "name": "Thuốc bổ cho phụ nữ",
+      "_id": "693fd4d082455de092e121ae",
+      "slug": "thuoc-bo-cho-phu-nu-1",
+      "parentCategory": "693fd4b4107a406945f5afd9",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:48.144Z",
+      "updatedAt": "2025-12-15T09:28:48.144Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d082455de092e121b3",
+      "name": "Thuốc hỗ trợ thai kỳ",
+      "_id": "693fd4d082455de092e121b3",
+      "slug": "thuoc-ho-tro-thai-ky-1",
+      "parentCategory": "693fd4b4107a406945f5afd9",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:48.421Z",
+      "updatedAt": "2025-12-15T09:28:48.421Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d082455de092e121bb",
+      "name": "Thuốc an thần – gây ngủ",
+      "_id": "693fd4d082455de092e121bb",
+      "slug": "thuoc-an-than-gay-ngu-1",
+      "parentCategory": "693fd4b4107a406945f5afdc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:48.844Z",
+      "updatedAt": "2025-12-15T09:28:48.844Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d182455de092e121c0",
+      "name": "Thuốc chống trầm cảm",
+      "_id": "693fd4d182455de092e121c0",
+      "slug": "thuoc-chong-tram-cam-1",
+      "parentCategory": "693fd4b4107a406945f5afdc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:49.100Z",
+      "updatedAt": "2025-12-15T09:28:49.100Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d182455de092e121c5",
+      "name": "Thuốc chống lo âu",
+      "_id": "693fd4d182455de092e121c5",
+      "slug": "thuoc-chong-lo-au-1",
+      "parentCategory": "693fd4b4107a406945f5afdc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:49.539Z",
+      "updatedAt": "2025-12-15T09:28:49.539Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d182455de092e121ca",
+      "name": "Thuốc điều trị động kinh",
+      "_id": "693fd4d182455de092e121ca",
+      "slug": "thuoc-dieu-tri-dong-kinh-1",
+      "parentCategory": "693fd4b4107a406945f5afdc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:49.834Z",
+      "updatedAt": "2025-12-15T09:28:49.834Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d282455de092e121cf",
+      "name": "Thuốc bổ thần kinh",
+      "_id": "693fd4d282455de092e121cf",
+      "slug": "thuoc-bo-than-kinh-1",
+      "parentCategory": "693fd4b4107a406945f5afdc",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:50.067Z",
+      "updatedAt": "2025-12-15T09:28:50.067Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d282455de092e121d7",
+      "name": "NSAIDs điều trị xương khớp",
+      "_id": "693fd4d282455de092e121d7",
+      "slug": "nsaids-dieu-tri-xuong-khop-1",
+      "parentCategory": "693fd4b4107a406945f5afdf",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:50.467Z",
+      "updatedAt": "2025-12-15T09:28:50.467Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d282455de092e121dc",
+      "name": "Thuốc giãn cơ",
+      "_id": "693fd4d282455de092e121dc",
+      "slug": "thuoc-gian-co-1",
+      "parentCategory": "693fd4b4107a406945f5afdf",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:50.948Z",
+      "updatedAt": "2025-12-15T09:28:50.948Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d382455de092e121e1",
+      "name": "Thuốc bổ xương khớp",
+      "_id": "693fd4d382455de092e121e1",
+      "slug": "thuoc-bo-xuong-khop-1",
+      "parentCategory": "693fd4b4107a406945f5afdf",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:51.371Z",
+      "updatedAt": "2025-12-15T09:28:51.371Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d382455de092e121e6",
+      "name": "Thuốc điều trị gout",
+      "_id": "693fd4d382455de092e121e6",
+      "slug": "thuoc-dieu-tri-gout-1",
+      "parentCategory": "693fd4b4107a406945f5afdf",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:51.768Z",
+      "updatedAt": "2025-12-15T09:28:51.768Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d482455de092e121ee",
+      "name": "Dầu nóng giảm đau",
+      "_id": "693fd4d482455de092e121ee",
+      "slug": "dau-nong-giam-dau-1",
+      "parentCategory": "693fd4b4107a406945f5afe2",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:52.394Z",
+      "updatedAt": "2025-12-15T09:28:52.394Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d482455de092e121f3",
+      "name": "Dầu lạnh giảm đau",
+      "_id": "693fd4d482455de092e121f3",
+      "slug": "dau-lanh-giam-dau-1",
+      "parentCategory": "693fd4b4107a406945f5afe2",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:52.624Z",
+      "updatedAt": "2025-12-15T09:28:52.624Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d482455de092e121f8",
+      "name": "Cao xoa bóp thảo dược",
+      "_id": "693fd4d482455de092e121f8",
+      "slug": "cao-xoa-bop-thao-duoc-1",
+      "parentCategory": "693fd4b4107a406945f5afe2",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:52.859Z",
+      "updatedAt": "2025-12-15T09:28:52.859Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d582455de092e121fd",
+      "name": "Gel xoa bóp",
+      "_id": "693fd4d582455de092e121fd",
+      "slug": "gel-xoa-bop-1",
+      "parentCategory": "693fd4b4107a406945f5afe2",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:53.099Z",
+      "updatedAt": "2025-12-15T09:28:53.099Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d582455de092e12205",
+      "name": "Thuốc sát trùng",
+      "_id": "693fd4d582455de092e12205",
+      "slug": "thuoc-sat-trung-1",
+      "parentCategory": "693fd4b4107a406945f5afe5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:53.525Z",
+      "updatedAt": "2025-12-15T09:28:53.525Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d582455de092e1220a",
+      "name": "Thuốc giải độc",
+      "_id": "693fd4d582455de092e1220a",
+      "slug": "thuoc-giai-doc-1",
+      "parentCategory": "693fd4b4107a406945f5afe5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:53.826Z",
+      "updatedAt": "2025-12-15T09:28:53.826Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d682455de092e1220f",
+      "name": "Thuốc chống say tàu xe",
+      "_id": "693fd4d682455de092e1220f",
+      "slug": "thuoc-chong-say-tau-xe-1",
+      "parentCategory": "693fd4b4107a406945f5afe5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:54.069Z",
+      "updatedAt": "2025-12-15T09:28:54.069Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d682455de092e12214",
+      "name": "Thuốc hỗ trợ miễn dịch",
+      "_id": "693fd4d682455de092e12214",
+      "slug": "thuoc-ho-tro-mien-dich-1",
+      "parentCategory": "693fd4b4107a406945f5afe5",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:54.315Z",
+      "updatedAt": "2025-12-15T09:28:54.315Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d782455de092e1221c",
+      "name": "Vitamin đơn chất",
+      "_id": "693fd4d782455de092e1221c",
+      "slug": "vitamin-don-chat-1",
+      "parentCategory": "693fd4b4107a406945f5afe8",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:55.487Z",
+      "updatedAt": "2025-12-15T09:28:55.487Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d782455de092e12221",
+      "name": "Vitamin tổng hợp",
+      "_id": "693fd4d782455de092e12221",
+      "slug": "vitamin-tong-hop-1",
+      "parentCategory": "693fd4b4107a406945f5afe8",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:55.917Z",
+      "updatedAt": "2025-12-15T09:28:55.917Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d882455de092e12226",
+      "name": "Khoáng chất đơn",
+      "_id": "693fd4d882455de092e12226",
+      "slug": "khoang-chat-don-1",
+      "parentCategory": "693fd4b4107a406945f5afe8",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:56.216Z",
+      "updatedAt": "2025-12-15T09:28:56.216Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d882455de092e1222b",
+      "name": "Vitamin cho trẻ em",
+      "_id": "693fd4d882455de092e1222b",
+      "slug": "vitamin-cho-tre-em-1",
+      "parentCategory": "693fd4b4107a406945f5afe8",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:56.481Z",
+      "updatedAt": "2025-12-15T09:28:56.481Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4d882455de092e12230",
+      "name": "Vitamin cho người lớn tuổi",
+      "_id": "693fd4d882455de092e12230",
+      "slug": "vitamin-cho-nguoi-lon-tuoi-1",
+      "parentCategory": "693fd4b4107a406945f5afe8",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:56.763Z",
+      "updatedAt": "2025-12-15T09:28:56.763Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4da82455de092e12238",
+      "name": "Penicillin",
+      "_id": "693fd4da82455de092e12238",
+      "slug": "penicillin-1",
+      "parentCategory": "693fd4b5107a406945f5afeb",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:58.286Z",
+      "updatedAt": "2025-12-15T09:28:58.286Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4da82455de092e1223d",
+      "name": "Cephalosporin",
+      "_id": "693fd4da82455de092e1223d",
+      "slug": "cephalosporin-1",
+      "parentCategory": "693fd4b5107a406945f5afeb",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:58.598Z",
+      "updatedAt": "2025-12-15T09:28:58.598Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4da82455de092e12242",
+      "name": "Macrolid",
+      "_id": "693fd4da82455de092e12242",
+      "slug": "macrolid-1",
+      "parentCategory": "693fd4b5107a406945f5afeb",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:58.835Z",
+      "updatedAt": "2025-12-15T09:28:58.835Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4db82455de092e12247",
+      "name": "Quinolon",
+      "_id": "693fd4db82455de092e12247",
+      "slug": "quinolon-1",
+      "parentCategory": "693fd4b5107a406945f5afeb",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:59.102Z",
+      "updatedAt": "2025-12-15T09:28:59.102Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4db82455de092e1224c",
+      "name": "Aminoglycosid",
+      "_id": "693fd4db82455de092e1224c",
+      "slug": "aminoglycosid-1",
+      "parentCategory": "693fd4b5107a406945f5afeb",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:59.344Z",
+      "updatedAt": "2025-12-15T09:28:59.344Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4db82455de092e12251",
+      "name": "Kháng sinh phối hợp",
+      "_id": "693fd4db82455de092e12251",
+      "slug": "khang-sinh-phoi-hop-1",
+      "parentCategory": "693fd4b5107a406945f5afeb",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:28:59.598Z",
+      "updatedAt": "2025-12-15T09:28:59.598Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4dc82455de092e12259",
+      "name": "Thuốc điều trị viêm đường tiết niệu",
+      "_id": "693fd4dc82455de092e12259",
+      "slug": "thuoc-dieu-tri-viem-duong-tiet-nieu-1",
+      "parentCategory": "693fd4b5107a406945f5afee",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:00.049Z",
+      "updatedAt": "2025-12-15T09:29:00.049Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4dc82455de092e1225e",
+      "name": "Thuốc lợi tiểu",
+      "_id": "693fd4dc82455de092e1225e",
+      "slug": "thuoc-loi-tieu-1",
+      "parentCategory": "693fd4b5107a406945f5afee",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:00.286Z",
+      "updatedAt": "2025-12-15T09:29:00.286Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4dc82455de092e12263",
+      "name": "Thuốc điều trị sỏi thận",
+      "_id": "693fd4dc82455de092e12263",
+      "slug": "thuoc-dieu-tri-soi-than-1",
+      "parentCategory": "693fd4b5107a406945f5afee",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:00.966Z",
+      "updatedAt": "2025-12-15T09:29:00.966Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4dd82455de092e1226b",
+      "name": "Insulin",
+      "_id": "693fd4dd82455de092e1226b",
+      "slug": "insulin-1",
+      "parentCategory": "693fd4b5107a406945f5aff1",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:01.576Z",
+      "updatedAt": "2025-12-15T09:29:01.576Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4dd82455de092e12270",
+      "name": "Thuốc hạ đường huyết uống",
+      "_id": "693fd4dd82455de092e12270",
+      "slug": "thuoc-ha-duong-huyet-uong-1",
+      "parentCategory": "693fd4b5107a406945f5aff1",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:01.828Z",
+      "updatedAt": "2025-12-15T09:29:01.828Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4de82455de092e12275",
+      "name": "Thuốc hỗ trợ kiểm soát đường huyết",
+      "_id": "693fd4de82455de092e12275",
+      "slug": "thuoc-ho-tro-kiem-soat-duong-huyet-1",
+      "parentCategory": "693fd4b5107a406945f5aff1",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:02.103Z",
+      "updatedAt": "2025-12-15T09:29:02.103Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4de82455de092e1227d",
+      "name": "Thuốc hạ huyết áp",
+      "_id": "693fd4de82455de092e1227d",
+      "slug": "thuoc-ha-huyet-ap-1",
+      "parentCategory": "693fd4b5107a406945f5aff4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:02.517Z",
+      "updatedAt": "2025-12-15T09:29:02.517Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4de82455de092e12282",
+      "name": "Thuốc điều trị rối loạn mỡ máu",
+      "_id": "693fd4de82455de092e12282",
+      "slug": "thuoc-dieu-tri-roi-loan-mo-mau-1",
+      "parentCategory": "693fd4b5107a406945f5aff4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:02.746Z",
+      "updatedAt": "2025-12-15T09:29:02.746Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4df82455de092e12287",
+      "name": "Thuốc chống đông – kháng kết tập tiểu cầu",
+      "_id": "693fd4df82455de092e12287",
+      "slug": "thuoc-chong-dong-khang-ket-tap-tieu-cau-1",
+      "parentCategory": "693fd4b5107a406945f5aff4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:03.088Z",
+      "updatedAt": "2025-12-15T09:29:03.088Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4df82455de092e1228c",
+      "name": "Thuốc trợ tim",
+      "_id": "693fd4df82455de092e1228c",
+      "slug": "thuoc-tro-tim-1",
+      "parentCategory": "693fd4b5107a406945f5aff4",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:03.335Z",
+      "updatedAt": "2025-12-15T09:29:03.335Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4df82455de092e12294",
+      "name": "Thuốc hóa trị",
+      "_id": "693fd4df82455de092e12294",
+      "slug": "thuoc-hoa-tri-1",
+      "parentCategory": "693fd4b5107a406945f5aff7",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:03.777Z",
+      "updatedAt": "2025-12-15T09:29:03.777Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e082455de092e12299",
+      "name": "Thuốc điều trị đích",
+      "_id": "693fd4e082455de092e12299",
+      "slug": "thuoc-dieu-tri-dich-1",
+      "parentCategory": "693fd4b5107a406945f5aff7",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:04.058Z",
+      "updatedAt": "2025-12-15T09:29:04.058Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e082455de092e1229e",
+      "name": "Thuốc hỗ trợ điều trị ung thư",
+      "_id": "693fd4e082455de092e1229e",
+      "slug": "thuoc-ho-tro-dieu-tri-ung-thu-1",
+      "parentCategory": "693fd4b5107a406945f5aff7",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:04.447Z",
+      "updatedAt": "2025-12-15T09:29:04.447Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e182455de092e122a6",
+      "name": "Men tiêu hóa trẻ em",
+      "_id": "693fd4e182455de092e122a6",
+      "slug": "men-tieu-hoa-tre-em-1",
+      "parentCategory": "693fd4b5107a406945f5affa",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:05.080Z",
+      "updatedAt": "2025-12-15T09:29:05.080Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e182455de092e122ab",
+      "name": "Thuốc chống tiêu chảy trẻ em",
+      "_id": "693fd4e182455de092e122ab",
+      "slug": "thuoc-chong-tieu-chay-tre-em-1",
+      "parentCategory": "693fd4b5107a406945f5affa",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:05.337Z",
+      "updatedAt": "2025-12-15T09:29:05.337Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e182455de092e122b0",
+      "name": "Thuốc trị táo bón trẻ em",
+      "_id": "693fd4e182455de092e122b0",
+      "slug": "thuoc-tri-tao-bon-tre-em-1",
+      "parentCategory": "693fd4b5107a406945f5affa",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:05.916Z",
+      "updatedAt": "2025-12-15T09:29:05.916Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e282455de092e122b8",
+      "name": "Kháng sinh nhỏ mắt",
+      "_id": "693fd4e282455de092e122b8",
+      "slug": "khang-sinh-nho-mat-1",
+      "parentCategory": "693fd4b5107a406945f5affd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:06.416Z",
+      "updatedAt": "2025-12-15T09:29:06.416Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e282455de092e122bd",
+      "name": "Kháng viêm nhỏ mắt",
+      "_id": "693fd4e282455de092e122bd",
+      "slug": "khang-viem-nho-mat-1",
+      "parentCategory": "693fd4b5107a406945f5affd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:06.667Z",
+      "updatedAt": "2025-12-15T09:29:06.667Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e282455de092e122c2",
+      "name": "Dưỡng ẩm – nước mắt nhân tạo",
+      "_id": "693fd4e282455de092e122c2",
+      "slug": "duong-am-nuoc-mat-nhan-tao-1",
+      "parentCategory": "693fd4b5107a406945f5affd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:06.903Z",
+      "updatedAt": "2025-12-15T09:29:06.903Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e382455de092e122c7",
+      "name": "Kháng dị ứng nhỏ mắt",
+      "_id": "693fd4e382455de092e122c7",
+      "slug": "khang-di-ung-nho-mat-1",
+      "parentCategory": "693fd4b5107a406945f5affd",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:07.136Z",
+      "updatedAt": "2025-12-15T09:29:07.136Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e382455de092e122cf",
+      "name": "Dung dịch sát khuẩn",
+      "_id": "693fd4e382455de092e122cf",
+      "slug": "dung-dich-sat-khuan-1",
+      "parentCategory": "693fd4b5107a406945f5b000",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:07.541Z",
+      "updatedAt": "2025-12-15T09:29:07.541Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e382455de092e122d4",
+      "name": "Thuốc bôi liền da",
+      "_id": "693fd4e382455de092e122d4",
+      "slug": "thuoc-boi-lien-da-1",
+      "parentCategory": "693fd4b5107a406945f5b000",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:07.770Z",
+      "updatedAt": "2025-12-15T09:29:07.770Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e482455de092e122d9",
+      "name": "Băng gạc y tế",
+      "_id": "693fd4e482455de092e122d9",
+      "slug": "bang-gac-y-te-1",
+      "parentCategory": "693fd4b5107a406945f5b000",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:08.007Z",
+      "updatedAt": "2025-12-15T09:29:08.007Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e482455de092e122de",
+      "name": "Gel trị bỏng",
+      "_id": "693fd4e482455de092e122de",
+      "slug": "gel-tri-bong-1",
+      "parentCategory": "693fd4b5107a406945f5b000",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:08.334Z",
+      "updatedAt": "2025-12-15T09:29:08.334Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e482455de092e122e6",
+      "name": "Xịt mũi nước muối",
+      "_id": "693fd4e482455de092e122e6",
+      "slug": "xit-mui-nuoc-muoi-1",
+      "parentCategory": "693fd4b6107a406945f5b003",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:08.738Z",
+      "updatedAt": "2025-12-15T09:29:08.738Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e482455de092e122eb",
+      "name": "Xịt mũi kháng viêm",
+      "_id": "693fd4e482455de092e122eb",
+      "slug": "xit-mui-khang-viem-1",
+      "parentCategory": "693fd4b6107a406945f5b003",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:08.997Z",
+      "updatedAt": "2025-12-15T09:29:08.997Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e582455de092e122f0",
+      "name": "Xịt mũi dị ứng",
+      "_id": "693fd4e582455de092e122f0",
+      "slug": "xit-mui-di-ung-1",
+      "parentCategory": "693fd4b6107a406945f5b003",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:09.917Z",
+      "updatedAt": "2025-12-15T09:29:09.917Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e682455de092e122f5",
+      "name": "Xịt mũi thông mũi",
+      "_id": "693fd4e682455de092e122f5",
+      "slug": "xit-mui-thong-mui-1",
+      "parentCategory": "693fd4b6107a406945f5b003",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:10.344Z",
+      "updatedAt": "2025-12-15T09:29:10.344Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e682455de092e122fd",
+      "name": "Trị mụn kháng khuẩn",
+      "_id": "693fd4e682455de092e122fd",
+      "slug": "tri-mun-khang-khuan-1",
+      "parentCategory": "693fd4b6107a406945f5b006",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:10.975Z",
+      "updatedAt": "2025-12-15T09:29:10.975Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e782455de092e12302",
+      "name": "Trị mụn kháng viêm",
+      "_id": "693fd4e782455de092e12302",
+      "slug": "tri-mun-khang-viem-1",
+      "parentCategory": "693fd4b6107a406945f5b006",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:11.235Z",
+      "updatedAt": "2025-12-15T09:29:11.235Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e782455de092e12307",
+      "name": "Trị mụn retinoid",
+      "_id": "693fd4e782455de092e12307",
+      "slug": "tri-mun-retinoid-1",
+      "parentCategory": "693fd4b6107a406945f5b006",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:11.489Z",
+      "updatedAt": "2025-12-15T09:29:11.489Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e782455de092e1230c",
+      "name": "Sản phẩm hỗ trợ giảm thâm mụn",
+      "_id": "693fd4e782455de092e1230c",
+      "slug": "san-pham-ho-tro-giam-tham-mun-1",
+      "parentCategory": "693fd4b6107a406945f5b006",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:11.716Z",
+      "updatedAt": "2025-12-15T09:29:11.716Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e882455de092e12313",
+      "name": "Thuốc long đờm",
+      "_id": "693fd4e882455de092e12313",
+      "slug": "thuoc-long-dom",
+      "parentCategory": "693fd4b6107a406945f5b009",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:12.070Z",
+      "updatedAt": "2025-12-15T09:29:12.070Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e882455de092e12317",
+      "name": "Thuốc ức chế ho",
+      "_id": "693fd4e882455de092e12317",
+      "slug": "thuoc-uc-che-ho",
+      "parentCategory": "693fd4b6107a406945f5b009",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:12.243Z",
+      "updatedAt": "2025-12-15T09:29:12.243Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e882455de092e1231b",
+      "name": "Thuốc ho thảo dược",
+      "_id": "693fd4e882455de092e1231b",
+      "slug": "thuoc-ho-thao-duoc",
+      "parentCategory": "693fd4b6107a406945f5b009",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:12.416Z",
+      "updatedAt": "2025-12-15T09:29:12.416Z",
+      "__v": 0
+    },
+    {
+      "id": "693fd4e882455de092e1231f",
+      "name": "Thuốc ho cho trẻ em",
+      "_id": "693fd4e882455de092e1231f",
+      "slug": "thuoc-ho-cho-tre-em",
+      "parentCategory": "693fd4b6107a406945f5b009",
+      "isActive": true,
+      "createdAt": "2025-12-15T09:29:12.596Z",
+      "updatedAt": "2025-12-15T09:29:12.596Z",
+      "__v": 0
+    },
+    {
+      "id": "69403886a8d2750f229e4dca",
+      "name": "Thuốc nhuận tràng",
+      "_id": "69403886a8d2750f229e4dca",
+      "slug": "thuoc-nhuan-trang-2",
+      "parentCategory": "693fd4b5107a406945f5affa",
+      "isActive": true,
+      "createdAt": "2025-12-15T16:34:14.354Z",
+      "updatedAt": "2025-12-15T16:34:14.354Z",
+      "__v": 0
+    },
+    {
+      "id": "6942b8a9078eed92ef4fbe22",
+      "name": "Thuốc điều trị rối loạn tiền đình",
+      "description": "Thuốc điều trị các rối loạn liên quan đến tiền đình",
+      "_id": "6942b8a9078eed92ef4fbe22",
+      "slug": "thuoc-dieu-tri-roi-loan-tien-dinh",
+      "parentCategory": "693fd4b4107a406945f5afdc",
+      "isActive": true,
+      "createdAt": "2025-12-17T14:05:29.618Z",
+      "updatedAt": "2025-12-17T14:05:29.618Z",
+      "__v": 0
+    }
+  ],
+  "tree": [
+    {
+      "category": {
+        "id": "693fd4b2107a406945f5afb5",
+        "name": "Thuốc ngừa thai",
+        "slug": "thuoc-ngua-thai",
+        "description": "Danh mục thuốc ngừa thai và các sản phẩm tránh thai",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:18.876Z"
+      },
+      "productCount": 0,
+      "medicineCount": 5,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afbc",
+        "name": "Thuốc kháng dị ứng",
+        "slug": "thuoc-khang-di-ung",
+        "description": "Danh mục thuốc điều trị dị ứng và các phản ứng dị ứng",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.022Z"
+      },
+      "productCount": 0,
+      "medicineCount": 21,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afc0",
+        "name": "Thuốc kháng viêm",
+        "slug": "thuoc-khang-viem",
+        "description": "Danh mục thuốc chống viêm và giảm đau do viêm",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.158Z"
+      },
+      "productCount": 0,
+      "medicineCount": 8,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afc4",
+        "name": "Thuốc cảm lạnh",
+        "slug": "thuoc-cam-lanh",
+        "description": "Danh mục thuốc điều trị cảm lạnh và các triệu chứng cảm cúm",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.284Z"
+      },
+      "productCount": 0,
+      "medicineCount": 27,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afc7",
+        "name": "Thuốc giảm cân",
+        "slug": "thuoc-giam-can",
+        "description": "Danh mục thuốc và sản phẩm hỗ trợ giảm cân",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.411Z"
+      },
+      "productCount": 0,
+      "medicineCount": 4,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afca",
+        "name": "Thuốc Mắt/Tai/Mũi",
+        "slug": "thuoc-mat-tai-mui",
+        "description": "Danh mục thuốc điều trị các bệnh về mắt, tai và mũi",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.556Z"
+      },
+      "productCount": 0,
+      "medicineCount": 6,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afcd",
+        "name": "Thuốc tiêu hóa",
+        "slug": "thuoc-tieu-hoa",
+        "description": "Danh mục thuốc điều trị các bệnh về đường tiêu hóa",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.688Z"
+      },
+      "productCount": 0,
+      "medicineCount": 22,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afd0",
+        "name": "Thuốc dành cho nam",
+        "slug": "thuoc-danh-cho-nam",
+        "description": "Danh mục thuốc và sản phẩm chăm sóc sức khỏe nam giới",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.812Z"
+      },
+      "productCount": 0,
+      "medicineCount": 3,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b3107a406945f5afd3",
+        "name": "Giảm đau, hạ sốt",
+        "slug": "giam-dau-ha-sot",
+        "description": "Danh mục thuốc giảm đau và hạ sốt",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:19.967Z"
+      },
+      "productCount": 0,
+      "medicineCount": 6,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afd6",
+        "name": "Thuốc da liễu",
+        "slug": "thuoc-da-lieu",
+        "description": "Danh mục thuốc điều trị các bệnh về da",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.098Z"
+      },
+      "productCount": 0,
+      "medicineCount": 9,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afd9",
+        "name": "Thuốc dành cho phụ nữ",
+        "slug": "thuoc-danh-cho-phu-nu",
+        "description": "Danh mục thuốc và sản phẩm chăm sóc sức khỏe phụ nữ",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.227Z"
+      },
+      "productCount": 0,
+      "medicineCount": 6,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afdc",
+        "name": "Thuốc thần kinh",
+        "slug": "thuoc-than-kinh",
+        "description": "Danh mục thuốc điều trị các bệnh về thần kinh",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.350Z"
+      },
+      "productCount": 0,
+      "medicineCount": 10,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afdf",
+        "name": "Thuốc cơ xương khớp",
+        "slug": "thuoc-co-xuong-khop",
+        "description": "Danh mục thuốc điều trị các bệnh về cơ, xương và khớp",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.476Z"
+      },
+      "productCount": 0,
+      "medicineCount": 12,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afe2",
+        "name": "Dầu, Cao xoa bóp",
+        "slug": "dau-cao-xoa-bop",
+        "description": "Danh mục dầu và cao xoa bóp giảm đau",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.620Z"
+      },
+      "productCount": 0,
+      "medicineCount": 10,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afe5",
+        "name": "Thuốc khác",
+        "slug": "thuoc-khac",
+        "description": "Danh mục các loại thuốc khác",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.757Z"
+      },
+      "productCount": 0,
+      "medicineCount": 8,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b4107a406945f5afe8",
+        "name": "Vitamin & Khoáng chất",
+        "slug": "vitamin-khoang-chat",
+        "description": "Danh mục vitamin và khoáng chất bổ sung",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:20.883Z"
+      },
+      "productCount": 0,
+      "medicineCount": 14,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5afeb",
+        "name": "Thuốc kháng sinh",
+        "slug": "thuoc-khang-sinh",
+        "description": "Danh mục thuốc kháng sinh điều trị nhiễm khuẩn",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.041Z"
+      },
+      "productCount": 0,
+      "medicineCount": 9,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5afee",
+        "name": "Thuốc tiết niệu",
+        "slug": "thuoc-tiet-nieu",
+        "description": "Danh mục thuốc điều trị các bệnh về đường tiết niệu",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.177Z"
+      },
+      "productCount": 0,
+      "medicineCount": 6,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5aff1",
+        "name": "Thuốc tiểu đường",
+        "slug": "thuoc-tieu-duong",
+        "description": "Danh mục thuốc điều trị bệnh tiểu đường",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.305Z"
+      },
+      "productCount": 0,
+      "medicineCount": 16,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5aff4",
+        "name": "Thuốc tim mạch, huyết áp",
+        "slug": "thuoc-tim-mach-huyet-ap",
+        "description": "Danh mục thuốc điều trị các bệnh tim mạch và huyết áp",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.431Z"
+      },
+      "productCount": 0,
+      "medicineCount": 17,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5aff7",
+        "name": "Thuốc ung thư",
+        "slug": "thuoc-ung-thu",
+        "description": "Danh mục thuốc điều trị ung thư",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.573Z"
+      },
+      "productCount": 0,
+      "medicineCount": 13,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5affa",
+        "name": "Thuốc tiêu hóa cho trẻ",
+        "slug": "thuoc-tieu-hoa-cho-tre",
+        "description": "Danh mục thuốc điều trị các bệnh tiêu hóa dành cho trẻ em",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.702Z"
+      },
+      "productCount": 0,
+      "medicineCount": 24,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5affd",
+        "name": "Thuốc nhỏ mắt",
+        "slug": "thuoc-nho-mat",
+        "description": "Danh mục thuốc nhỏ mắt và chăm sóc mắt",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.824Z"
+      },
+      "productCount": 0,
+      "medicineCount": 2,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b5107a406945f5b000",
+        "name": "Chăm sóc vết thương",
+        "slug": "cham-soc-vet-thuong",
+        "description": "Danh mục sản phẩm chăm sóc và điều trị vết thương",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:21.957Z"
+      },
+      "productCount": 0,
+      "medicineCount": 0,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b6107a406945f5b003",
+        "name": "Xịt mũi",
+        "slug": "xit-mui",
+        "description": "Danh mục thuốc xịt mũi và chăm sóc mũi",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:22.090Z"
+      },
+      "productCount": 0,
+      "medicineCount": 2,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b6107a406945f5b006",
+        "name": "Sản phẩm trị mụn",
+        "slug": "san-pham-tri-mun",
+        "description": "Danh mục sản phẩm điều trị mụn và chăm sóc da",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:22.214Z"
+      },
+      "productCount": 0,
+      "medicineCount": 0,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "693fd4b6107a406945f5b009",
+        "name": "Thuốc ho, long đờm",
+        "slug": "thuoc-ho-long-dom",
+        "description": "Danh mục thuốc ho và long đờm",
+        "isActive": true,
+        "createdAt": "2025-12-15T09:28:22.352Z"
+      },
+      "productCount": 0,
+      "medicineCount": 1,
+      "children": []
+    },
+    {
+      "category": {
+        "id": "6943cc5e0761d45c43001678",
+        "name": "Thuốc",
+        "slug": "thuoc",
+        "icon": "Pill",
+        "description": "Các loại thuốc kê đơn và không kê đơn",
+        "isActive": true,
+        "createdAt": "2025-12-18T09:41:50.778Z"
+      },
+      "productCount": 261,
+      "medicineCount": 0,
+      "children": []
+    }
+  ]
+}

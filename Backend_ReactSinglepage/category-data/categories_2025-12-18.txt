@@ -1,0 +1,679 @@
+CATEGORIES AND SUBCATEGORIES
+================================================================================
+
+Total Categories: 28
+Total Subcategories: 234
+
+CATEGORY TREE:
+--------------------------------------------------------------------------------
+📁 Thuốc ngừa thai (thuoc-ngua-thai)
+    Danh mục thuốc ngừa thai và các sản phẩm tránh thai
+    Products: 0 | Medicines: 5
+
+📁 Thuốc kháng dị ứng (thuoc-khang-di-ung)
+    Danh mục thuốc điều trị dị ứng và các phản ứng dị ứng
+    Products: 0 | Medicines: 21
+
+📁 Thuốc kháng viêm (thuoc-khang-viem)
+    Danh mục thuốc chống viêm và giảm đau do viêm
+    Products: 0 | Medicines: 8
+
+📁 Thuốc cảm lạnh (thuoc-cam-lanh)
+    Danh mục thuốc điều trị cảm lạnh và các triệu chứng cảm cúm
+    Products: 0 | Medicines: 27
+
+📁 Thuốc giảm cân (thuoc-giam-can)
+    Danh mục thuốc và sản phẩm hỗ trợ giảm cân
+    Products: 0 | Medicines: 4
+
+📁 Thuốc Mắt/Tai/Mũi (thuoc-mat-tai-mui)
+    Danh mục thuốc điều trị các bệnh về mắt, tai và mũi
+    Products: 0 | Medicines: 6
+
+📁 Thuốc tiêu hóa (thuoc-tieu-hoa)
+    Danh mục thuốc điều trị các bệnh về đường tiêu hóa
+    Products: 0 | Medicines: 22
+
+📁 Thuốc dành cho nam (thuoc-danh-cho-nam)
+    Danh mục thuốc và sản phẩm chăm sóc sức khỏe nam giới
+    Products: 0 | Medicines: 3
+
+📁 Giảm đau, hạ sốt (giam-dau-ha-sot)
+    Danh mục thuốc giảm đau và hạ sốt
+    Products: 0 | Medicines: 6
+
+📁 Thuốc da liễu (thuoc-da-lieu)
+    Danh mục thuốc điều trị các bệnh về da
+    Products: 0 | Medicines: 9
+
+📁 Thuốc dành cho phụ nữ (thuoc-danh-cho-phu-nu)
+    Danh mục thuốc và sản phẩm chăm sóc sức khỏe phụ nữ
+    Products: 0 | Medicines: 6
+
+📁 Thuốc thần kinh (thuoc-than-kinh)
+    Danh mục thuốc điều trị các bệnh về thần kinh
+    Products: 0 | Medicines: 10
+
+📁 Thuốc cơ xương khớp (thuoc-co-xuong-khop)
+    Danh mục thuốc điều trị các bệnh về cơ, xương và khớp
+    Products: 0 | Medicines: 12
+
+📁 Dầu, Cao xoa bóp (dau-cao-xoa-bop)
+    Danh mục dầu và cao xoa bóp giảm đau
+    Products: 0 | Medicines: 10
+
+📁 Thuốc khác (thuoc-khac)
+    Danh mục các loại thuốc khác
+    Products: 0 | Medicines: 8
+
+📁 Vitamin & Khoáng chất (vitamin-khoang-chat)
+    Danh mục vitamin và khoáng chất bổ sung
+    Products: 0 | Medicines: 14
+
+📁 Thuốc kháng sinh (thuoc-khang-sinh)
+    Danh mục thuốc kháng sinh điều trị nhiễm khuẩn
+    Products: 0 | Medicines: 9
+
+📁 Thuốc tiết niệu (thuoc-tiet-nieu)
+    Danh mục thuốc điều trị các bệnh về đường tiết niệu
+    Products: 0 | Medicines: 6
+
+📁 Thuốc tiểu đường (thuoc-tieu-duong)
+    Danh mục thuốc điều trị bệnh tiểu đường
+    Products: 0 | Medicines: 16
+
+📁 Thuốc tim mạch, huyết áp (thuoc-tim-mach-huyet-ap)
+    Danh mục thuốc điều trị các bệnh tim mạch và huyết áp
+    Products: 0 | Medicines: 17
+
+📁 Thuốc ung thư (thuoc-ung-thu)
+    Danh mục thuốc điều trị ung thư
+    Products: 0 | Medicines: 13
+
+📁 Thuốc tiêu hóa cho trẻ (thuoc-tieu-hoa-cho-tre)
+    Danh mục thuốc điều trị các bệnh tiêu hóa dành cho trẻ em
+    Products: 0 | Medicines: 24
+
+📁 Thuốc nhỏ mắt (thuoc-nho-mat)
+    Danh mục thuốc nhỏ mắt và chăm sóc mắt
+    Products: 0 | Medicines: 2
+
+📁 Chăm sóc vết thương (cham-soc-vet-thuong)
+    Danh mục sản phẩm chăm sóc và điều trị vết thương
+    Products: 0 | Medicines: 0
+
+📁 Xịt mũi (xit-mui)
+    Danh mục thuốc xịt mũi và chăm sóc mũi
+    Products: 0 | Medicines: 2
+
+📁 Sản phẩm trị mụn (san-pham-tri-mun)
+    Danh mục sản phẩm điều trị mụn và chăm sóc da
+    Products: 0 | Medicines: 0
+
+📁 Thuốc ho, long đờm (thuoc-ho-long-dom)
+    Danh mục thuốc ho và long đờm
+    Products: 0 | Medicines: 1
+
+📁 Thuốc (thuoc)
+    Các loại thuốc kê đơn và không kê đơn
+    Products: 261 | Medicines: 0
+
+
+
+FLAT CATEGORY LIST:
+--------------------------------------------------------------------------------
+1. Thuốc ngừa thai (thuoc-ngua-thai)
+   Danh mục thuốc ngừa thai và các sản phẩm tránh thai
+
+2. Thuốc kháng dị ứng (thuoc-khang-di-ung)
+   Danh mục thuốc điều trị dị ứng và các phản ứng dị ứng
+
+3. Thuốc kháng viêm (thuoc-khang-viem)
+   Danh mục thuốc chống viêm và giảm đau do viêm
+
+4. Thuốc cảm lạnh (thuoc-cam-lanh)
+   Danh mục thuốc điều trị cảm lạnh và các triệu chứng cảm cúm
+
+5. Thuốc giảm cân (thuoc-giam-can)
+   Danh mục thuốc và sản phẩm hỗ trợ giảm cân
+
+6. Thuốc Mắt/Tai/Mũi (thuoc-mat-tai-mui)
+   Danh mục thuốc điều trị các bệnh về mắt, tai và mũi
+
+7. Thuốc tiêu hóa (thuoc-tieu-hoa)
+   Danh mục thuốc điều trị các bệnh về đường tiêu hóa
+
+8. Thuốc dành cho nam (thuoc-danh-cho-nam)
+   Danh mục thuốc và sản phẩm chăm sóc sức khỏe nam giới
+
+9. Giảm đau, hạ sốt (giam-dau-ha-sot)
+   Danh mục thuốc giảm đau và hạ sốt
+
+10. Thuốc da liễu (thuoc-da-lieu)
+   Danh mục thuốc điều trị các bệnh về da
+
+11. Thuốc dành cho phụ nữ (thuoc-danh-cho-phu-nu)
+   Danh mục thuốc và sản phẩm chăm sóc sức khỏe phụ nữ
+
+12. Thuốc thần kinh (thuoc-than-kinh)
+   Danh mục thuốc điều trị các bệnh về thần kinh
+
+13. Thuốc cơ xương khớp (thuoc-co-xuong-khop)
+   Danh mục thuốc điều trị các bệnh về cơ, xương và khớp
+
+14. Dầu, Cao xoa bóp (dau-cao-xoa-bop)
+   Danh mục dầu và cao xoa bóp giảm đau
+
+15. Thuốc khác (thuoc-khac)
+   Danh mục các loại thuốc khác
+
+16. Vitamin & Khoáng chất (vitamin-khoang-chat)
+   Danh mục vitamin và khoáng chất bổ sung
+
+17. Thuốc kháng sinh (thuoc-khang-sinh)
+   Danh mục thuốc kháng sinh điều trị nhiễm khuẩn
+
+18. Thuốc tiết niệu (thuoc-tiet-nieu)
+   Danh mục thuốc điều trị các bệnh về đường tiết niệu
+
+19. Thuốc tiểu đường (thuoc-tieu-duong)
+   Danh mục thuốc điều trị bệnh tiểu đường
+
+20. Thuốc tim mạch, huyết áp (thuoc-tim-mach-huyet-ap)
+   Danh mục thuốc điều trị các bệnh tim mạch và huyết áp
+
+21. Thuốc ung thư (thuoc-ung-thu)
+   Danh mục thuốc điều trị ung thư
+
+22. Thuốc tiêu hóa cho trẻ (thuoc-tieu-hoa-cho-tre)
+   Danh mục thuốc điều trị các bệnh tiêu hóa dành cho trẻ em
+
+23. Thuốc nhỏ mắt (thuoc-nho-mat)
+   Danh mục thuốc nhỏ mắt và chăm sóc mắt
+
+24. Chăm sóc vết thương (cham-soc-vet-thuong)
+   Danh mục sản phẩm chăm sóc và điều trị vết thương
+
+25. Xịt mũi (xit-mui)
+   Danh mục thuốc xịt mũi và chăm sóc mũi
+
+26. Sản phẩm trị mụn (san-pham-tri-mun)
+   Danh mục sản phẩm điều trị mụn và chăm sóc da
+
+27. Thuốc ho, long đờm (thuoc-ho-long-dom)
+   Danh mục thuốc ho và long đờm
+
+28. Thuốc (thuoc)
+   Các loại thuốc kê đơn và không kê đơn
+
+
+SUBCATEGORIES:
+--------------------------------------------------------------------------------
+1. Thuốc tránh thai hằng ngày
+
+2. Thuốc tránh thai khẩn cấp
+
+3. Thuốc tránh thai nội tiết phối hợp
+
+4. Thuốc tránh thai progestin đơn thuần
+
+5. Kháng histamin thế hệ 1
+
+6. Kháng histamin thế hệ 2
+
+7. Corticoid chống dị ứng
+
+8. Thuốc chống ngứa ngoài da
+
+9. NSAIDs
+
+10. Corticoid
+
+11. Kháng viêm không steroid bôi ngoài
+
+12. Enzyme chống viêm
+
+13. Thuốc cảm cúm phối hợp
+
+14. Thuốc hạ sốt – giảm đau
+
+15. Thuốc thông mũi
+
+16. Thuốc kháng histamin trong cảm cúm
+
+17. Thuốc ức chế hấp thu chất béo
+
+18. Thuốc giảm cảm giác thèm ăn
+
+19. Thực phẩm hỗ trợ giảm cân
+
+20. Thuốc nhỏ mắt kháng sinh
+
+21. Thuốc nhỏ mắt kháng viêm
+
+22. Thuốc nhỏ mắt dưỡng ẩm
+
+23. Thuốc điều trị glôcôm
+
+24. Thuốc nhỏ tai kháng sinh
+
+25. Thuốc nhỏ tai kháng viêm
+
+26. Thuốc làm mềm ráy tai
+
+27. Thuốc xịt mũi kháng viêm
+
+28. Thuốc xịt mũi thông mũi
+
+29. Nước muối sinh lý
+
+30. Thuốc xịt mũi dị ứng
+
+31. Thuốc kháng acid
+
+32. Thuốc ức chế tiết acid (PPI/H2)
+
+33. Men tiêu hóa
+
+34. Thuốc chống tiêu chảy
+
+35. Thuốc nhuận tràng
+
+36. Thuốc tăng cường sinh lý nam
+
+37. Thuốc điều trị rối loạn cương
+
+38. Thuốc điều trị phì đại tiền liệt tuyến
+
+39. Giảm đau không opioid
+
+40. Giảm đau opioid nhẹ
+
+41. Giảm đau thần kinh
+
+42. Thuốc giảm đau bôi ngoài
+
+43. Paracetamol
+
+44. Ibuprofen
+
+45. Thuốc hạ sốt cho trẻ em
+
+46. Thuốc trị nấm da
+
+47. Thuốc kháng khuẩn da
+
+48. Corticoid bôi da
+
+49. Thuốc trị viêm da – dị ứng
+
+50. Thuốc dưỡng da – phục hồi da
+
+51. Thuốc phụ khoa
+
+52. Thuốc điều hòa kinh nguyệt
+
+53. Thuốc bổ cho phụ nữ
+
+54. Thuốc hỗ trợ thai kỳ
+
+55. Thuốc an thần – gây ngủ
+
+56. Thuốc chống trầm cảm
+
+57. Thuốc chống lo âu
+
+58. Thuốc điều trị động kinh
+
+59. Thuốc bổ thần kinh
+
+60. NSAIDs điều trị xương khớp
+
+61. Thuốc giãn cơ
+
+62. Thuốc bổ xương khớp
+
+63. Thuốc điều trị gout
+
+64. Dầu nóng giảm đau
+
+65. Dầu lạnh giảm đau
+
+66. Cao xoa bóp thảo dược
+
+67. Gel xoa bóp
+
+68. Thuốc sát trùng
+
+69. Thuốc giải độc
+
+70. Thuốc chống say tàu xe
+
+71. Thuốc hỗ trợ miễn dịch
+
+72. Vitamin đơn chất
+
+73. Vitamin tổng hợp
+
+74. Khoáng chất đơn
+
+75. Vitamin cho trẻ em
+
+76. Vitamin cho người lớn tuổi
+
+77. Penicillin
+
+78. Cephalosporin
+
+79. Macrolid
+
+80. Quinolon
+
+81. Aminoglycosid
+
+82. Kháng sinh phối hợp
+
+83. Thuốc điều trị viêm đường tiết niệu
+
+84. Thuốc lợi tiểu
+
+85. Thuốc điều trị sỏi thận
+
+86. Insulin
+
+87. Thuốc hạ đường huyết uống
+
+88. Thuốc hỗ trợ kiểm soát đường huyết
+
+89. Thuốc hạ huyết áp
+
+90. Thuốc điều trị rối loạn mỡ máu
+
+91. Thuốc chống đông – kháng kết tập tiểu cầu
+
+92. Thuốc trợ tim
+
+93. Thuốc hóa trị
+
+94. Thuốc điều trị đích
+
+95. Thuốc hỗ trợ điều trị ung thư
+
+96. Men tiêu hóa trẻ em
+
+97. Thuốc chống tiêu chảy trẻ em
+
+98. Thuốc trị táo bón trẻ em
+
+99. Kháng sinh nhỏ mắt
+
+100. Kháng viêm nhỏ mắt
+
+101. Dưỡng ẩm – nước mắt nhân tạo
+
+102. Kháng dị ứng nhỏ mắt
+
+103. Dung dịch sát khuẩn
+
+104. Thuốc bôi liền da
+
+105. Băng gạc y tế
+
+106. Gel trị bỏng
+
+107. Xịt mũi nước muối
+
+108. Xịt mũi kháng viêm
+
+109. Xịt mũi dị ứng
+
+110. Xịt mũi thông mũi
+
+111. Trị mụn kháng khuẩn
+
+112. Trị mụn kháng viêm
+
+113. Trị mụn retinoid
+
+114. Sản phẩm hỗ trợ giảm thâm mụn
+
+115. Thuốc tránh thai hằng ngày
+
+116. Thuốc tránh thai khẩn cấp
+
+117. Thuốc tránh thai nội tiết phối hợp
+
+118. Thuốc tránh thai progestin đơn thuần
+
+119. Kháng histamin thế hệ 1
+
+120. Kháng histamin thế hệ 2
+
+121. Corticoid chống dị ứng
+
+122. Thuốc chống ngứa ngoài da
+
+123. NSAIDs
+
+124. Corticoid
+
+125. Kháng viêm không steroid bôi ngoài
+
+126. Enzyme chống viêm
+
+127. Thuốc cảm cúm phối hợp
+
+128. Thuốc hạ sốt – giảm đau
+
+129. Thuốc thông mũi
+
+130. Thuốc kháng histamin trong cảm cúm
+
+131. Thuốc ức chế hấp thu chất béo
+
+132. Thuốc giảm cảm giác thèm ăn
+
+133. Thực phẩm hỗ trợ giảm cân
+
+134. Thuốc nhỏ mắt kháng sinh
+
+135. Thuốc nhỏ mắt kháng viêm
+
+136. Thuốc nhỏ mắt dưỡng ẩm
+
+137. Thuốc điều trị glôcôm
+
+138. Thuốc nhỏ tai kháng sinh
+
+139. Thuốc nhỏ tai kháng viêm
+
+140. Thuốc làm mềm ráy tai
+
+141. Thuốc xịt mũi kháng viêm
+
+142. Thuốc xịt mũi thông mũi
+
+143. Nước muối sinh lý
+
+144. Thuốc xịt mũi dị ứng
+
+145. Thuốc kháng acid
+
+146. Thuốc ức chế tiết acid (PPI/H2)
+
+147. Men tiêu hóa
+
+148. Thuốc chống tiêu chảy
+
+149. Thuốc nhuận tràng
+
+150. Thuốc tăng cường sinh lý nam
+
+151. Thuốc điều trị rối loạn cương
+
+152. Thuốc điều trị phì đại tiền liệt tuyến
+
+153. Giảm đau không opioid
+
+154. Giảm đau opioid nhẹ
+
+155. Giảm đau thần kinh
+
+156. Thuốc giảm đau bôi ngoài
+
+157. Paracetamol
+
+158. Ibuprofen
+
+159. Thuốc hạ sốt cho trẻ em
+
+160. Thuốc trị nấm da
+
+161. Thuốc kháng khuẩn da
+
+162. Corticoid bôi da
+
+163. Thuốc trị viêm da – dị ứng
+
+164. Thuốc dưỡng da – phục hồi da
+
+165. Thuốc phụ khoa
+
+166. Thuốc điều hòa kinh nguyệt
+
+167. Thuốc bổ cho phụ nữ
+
+168. Thuốc hỗ trợ thai kỳ
+
+169. Thuốc an thần – gây ngủ
+
+170. Thuốc chống trầm cảm
+
+171. Thuốc chống lo âu
+
+172. Thuốc điều trị động kinh
+
+173. Thuốc bổ thần kinh
+
+174. NSAIDs điều trị xương khớp
+
+175. Thuốc giãn cơ
+
+176. Thuốc bổ xương khớp
+
+177. Thuốc điều trị gout
+
+178. Dầu nóng giảm đau
+
+179. Dầu lạnh giảm đau
+
+180. Cao xoa bóp thảo dược
+
+181. Gel xoa bóp
+
+182. Thuốc sát trùng
+
+183. Thuốc giải độc
+
+184. Thuốc chống say tàu xe
+
+185. Thuốc hỗ trợ miễn dịch
+
+186. Vitamin đơn chất
+
+187. Vitamin tổng hợp
+
+188. Khoáng chất đơn
+
+189. Vitamin cho trẻ em
+
+190. Vitamin cho người lớn tuổi
+
+191. Penicillin
+
+192. Cephalosporin
+
+193. Macrolid
+
+194. Quinolon
+
+195. Aminoglycosid
+
+196. Kháng sinh phối hợp
+
+197. Thuốc điều trị viêm đường tiết niệu
+
+198. Thuốc lợi tiểu
+
+199. Thuốc điều trị sỏi thận
+
+200. Insulin
+
+201. Thuốc hạ đường huyết uống
+
+202. Thuốc hỗ trợ kiểm soát đường huyết
+
+203. Thuốc hạ huyết áp
+
+204. Thuốc điều trị rối loạn mỡ máu
+
+205. Thuốc chống đông – kháng kết tập tiểu cầu
+
+206. Thuốc trợ tim
+
+207. Thuốc hóa trị
+
+208. Thuốc điều trị đích
+
+209. Thuốc hỗ trợ điều trị ung thư
+
+210. Men tiêu hóa trẻ em
+
+211. Thuốc chống tiêu chảy trẻ em
+
+212. Thuốc trị táo bón trẻ em
+
+213. Kháng sinh nhỏ mắt
+
+214. Kháng viêm nhỏ mắt
+
+215. Dưỡng ẩm – nước mắt nhân tạo
+
+216. Kháng dị ứng nhỏ mắt
+
+217. Dung dịch sát khuẩn
+
+218. Thuốc bôi liền da
+
+219. Băng gạc y tế
+
+220. Gel trị bỏng
+
+221. Xịt mũi nước muối
+
+222. Xịt mũi kháng viêm
+
+223. Xịt mũi dị ứng
+
+224. Xịt mũi thông mũi
+
+225. Trị mụn kháng khuẩn
+
+226. Trị mụn kháng viêm
+
+227. Trị mụn retinoid
+
+228. Sản phẩm hỗ trợ giảm thâm mụn
+
+229. Thuốc long đờm
+
+230. Thuốc ức chế ho
+
+231. Thuốc ho thảo dược
+
+232. Thuốc ho cho trẻ em
+
+233. Thuốc nhuận tràng
+
+234. Thuốc điều trị rối loạn tiền đình
+
