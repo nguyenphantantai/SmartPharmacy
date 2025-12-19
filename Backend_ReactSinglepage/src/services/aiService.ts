@@ -588,9 +588,58 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `1. CHỈ gợi ý các thuốc trong danh sách trên, KHÔNG được gợi ý thuốc khác.\n`;
       contextInfo += `2. Trường "Tác dụng" PHẢI là mô tả công dụng (ví dụ: "Hạ sốt, giảm đau nhẹ"), KHÔNG được ghi hàm lượng (ví dụ: "500mg" là SAI).\n`;
       contextInfo += `3. Nếu "Tác dụng" trong danh sách chỉ là hàm lượng, bạn PHẢI tạo mô tả công dụng dựa trên tên thuốc.\n`;
+      // QUAN TRỌNG: Kiểm tra xem có phải thuốc kháng viêm không
+      const lowerUserMessage = userMessage.toLowerCase();
+      const isAntiInflammatory = context.symptoms?.some((sym: string) => 
+        sym.includes('viêm') || sym.includes('sưng') || sym.includes('đau viêm') || 
+        sym.includes('sưng nhẹ') || sym.includes('bầm tím') || sym.includes('chấn thương') ||
+        sym.includes('viêm khớp') || sym.includes('viêm họng') || sym.includes('viêm nặng') ||
+        sym.includes('đau viêm khớp') || sym.includes('đau cơ') || sym.includes('đau lưng') ||
+        sym.includes('đau vai gáy') || sym.includes('đau răng') || sym.includes('sưng đau do viêm') ||
+        sym.includes('viêm gân') || sym.includes('bong gân') || sym.includes('căng cơ') ||
+        sym.includes('phù nề') || sym.includes('dị ứng viêm')
+      ) || lowerUserMessage.includes('kháng viêm') || lowerUserMessage.includes('chống viêm') ||
+         lowerUserMessage.includes('viêm họng') || lowerUserMessage.includes('viêm khớp') ||
+         lowerUserMessage.includes('viêm cơ') || lowerUserMessage.includes('sưng nhẹ') ||
+         lowerUserMessage.includes('bầm tím') || lowerUserMessage.includes('chấn thương') ||
+         lowerUserMessage.includes('đau viêm') || lowerUserMessage.includes('sưng đau');
+      
+      if (isAntiInflammatory) {
+        contextInfo += `\n=== QUY TẮC ĐẶC BIỆT CHO THUỐC KHÁNG VIÊM (BẮT BUỘC) ===\n`;
+        contextInfo += `⚠️⚠️⚠️ BẮT BUỘC: Khi tư vấn thuốc kháng viêm, bạn PHẢI:\n\n`;
+        contextInfo += `1. PHÂN LOẠI MỨC ĐỘ VIÊM:\n`;
+        contextInfo += `   - Viêm nhẹ: sưng nhẹ, bầm tím, chấn thương phần mềm, viêm nhẹ sau va chạm\n`;
+        contextInfo += `   - Viêm vừa: đau viêm khớp, đau cơ, đau lưng, đau vai gáy, đau răng, sưng đau do viêm\n`;
+        contextInfo += `   - Viêm nặng: viêm nặng, sưng đỏ nhiều, đau dữ dội, viêm kéo dài không giảm\n\n`;
+        contextInfo += `2. GIẢI THÍCH LÝ DO CHỌN THUỐC:\n`;
+        contextInfo += `   - PHẢI giải thích tại sao chọn nhóm thuốc này (enzyme/NSAIDs/bôi ngoài/corticoid)\n`;
+        contextInfo += `   - PHẢI giải thích tại sao không chọn nhóm khác (ví dụ: tại sao không cho thuốc uống khi chỉ bị sưng nhẹ)\n`;
+        contextInfo += `   - PHẢI nêu rõ ưu điểm của lựa chọn (ví dụ: hạn chế tác dụng phụ toàn thân)\n\n`;
+        contextInfo += `3. FORMAT TRẢ LỜI BẮT BUỘC:\n`;
+        contextInfo += `   "Dựa trên thông tin bạn cung cấp, tình trạng của bạn được đánh giá là [mức độ viêm] - [mô tả cụ thể].\n\n`;
+        contextInfo += `   Với mức độ này, hệ thống ưu tiên [nhóm thuốc] để [lý do cụ thể], [giải thích thêm về lựa chọn].\n\n`;
+        contextInfo += `   Các sản phẩm phù hợp gồm:\n\n`;
+        contextInfo += `   [Liệt kê thuốc theo format chuẩn]"\n\n`;
+        contextInfo += `⚠️ VÍ DỤ CỤ THỂ:\n\n`;
+        contextInfo += `1. Sưng nhẹ sau va chạm:\n`;
+        contextInfo += `   "Dựa trên thông tin bạn cung cấp, tình trạng của bạn được đánh giá là viêm - sưng mức độ nhẹ sau va chạm, chưa có dấu hiệu viêm nặng.\n\n`;
+        contextInfo += `   Với mức độ này, hệ thống ưu tiên thuốc hỗ trợ tan bầm (enzyme chống viêm) và thuốc bôi ngoài để giảm sưng, hạn chế dùng thuốc uống gây tác dụng phụ toàn thân."\n\n`;
+        contextInfo += `2. Đau viêm khớp:\n`;
+        contextInfo += `   "Dựa trên thông tin bạn cung cấp, tình trạng của bạn được đánh giá là viêm khớp mức độ vừa.\n\n`;
+        contextInfo += `   Với mức độ này, hệ thống ưu tiên thuốc kháng viêm không steroid (NSAIDs) để giảm đau và viêm hiệu quả. Nếu vị trí viêm tại chỗ, có thể kết hợp thuốc bôi ngoài để tăng hiệu quả và giảm tác dụng phụ."\n\n`;
+        contextInfo += `3. Viêm họng:\n`;
+        contextInfo += `   "Dựa trên thông tin bạn cung cấp, tình trạng của bạn được đánh giá là viêm họng mức độ [nhẹ/vừa/nặng].\n\n`;
+        contextInfo += `   Với mức độ này, hệ thống ưu tiên [nhóm thuốc phù hợp - có thể là thuốc ngậm, thuốc xịt họng, hoặc NSAIDs nếu đau nhiều]. [Giải thích lý do chọn nhóm thuốc này]."\n\n`;
+        contextInfo += `4. Viêm nặng:\n`;
+        contextInfo += `   "Dựa trên thông tin bạn cung cấp, tình trạng của bạn được đánh giá là viêm mức độ nặng với [triệu chứng cụ thể].\n\n`;
+        contextInfo += `   Với mức độ này, cần thuốc kháng viêm mạnh (corticoid) để kiểm soát viêm, nhưng cần thận trọng và theo dõi. Nếu tình trạng không cải thiện sau vài ngày, bạn nên đi khám bác sĩ."\n\n`;
+      }
+      
       contextInfo += `4. ⚠️⚠️⚠️ BẮT BUỘC CỰC KỲ: Bạn PHẢI liệt kê cụ thể từng thuốc theo format dưới đây. KHÔNG được trả lời chung chung.\n`;
       contextInfo += `   Format BẮT BUỘC (KHÔNG ĐƯỢC SAI):\n`;
-      contextInfo += `   Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
+      if (!isAntiInflammatory) {
+        contextInfo += `   Dưới đây là các thuốc phù hợp với tình trạng của bạn:\n\n`;
+      }
       contextInfo += `   [Số]. **[Tên thuốc]** (tên thương hiệu nếu có)\n`;
       contextInfo += `   - Công dụng: [mô tả công dụng ngắn gọn, 1 dòng]\n`;
       contextInfo += `   - Liều: [liều dùng ngắn gọn] hoặc "Theo hướng dẫn bao bì / hỏi dược sĩ"\n`;
@@ -600,7 +649,9 @@ export async function generateAIResponseWithGemini(options: AIChatOptions): Prom
       contextInfo += `   - Không dùng chung nhiều thuốc chứa cùng hoạt chất.\n`;
       contextInfo += `   - Nếu sốt cao >39°C, khó thở, đau ngực → đi khám ngay.\n`;
       contextInfo += `   - Đọc kỹ hướng dẫn sử dụng trước khi dùng.\n\n`;
-      contextInfo += `   Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.\n`;
+      if (!isAntiInflammatory) {
+        contextInfo += `   Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.\n`;
+      }
       contextInfo += `5. ❌❌❌ KHÔNG ĐƯỢC trả lời kiểu:\n`;
       contextInfo += `   - "Tham khảo các thuốc như Paracetamol, Decolgen... vui lòng liên hệ dược sĩ"\n`;
       contextInfo += `   - "Bạn có thể tham khảo các thuốc phổ biến như..."\n`;

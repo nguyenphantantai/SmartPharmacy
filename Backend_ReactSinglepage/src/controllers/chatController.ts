@@ -146,6 +146,114 @@ const symptomToMedicines: { [key: string]: { keywords: string[]; medicineNames: 
   'viêm': {
     keywords: ['viêm', 'sưng viêm', 'kháng viêm'],
     medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Celecoxib']
+  },
+  
+  // ========== THUỐC KHÁNG VIÊM - NHÓM A: ENZYME CHỐNG VIÊM ==========
+  'sưng nhẹ': {
+    keywords: ['sưng nhẹ', 'phù nề nhẹ', 'bầm tím', 'chấn thương phần mềm', 'chấn thương mô mềm', 'viêm nhẹ sau va chạm', 'đau nhẹ do viêm'],
+    medicineNames: ['Enzyme chống viêm', 'Serratiopeptidase', 'Bromelain', 'Trypsin', 'Chymotrypsin']
+  },
+  'phù nề nhẹ': {
+    keywords: ['phù nề nhẹ', 'sưng nhẹ', 'bầm tím', 'chấn thương phần mềm'],
+    medicineNames: ['Enzyme chống viêm', 'Serratiopeptidase', 'Bromelain']
+  },
+  'bầm tím': {
+    keywords: ['bầm tím', 'sưng nhẹ', 'chấn thương phần mềm', 'chấn thương mô mềm'],
+    medicineNames: ['Enzyme chống viêm', 'Serratiopeptidase', 'Bromelain']
+  },
+  'chấn thương phần mềm': {
+    keywords: ['chấn thương phần mềm', 'chấn thương mô mềm', 'sưng nhẹ', 'bầm tím', 'viêm nhẹ sau va chạm'],
+    medicineNames: ['Enzyme chống viêm', 'Serratiopeptidase', 'Bromelain', 'Trypsin']
+  },
+  'viêm nhẹ sau va chạm': {
+    keywords: ['viêm nhẹ sau va chạm', 'chấn thương phần mềm', 'sưng nhẹ', 'bầm tím'],
+    medicineNames: ['Enzyme chống viêm', 'Serratiopeptidase', 'Bromelain']
+  },
+  'đau nhẹ do viêm': {
+    keywords: ['đau nhẹ do viêm', 'sưng nhẹ', 'viêm nhẹ'],
+    medicineNames: ['Enzyme chống viêm', 'Serratiopeptidase', 'Bromelain']
+  },
+  
+  // ========== THUỐC KHÁNG VIÊM - NHÓM B: NSAIDs (UỐNG) ==========
+  'đau viêm khớp': {
+    keywords: ['đau viêm khớp', 'viêm khớp', 'đau khớp', 'sưng đau khớp'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Celecoxib', 'Etoricoxib', 'Naproxen', 'Piroxicam']
+  },
+  'đau viêm cơ': {
+    keywords: ['đau viêm cơ', 'viêm cơ', 'đau cơ do viêm', 'sưng đau cơ'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Celecoxib', 'Etoricoxib', 'Naproxen', 'Piroxicam']
+  },
+  'đau cơ': {
+    keywords: ['đau cơ', 'đau nhức cơ', 'mỏi cơ', 'căng cơ'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Naproxen']
+  },
+  'đau lưng': {
+    keywords: ['đau lưng', 'đau cột sống', 'đau thắt lưng'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Celecoxib', 'Etoricoxib']
+  },
+  'đau vai gáy': {
+    keywords: ['đau vai gáy', 'đau cổ', 'đau cổ vai gáy'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Naproxen']
+  },
+  'đau răng': {
+    keywords: ['đau răng', 'viêm nướu', 'đau do viêm răng'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Naproxen']
+  },
+  'sưng đau do viêm': {
+    keywords: ['sưng đau do viêm', 'đau viêm', 'viêm đau'],
+    medicineNames: ['Ibuprofen', 'Diclofenac', 'Meloxicam', 'Celecoxib', 'Etoricoxib']
+  },
+  
+  // ========== THUỐC KHÁNG VIÊM - NHÓM C: KHÁNG VIÊM KHÔNG STEROID BÔI NGOÀI ==========
+  'đau cơ tại chỗ': {
+    keywords: ['đau cơ tại chỗ', 'đau cơ cục bộ', 'đau cơ khu trú'],
+    medicineNames: ['Diclofenac gel', 'Ibuprofen gel', 'Ketoprofen gel', 'Voltaren gel', 'Feldene gel', 'Thuốc bôi kháng viêm']
+  },
+  'đau khớp tại chỗ': {
+    keywords: ['đau khớp tại chỗ', 'đau khớp cục bộ', 'đau khớp khu trú'],
+    medicineNames: ['Diclofenac gel', 'Ibuprofen gel', 'Ketoprofen gel', 'Voltaren gel', 'Thuốc bôi kháng viêm']
+  },
+  'sưng viêm tại chỗ': {
+    keywords: ['sưng viêm tại chỗ', 'viêm tại chỗ', 'sưng viêm cục bộ'],
+    medicineNames: ['Diclofenac gel', 'Ibuprofen gel', 'Ketoprofen gel', 'Voltaren gel', 'Thuốc bôi kháng viêm']
+  },
+  'viêm gân': {
+    keywords: ['viêm gân', 'đau gân', 'viêm gân cơ'],
+    medicineNames: ['Diclofenac gel', 'Ibuprofen gel', 'Ketoprofen gel', 'Voltaren gel']
+  },
+  'bong gân': {
+    keywords: ['bong gân', 'trật khớp', 'chấn thương khớp'],
+    medicineNames: ['Diclofenac gel', 'Ibuprofen gel', 'Ketoprofen gel', 'Voltaren gel', 'Thuốc bôi kháng viêm']
+  },
+  'căng cơ': {
+    keywords: ['căng cơ', 'giãn cơ', 'căng cơ quá mức'],
+    medicineNames: ['Diclofenac gel', 'Ibuprofen gel', 'Ketoprofen gel', 'Voltaren gel']
+  },
+  
+  // ========== THUỐC KHÁNG VIÊM - NHÓM D: CORTICOID ==========
+  'viêm nặng': {
+    keywords: ['viêm nặng', 'sưng đỏ nhiều', 'đau dữ dội', 'viêm kéo dài không giảm', 'dị ứng viêm mạnh', 'phù nề nhiều'],
+    medicineNames: ['Prednisolone', 'Methylprednisolone', 'Dexamethasone', 'Betamethasone', 'Hydrocortisone']
+  },
+  'sưng đỏ nhiều': {
+    keywords: ['sưng đỏ nhiều', 'viêm nặng', 'phù nề nhiều'],
+    medicineNames: ['Prednisolone', 'Methylprednisolone', 'Dexamethasone', 'Betamethasone']
+  },
+  'đau dữ dội': {
+    keywords: ['đau dữ dội', 'đau nhiều', 'viêm nặng'],
+    medicineNames: ['Prednisolone', 'Methylprednisolone', 'Dexamethasone']
+  },
+  'viêm kéo dài không giảm': {
+    keywords: ['viêm kéo dài không giảm', 'viêm kéo dài', 'viêm nặng'],
+    medicineNames: ['Prednisolone', 'Methylprednisolone', 'Dexamethasone']
+  },
+  'dị ứng viêm mạnh': {
+    keywords: ['dị ứng viêm mạnh', 'dị ứng nặng', 'viêm nặng'],
+    medicineNames: ['Prednisolone', 'Methylprednisolone', 'Dexamethasone', 'Betamethasone']
+  },
+  'phù nề nhiều': {
+    keywords: ['phù nề nhiều', 'phù nề', 'sưng đỏ nhiều'],
+    medicineNames: ['Prednisolone', 'Methylprednisolone', 'Dexamethasone', 'Betamethasone']
   }
 };
 
@@ -1179,12 +1287,73 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
   }
   
   // Anti-inflammatory medicines scoring (Thuốc kháng viêm)
+  // QUAN TRỌNG: Phân biệt 4 nhóm thuốc kháng viêm dựa trên triệu chứng
   if (q.includes('kháng viêm') || q.includes('khang viem') || q.includes('anti-inflammatory') || q.includes('chống viêm') || q.includes('chong viem')) {
     const antiInflammatoryKeywords = ['kháng viêm', 'khang viem', 'anti-inflammatory', 'chống viêm', 'chong viem', 'prednisolone', 'dexamethasone', 'methylprednisolone', 'ibuprofen', 'naproxen', 'diclofenac', 'meloxicam', 'celecoxib'];
     const isAntiInflammatory = antiInflammatoryKeywords.some(keyword => 
       name.includes(keyword) || desc.includes(keyword) || category.includes('kháng viêm') || category.includes('anti-inflammatory')
     );
     if (isAntiInflammatory) score += 0.5;
+    
+    // NHÓM A - Enzyme chống viêm (sưng nhẹ, bầm tím, chấn thương phần mềm)
+    if (q.includes('sưng nhẹ') || q.includes('sung nhe') || q.includes('bầm tím') || q.includes('bam tim') || q.includes('phù nề nhẹ') || q.includes('phu ne nhe') || q.includes('chấn thương phần mềm') || q.includes('chan thuong phan mem') || q.includes('viêm nhẹ sau va chạm') || q.includes('viem nhe sau va cham')) {
+      const enzymeKeywords = ['enzyme', 'enzym', 'serratiopeptidase', 'bromelain', 'trypsin', 'chymotrypsin'];
+      const isEnzyme = enzymeKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword)) || subcategory.includes('enzyme chống viêm') || subcategory.includes('enzym chống viêm');
+      if (isEnzyme) {
+        score += 1.5; // Very high score for enzyme anti-inflammatory
+      } else {
+        score -= 1.0; // Penalty for wrong group
+      }
+    }
+    
+    // NHÓM B - NSAIDs (đau viêm khớp, đau viêm cơ, đau cơ, đau lưng, đau vai gáy, đau răng)
+    if (q.includes('đau viêm khớp') || q.includes('dau viem khop') || q.includes('viêm khớp') || q.includes('viem khop') || 
+        q.includes('đau viêm cơ') || q.includes('dau viem co') || q.includes('viêm cơ') || q.includes('viem co') ||
+        q.includes('đau cơ') || q.includes('dau co') || q.includes('đau lưng') || q.includes('dau lung') || 
+        q.includes('đau vai gáy') || q.includes('dau vai gay') || q.includes('đau răng') || q.includes('dau rang') || 
+        q.includes('sưng đau do viêm') || q.includes('sung dau do viem') ||
+        (q.includes('đau') && q.includes('viêm') && (q.includes('cơ') || q.includes('khớp'))) ||
+        (q.includes('viêm') && (q.includes('cơ') || q.includes('khớp')))) {
+      const nsaidKeywords = ['ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'naproxen', 'piroxicam', 'nsaids', 'kháng viêm không steroid'];
+      const isNSAID = nsaidKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword)) || subcategory.includes('nsaids') || subcategory.includes('kháng viêm không steroid');
+      const isTopical = name.includes('gel') || name.includes('bôi') || subcategory.includes('bôi ngoài');
+      const isAllergy = category.includes('dị ứng') || category.includes('allergy') || category.includes('antihistamine') || 
+                        name.includes('cetirizine') || name.includes('loratadine') || name.includes('fexofenadine') || 
+                        name.includes('clorpheniramin') || name.includes('chlorpheniramine');
+      
+      if (isNSAID && !isTopical) {
+        score += 1.5; // Very high score for oral NSAIDs
+      } else if (isTopical) {
+        score -= 0.5; // Penalty for topical when oral is needed
+      } else if (isAllergy) {
+        // QUAN TRỌNG: Penalty rất nặng cho thuốc kháng dị ứng khi query về viêm khớp/cơ/lưng
+        score -= 3.0; // Extremely heavy penalty - thuốc kháng dị ứng KHÔNG phải thuốc kháng viêm
+      } else {
+        score -= 1.0; // Penalty for wrong group
+      }
+    }
+    
+    // NHÓM C - Bôi ngoài (đau cơ tại chỗ, đau khớp tại chỗ, sưng viêm tại chỗ, viêm gân, bong gân, căng cơ)
+    if (q.includes('đau cơ tại chỗ') || q.includes('dau co tai cho') || q.includes('đau khớp tại chỗ') || q.includes('dau khop tai cho') || q.includes('sưng viêm tại chỗ') || q.includes('sung viem tai cho') || q.includes('viêm gân') || q.includes('viem gan') || q.includes('bong gân') || q.includes('bong gan') || q.includes('căng cơ') || q.includes('cang co')) {
+      const topicalKeywords = ['gel', 'bôi', 'voltaren', 'feldene', 'ketoprofen gel', 'diclofenac gel', 'ibuprofen gel'];
+      const isTopical = topicalKeywords.some(keyword => name.includes(keyword)) || subcategory.includes('bôi ngoài') || subcategory.includes('kháng viêm không steroid bôi ngoài');
+      if (isTopical) {
+        score += 1.5; // Very high score for topical anti-inflammatory
+      } else {
+        score -= 0.8; // Penalty for oral when topical is needed
+      }
+    }
+    
+    // NHÓM D - Corticoid (viêm nặng, sưng đỏ nhiều, đau dữ dội, viêm kéo dài không giảm, dị ứng viêm mạnh, phù nề nhiều)
+    if (q.includes('viêm nặng') || q.includes('viem nang') || q.includes('sưng đỏ nhiều') || q.includes('sung do nhieu') || q.includes('đau dữ dội') || q.includes('dau du doi') || q.includes('viêm kéo dài không giảm') || q.includes('viem keo dai khong giam') || q.includes('dị ứng viêm mạnh') || q.includes('di ung viem manh') || q.includes('phù nề nhiều') || q.includes('phu ne nhieu')) {
+      const corticoidKeywords = ['prednisolone', 'methylprednisolone', 'dexamethasone', 'betamethasone', 'hydrocortisone', 'corticoid', 'corticosteroid'];
+      const isCorticoid = corticoidKeywords.some(keyword => name.includes(keyword) || desc.includes(keyword)) || subcategory.includes('corticoid') || subcategory.includes('corticosteroid');
+      if (isCorticoid) {
+        score += 1.5; // Very high score for corticoid
+      } else {
+        score -= 1.5; // Heavy penalty for wrong group (enzyme/NSAID when corticoid is needed)
+      }
+    }
   }
   
   // Neurological medicines scoring (Thuốc thần kinh)
@@ -1197,12 +1366,25 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
   }
   
   // Musculoskeletal medicines scoring (Thuốc cơ xương khớp)
-  if (q.includes('xương khớp') || q.includes('xuong khop') || q.includes('đau khớp') || q.includes('dau khop') || q.includes('viêm khớp') || q.includes('viem khop') || q.includes('arthrit') || q.includes('joint pain')) {
+  if (q.includes('xương khớp') || q.includes('xuong khop') || q.includes('đau khớp') || q.includes('dau khop') || 
+      q.includes('viêm khớp') || q.includes('viem khop') || q.includes('đau viêm khớp') || q.includes('dau viem khop') || 
+      q.includes('arthrit') || q.includes('joint pain')) {
     const musculoskeletalKeywords = ['xương khớp', 'xuong khop', 'musculoskeletal', 'arthrit', 'đau khớp', 'dau khop', 'viêm khớp', 'viem khop', 'etoricoxib', 'celecoxib', 'meloxicam', 'diclofenac', 'ibuprofen', 'naproxen', 'glucosamine', 'chondroitin'];
     const isMusculoskeletal = musculoskeletalKeywords.some(keyword => 
-      name.includes(keyword) || desc.includes(keyword) || category.includes('xương khớp') || category.includes('musculoskeletal') || category.includes('cơ xương khớp')
+      name.includes(keyword) || desc.includes(keyword) || category.includes('xương khớp') || category.includes('musculoskeletal') || category.includes('cơ xương khớp') || category.includes('kháng viêm')
     );
-    if (isMusculoskeletal) score += 0.5;
+    const isAllergy = category.includes('dị ứng') || category.includes('allergy') || category.includes('antihistamine') || 
+                      name.includes('cetirizine') || name.includes('loratadine') || name.includes('fexofenadine') || 
+                      name.includes('clorpheniramin') || name.includes('chlorpheniramine');
+    
+    if (isMusculoskeletal) {
+      score += 1.0; // High score for musculoskeletal/anti-inflammatory medicines
+    }
+    
+    // QUAN TRỌNG: Penalty rất nặng cho thuốc kháng dị ứng khi query về viêm khớp
+    if (isAllergy) {
+      score -= 3.0; // Extremely heavy penalty - thuốc kháng dị ứng KHÔNG phải thuốc kháng viêm
+    }
   }
   
   // Cardiovascular medicines scoring (Thuốc tim mạch, huyết áp)
@@ -1277,9 +1459,14 @@ function relevanceScore(query: string, product: any, matchedSymptoms: string[]):
   return score;
 }
 
-async function semanticSearch(query: string): Promise<any[]> {
+async function semanticSearch(query: string, antiInflammatoryGroup?: 'enzyme' | 'nsaids' | 'topical' | 'corticoid'): Promise<any[]> {
   try {
-    const lowerQuery = query.toLowerCase();
+    // QUAN TRỌNG: Normalize query để xử lý dấu gạch ngang và các ký tự đặc biệt
+    // Thay thế các loại dấu gạch ngang (em dash, en dash, hyphen) bằng khoảng trắng
+    let normalizedQuery = query.replace(/[–—−-]/g, ' ').replace(/\s+/g, ' ').trim();
+    const lowerQuery = normalizeText(normalizedQuery);
+    // Normalized query để sử dụng xuyên suốt (xử lý dấu gạch ngang)
+    const normalizedLowerQuery = lowerQuery.replace(/[–—−-]/g, ' ').replace(/\s+/g, ' ').trim();
     const foundMedicines: string[] = [];
     const matchedSymptoms: string[] = [];
     
@@ -1288,14 +1475,27 @@ async function semanticSearch(query: string): Promise<any[]> {
     // Điều này đảm bảo hệ thống nhận diện được TẤT CẢ các triệu chứng đã được định nghĩa
     
     // Bước 1: Match từ symptomToMedicines (cho tên thuốc cụ thể)
-    for (const [symptom, data] of Object.entries(symptomToMedicines)) {
-      const hasKeyword = data.keywords.some(keyword => lowerQuery.includes(keyword));
+    // QUAN TRỌNG: Ưu tiên match triệu chứng cụ thể trước (dài hơn) để tránh match nhầm với triệu chứng chung
+    // Sắp xếp theo độ dài giảm dần để match triệu chứng cụ thể trước
+    const sortedSymptoms = Object.entries(symptomToMedicines).sort((a, b) => b[0].length - a[0].length);
+    
+    for (const [symptom, data] of sortedSymptoms) {
+      const hasKeyword = data.keywords.some(keyword => normalizedLowerQuery.includes(keyword));
       const symptomLower = symptom.toLowerCase();
-      const matchesSymptom = lowerQuery.includes(symptomLower);
+      const matchesSymptom = normalizedLowerQuery.includes(symptomLower);
       
       if (hasKeyword || matchesSymptom) {
         foundMedicines.push(...data.medicineNames);
         matchedSymptoms.push(symptom);
+        
+        // QUAN TRỌNG: Nếu match với triệu chứng cụ thể về viêm khớp/cơ/lưng, không match với "viêm" chung nữa
+        if (symptom.includes('viêm khớp') || symptom.includes('đau viêm khớp') || symptom.includes('đau viêm cơ') || 
+            symptom.includes('viêm cơ') || symptom.includes('đau viêm') || 
+            symptom.includes('đau lưng') || symptom.includes('đau vai gáy') || symptom.includes('đau răng') ||
+            symptom.includes('sưng nhẹ') || symptom.includes('bầm tím') || symptom.includes('chấn thương')) {
+          // Đánh dấu đã match với triệu chứng viêm cụ thể, không cần match "viêm" chung nữa
+          break; // Dừng sau khi match triệu chứng cụ thể đầu tiên
+        }
       }
     }
     
@@ -1474,6 +1674,139 @@ async function semanticSearch(query: string): Promise<any[]> {
         keywords: ['tiền sử viêm loét dạ dày', 'viêm loét dạ dày', 'omeprazole', 'esomeprazole', 'pantoprazole', 'ranitidine', 'famotidine', 'ppi', 'h2']
       },
       
+      // ========== THUỐC KHÁNG VIÊM - NHÓM A: ENZYME CHỐNG VIÊM ==========
+      'sưng nhẹ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'enzym chống viêm'],
+        keywords: ['sưng nhẹ', 'phù nề nhẹ', 'bầm tím', 'chấn thương phần mềm', 'chấn thương mô mềm', 'viêm nhẹ sau va chạm', 'đau nhẹ do viêm', 'enzyme chống viêm', 'serratiopeptidase', 'bromelain', 'trypsin', 'chymotrypsin']
+      },
+      'phù nề nhẹ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'enzym chống viêm'],
+        keywords: ['phù nề nhẹ', 'sưng nhẹ', 'bầm tím', 'chấn thương phần mềm', 'enzyme chống viêm', 'serratiopeptidase', 'bromelain']
+      },
+      'bầm tím': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'enzym chống viêm'],
+        keywords: ['bầm tím', 'sưng nhẹ', 'chấn thương phần mềm', 'chấn thương mô mềm', 'enzyme chống viêm', 'serratiopeptidase', 'bromelain']
+      },
+      'chấn thương phần mềm': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'enzym chống viêm'],
+        keywords: ['chấn thương phần mềm', 'chấn thương mô mềm', 'sưng nhẹ', 'bầm tím', 'viêm nhẹ sau va chạm', 'enzyme chống viêm', 'serratiopeptidase', 'bromelain', 'trypsin']
+      },
+      'viêm nhẹ sau va chạm': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'enzym chống viêm'],
+        keywords: ['viêm nhẹ sau va chạm', 'chấn thương phần mềm', 'sưng nhẹ', 'bầm tím', 'enzyme chống viêm', 'serratiopeptidase', 'bromelain']
+      },
+      'đau nhẹ do viêm': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'enzym chống viêm'],
+        keywords: ['đau nhẹ do viêm', 'sưng nhẹ', 'viêm nhẹ', 'enzyme chống viêm', 'serratiopeptidase', 'bromelain']
+      },
+      
+      // ========== THUỐC KHÁNG VIÊM - NHÓM B: NSAIDs (UỐNG) ==========
+      'đau viêm khớp': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['đau viêm khớp', 'viêm khớp', 'đau khớp', 'sưng đau khớp', 'ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'naproxen', 'piroxicam', 'nsaids']
+      },
+      'đau viêm cơ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['đau viêm cơ', 'viêm cơ', 'đau cơ do viêm', 'sưng đau cơ', 'ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'naproxen', 'piroxicam', 'nsaids']
+      },
+      'đau cơ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['đau cơ', 'đau nhức cơ', 'mỏi cơ', 'căng cơ', 'ibuprofen', 'diclofenac', 'meloxicam', 'naproxen', 'nsaids']
+      },
+      'đau lưng': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['đau lưng', 'đau cột sống', 'đau thắt lưng', 'ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'nsaids']
+      },
+      'đau vai gáy': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['đau vai gáy', 'đau cổ', 'đau cổ vai gáy', 'ibuprofen', 'diclofenac', 'meloxicam', 'naproxen', 'nsaids']
+      },
+      'đau răng': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['đau răng', 'viêm nướu', 'đau do viêm răng', 'ibuprofen', 'diclofenac', 'meloxicam', 'naproxen', 'nsaids']
+      },
+      'sưng đau do viêm': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['nsaids', 'kháng viêm không steroid'],
+        keywords: ['sưng đau do viêm', 'đau viêm', 'viêm đau', 'ibuprofen', 'diclofenac', 'meloxicam', 'celecoxib', 'etoricoxib', 'nsaids']
+      },
+      
+      // ========== THUỐC KHÁNG VIÊM - NHÓM C: KHÁNG VIÊM KHÔNG STEROID BÔI NGOÀI ==========
+      'đau cơ tại chỗ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['kháng viêm không steroid bôi ngoài', 'bôi ngoài', 'thuốc bôi kháng viêm'],
+        keywords: ['đau cơ tại chỗ', 'đau cơ cục bộ', 'đau cơ khu trú', 'diclofenac gel', 'ibuprofen gel', 'ketoprofen gel', 'voltaren gel', 'feldene gel', 'thuốc bôi kháng viêm']
+      },
+      'đau khớp tại chỗ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['kháng viêm không steroid bôi ngoài', 'bôi ngoài', 'thuốc bôi kháng viêm'],
+        keywords: ['đau khớp tại chỗ', 'đau khớp cục bộ', 'đau khớp khu trú', 'diclofenac gel', 'ibuprofen gel', 'ketoprofen gel', 'voltaren gel', 'thuốc bôi kháng viêm']
+      },
+      'sưng viêm tại chỗ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['kháng viêm không steroid bôi ngoài', 'bôi ngoài', 'thuốc bôi kháng viêm'],
+        keywords: ['sưng viêm tại chỗ', 'viêm tại chỗ', 'sưng viêm cục bộ', 'diclofenac gel', 'ibuprofen gel', 'ketoprofen gel', 'voltaren gel', 'thuốc bôi kháng viêm']
+      },
+      'viêm gân': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['kháng viêm không steroid bôi ngoài', 'bôi ngoài', 'thuốc bôi kháng viêm'],
+        keywords: ['viêm gân', 'đau gân', 'viêm gân cơ', 'diclofenac gel', 'ibuprofen gel', 'ketoprofen gel', 'voltaren gel']
+      },
+      'bong gân': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['kháng viêm không steroid bôi ngoài', 'bôi ngoài', 'thuốc bôi kháng viêm'],
+        keywords: ['bong gân', 'trật khớp', 'chấn thương khớp', 'diclofenac gel', 'ibuprofen gel', 'ketoprofen gel', 'voltaren gel', 'thuốc bôi kháng viêm']
+      },
+      'căng cơ': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['kháng viêm không steroid bôi ngoài', 'bôi ngoài', 'thuốc bôi kháng viêm'],
+        keywords: ['căng cơ', 'giãn cơ', 'căng cơ quá mức', 'diclofenac gel', 'ibuprofen gel', 'ketoprofen gel', 'voltaren gel']
+      },
+      
+      // ========== THUỐC KHÁNG VIÊM - NHÓM D: CORTICOID ==========
+      'viêm nặng': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['corticoid', 'corticosteroid'],
+        keywords: ['viêm nặng', 'sưng đỏ nhiều', 'đau dữ dội', 'viêm kéo dài không giảm', 'dị ứng viêm mạnh', 'phù nề nhiều', 'prednisolone', 'methylprednisolone', 'dexamethasone', 'betamethasone', 'hydrocortisone', 'corticoid']
+      },
+      'sưng đỏ nhiều': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['corticoid', 'corticosteroid'],
+        keywords: ['sưng đỏ nhiều', 'viêm nặng', 'phù nề nhiều', 'prednisolone', 'methylprednisolone', 'dexamethasone', 'betamethasone', 'corticoid']
+      },
+      'đau dữ dội': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['corticoid', 'corticosteroid'],
+        keywords: ['đau dữ dội', 'đau nhiều', 'viêm nặng', 'prednisolone', 'methylprednisolone', 'dexamethasone', 'corticoid']
+      },
+      'viêm kéo dài không giảm': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['corticoid', 'corticosteroid'],
+        keywords: ['viêm kéo dài không giảm', 'viêm kéo dài', 'viêm nặng', 'prednisolone', 'methylprednisolone', 'dexamethasone', 'corticoid']
+      },
+      'dị ứng viêm mạnh': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['corticoid', 'corticosteroid'],
+        keywords: ['dị ứng viêm mạnh', 'dị ứng nặng', 'viêm nặng', 'prednisolone', 'methylprednisolone', 'dexamethasone', 'betamethasone', 'corticoid']
+      },
+      'phù nề nhiều': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['corticoid', 'corticosteroid'],
+        keywords: ['phù nề nhiều', 'phù nề', 'sưng đỏ nhiều', 'prednisolone', 'methylprednisolone', 'dexamethasone', 'betamethasone', 'corticoid']
+      },
+      
       // ========== MAPPING CHUNG (fallback) ==========
       'tiêu hóa': {
         // QUAN TRỌNG: Chỉ tìm trong "Thuốc tiêu hóa" (người lớn), KHÔNG tìm "Thuốc tiêu hóa cho trẻ"
@@ -1485,6 +1818,11 @@ async function semanticSearch(query: string): Promise<any[]> {
         categories: ['thuốc tiêu hóa', 'thuoc-tieu-hoa', 'tiêu hóa', 'digestive', 'antispasmodic'],
         subcategories: ['men tiêu hóa', 'thuốc kháng acid'],
         keywords: ['đau bụng', 'co thắt', 'spasm', 'buscopan', 'spasmaverine', 'duspatalin', 'antispasmodic']
+      },
+      'viêm': {
+        categories: ['thuốc kháng viêm', 'thuoc-khang-viem', 'kháng viêm', 'anti-inflammatory'],
+        subcategories: ['enzyme chống viêm', 'nsaids', 'kháng viêm không steroid bôi ngoài', 'corticoid'],
+        keywords: ['viêm', 'kháng viêm', 'anti-inflammatory', 'sưng viêm']
       }
     };
     
@@ -1493,9 +1831,9 @@ async function semanticSearch(query: string): Promise<any[]> {
     const matchedCategorySymptoms: string[] = [];
     for (const [symptom, config] of Object.entries(symptomToCategoryKeywords)) {
       const symptomLower = symptom.toLowerCase();
-      // Match nếu query chứa symptom name hoặc bất kỳ keyword nào
-      const matchesSymptomName = lowerQuery.includes(symptomLower);
-      const matchesKeyword = config.keywords.some(keyword => lowerQuery.includes(keyword.toLowerCase()));
+      // Match nếu query chứa symptom name hoặc bất kỳ keyword nào (sử dụng normalized query)
+      const matchesSymptomName = normalizedLowerQuery.includes(symptomLower);
+      const matchesKeyword = config.keywords.some(keyword => normalizedLowerQuery.includes(keyword.toLowerCase()));
       
       if (matchesSymptomName || matchesKeyword) {
         matchedCategorySymptoms.push(symptom);
@@ -1678,10 +2016,55 @@ async function semanticSearch(query: string): Promise<any[]> {
     
     console.log(`[semanticSearch] Found ${products.length} products from database`);
     
+    // QUAN TRỌNG: Loại bỏ thuốc kháng dị ứng khi query về viêm khớp/cơ/lưng
+    // Đây là bước quan trọng để tránh gợi ý sai thuốc
+    const isAntiInflammatoryQuery = normalizedLowerQuery.includes('đau viêm khớp') || normalizedLowerQuery.includes('dau viem khop') || 
+                                    normalizedLowerQuery.includes('viêm khớp') || normalizedLowerQuery.includes('viem khop') ||
+                                    normalizedLowerQuery.includes('đau viêm cơ') || normalizedLowerQuery.includes('dau viem co') ||
+                                    normalizedLowerQuery.includes('viêm cơ') || normalizedLowerQuery.includes('viem co') ||
+                                    normalizedLowerQuery.includes('đau cơ') || normalizedLowerQuery.includes('dau co') ||
+                                    normalizedLowerQuery.includes('đau lưng') || normalizedLowerQuery.includes('dau lung') ||
+                                    normalizedLowerQuery.includes('đau vai gáy') || normalizedLowerQuery.includes('dau vai gay') ||
+                                    normalizedLowerQuery.includes('đau răng') || normalizedLowerQuery.includes('dau rang') ||
+                                    normalizedLowerQuery.includes('sưng nhẹ') || normalizedLowerQuery.includes('sung nhe') ||
+                                    normalizedLowerQuery.includes('bầm tím') || normalizedLowerQuery.includes('bam tim') ||
+                                    normalizedLowerQuery.includes('chấn thương') || normalizedLowerQuery.includes('chan thuong') ||
+                                    normalizedLowerQuery.includes('viêm nặng') || normalizedLowerQuery.includes('viem nang') ||
+                                    // Xử lý trường hợp "đau viêm cơ khớp" (sau khi normalize dấu gạch ngang)
+                                    (normalizedLowerQuery.includes('đau') && normalizedLowerQuery.includes('viêm') && 
+                                     (normalizedLowerQuery.includes('cơ') || normalizedLowerQuery.includes('khớp'))) ||
+                                    (normalizedLowerQuery.includes('viêm') && (normalizedLowerQuery.includes('cơ') || normalizedLowerQuery.includes('khớp')));
+    
+    console.log(`[semanticSearch] Original query: "${query}"`);
+    console.log(`[semanticSearch] Normalized query: "${normalizedLowerQuery}"`);
+    console.log(`[semanticSearch] isAntiInflammatoryQuery: ${isAntiInflammatoryQuery}`);
+    
     // Filter out irrelevant medicines based on matched symptoms
     // QUAN TRỌNG: Loại bỏ thuốc không liên quan đến triệu chứng
     const filteredProducts = products.filter(product => {
       const productNameLower = (product.name || '').toLowerCase();
+      const productCategory = (product.categoryName || product.category || '').toLowerCase();
+      
+      // QUAN TRỌNG: Loại bỏ thuốc kháng dị ứng khi query về viêm khớp/cơ/lưng
+      if (isAntiInflammatoryQuery) {
+        const productDesc = ((product.description || product.indication || product.uses || product.congDung || '') || '').toLowerCase();
+        const isAllergyMedicine = productCategory.includes('dị ứng') || productCategory.includes('allergy') || productCategory.includes('antihistamine') ||
+                                   productNameLower.includes('cetirizine') || productNameLower.includes('loratadine') || 
+                                   productNameLower.includes('fexofenadine') || productNameLower.includes('clorpheniramin') || 
+                                   productNameLower.includes('chlorpheniramine') ||
+                                   // Kiểm tra thêm trong description/indication
+                                   productDesc.includes('dị ứng') || productDesc.includes('di ung') ||
+                                   productDesc.includes('mề đay') || productDesc.includes('me day') ||
+                                   productDesc.includes('viêm mũi dị ứng') || productDesc.includes('viem mui di ung') ||
+                                   productDesc.includes('mẩn ngứa') || productDesc.includes('man ngua') ||
+                                   productDesc.includes('hắt hơi') || productDesc.includes('hat hoi') ||
+                                   productDesc.includes('sổ mũi') || productDesc.includes('so mui') ||
+                                   productDesc.includes('ngứa') && !productDesc.includes('khớp') && !productDesc.includes('cơ');
+        if (isAllergyMedicine) {
+          console.log(`[semanticSearch] ❌ Loại bỏ thuốc kháng dị ứng "${product.name}" vì query về viêm khớp/cơ/lưng`);
+          return false; // Loại bỏ thuốc kháng dị ứng
+        }
+      }
       
       // Nếu CHỈ hỏi "nghẹt mũi" hoặc "sổ mũi" (không có sốt, đau đầu, ho)
       if ((matchedSymptoms.includes('nghẹt mũi') || matchedSymptoms.includes('sổ mũi')) && 
@@ -1865,10 +2248,16 @@ async function semanticSearch(query: string): Promise<any[]> {
     );
     const hasAllergySymptoms = matchedSymptoms.some(s => 
       ['dị ứng', 'ngứa', 'mề đay', 'phát ban'].includes(s)
-    ) || lowerQuery.includes('dị ứng') || lowerQuery.includes('kháng dị ứng') || lowerQuery.includes('antihistamine');
-    const hasAntiInflammatorySymptoms = lowerQuery.includes('kháng viêm') || lowerQuery.includes('chống viêm') || lowerQuery.includes('anti-inflammatory');
+    ) || (lowerQuery.includes('dị ứng') || lowerQuery.includes('kháng dị ứng') || lowerQuery.includes('antihistamine')) &&
+        !lowerQuery.includes('viêm khớp') && !lowerQuery.includes('viêm cơ') && !lowerQuery.includes('đau viêm');
+    const hasAntiInflammatorySymptoms = lowerQuery.includes('kháng viêm') || lowerQuery.includes('chống viêm') || lowerQuery.includes('anti-inflammatory') ||
+                                       lowerQuery.includes('viêm khớp') || lowerQuery.includes('viêm cơ') || lowerQuery.includes('đau viêm khớp') || 
+                                       lowerQuery.includes('đau viêm cơ') || lowerQuery.includes('đau cơ') || lowerQuery.includes('đau lưng') ||
+                                       lowerQuery.includes('sưng nhẹ') || lowerQuery.includes('bầm tím') || lowerQuery.includes('chấn thương');
     const hasNeurologicalSymptoms = lowerQuery.includes('thần kinh') || lowerQuery.includes('đau đầu') || lowerQuery.includes('nhức đầu') || lowerQuery.includes('migraine');
-    const hasMusculoskeletalSymptoms = lowerQuery.includes('xương khớp') || lowerQuery.includes('đau khớp') || lowerQuery.includes('viêm khớp') || lowerQuery.includes('arthrit');
+    const hasMusculoskeletalSymptoms = lowerQuery.includes('xương khớp') || lowerQuery.includes('đau khớp') || lowerQuery.includes('viêm khớp') || 
+                                       lowerQuery.includes('đau viêm khớp') || lowerQuery.includes('đau viêm cơ') || lowerQuery.includes('viêm cơ') ||
+                                       lowerQuery.includes('arthrit');
     const hasCardiovascularSymptoms = lowerQuery.includes('tim mạch') || lowerQuery.includes('huyết áp') || lowerQuery.includes('cardiovascular') || lowerQuery.includes('hypertension');
     const hasPainFeverSymptoms = lowerQuery.includes('giảm đau') || lowerQuery.includes('hạ sốt') || lowerQuery.includes('pain') || lowerQuery.includes('fever');
     const hasAntibioticSymptoms = lowerQuery.includes('kháng sinh') || lowerQuery.includes('antibiotic');
@@ -1888,18 +2277,30 @@ async function semanticSearch(query: string): Promise<any[]> {
                              lowerQuery.includes('khó tiêu') || lowerQuery.includes('kho tieu') ||
                              lowerQuery.includes('đầy bụng') || lowerQuery.includes('day bung');
     
-    // QUAN TRỌNG: Giảm threshold xuống rất thấp cho digestive queries để đảm bảo có kết quả
-    const scoreThreshold = isDigestiveQuery ? 0.05 : (hasSpecialCategorySymptoms ? 0.15 : 0.25); // Lower threshold for digestive queries
+    // QUAN TRỌNG: Xác định query về kháng viêm (viêm khớp, viêm cơ, đau viêm)
+    const isAntiInflammatoryQueryForThreshold = hasAntiInflammatorySymptoms || hasMusculoskeletalSymptoms ||
+                                                lowerQuery.includes('đau viêm khớp') || lowerQuery.includes('đau viêm cơ') ||
+                                                lowerQuery.includes('viêm khớp') || lowerQuery.includes('viêm cơ') ||
+                                                lowerQuery.includes('đau cơ') || lowerQuery.includes('đau lưng') ||
+                                                lowerQuery.includes('sưng nhẹ') || lowerQuery.includes('bầm tím');
+    
+    // QUAN TRỌNG: Giảm threshold xuống rất thấp cho digestive và anti-inflammatory queries để đảm bảo có kết quả
+    const scoreThreshold = isDigestiveQuery ? 0.05 : (isAntiInflammatoryQueryForThreshold ? 0.05 : (hasSpecialCategorySymptoms ? 0.15 : 0.25));
     
     // Debug: Log scores của top products
+    // QUAN TRỌNG: Nếu có antiInflammatoryGroup, lấy nhiều hơn để đảm bảo có đủ thuốc để filter
+    const topScoredLimit = antiInflammatoryGroup ? 20 : 5; // Lấy top 20 nếu có chỉ định nhóm cụ thể
     const topScored = scored
       .sort((a, b) => b._score - a._score)
-      .slice(0, 5);
+      .slice(0, topScoredLimit);
     
-    console.log(`[semanticSearch] Top 5 products with scores:`);
-    topScored.forEach((p, idx) => {
+    console.log(`[semanticSearch] Top ${topScoredLimit} products with scores:`);
+    topScored.slice(0, 5).forEach((p, idx) => {
       console.log(`  ${idx + 1}. ${p.name}: score=${p._score.toFixed(3)}, category=${(p.categoryName || p.category || '').substring(0, 30)}`);
     });
+    if (topScoredLimit > 5) {
+      console.log(`  ... (showing top 5 of ${topScoredLimit} total)`);
+    }
     console.log(`[semanticSearch] Score threshold: ${scoreThreshold}`);
     
     // QUAN TRỌNG: Với digestive queries, ưu tiên trả về products từ database TRƯỚC KHI filter theo score
@@ -1917,6 +2318,130 @@ async function semanticSearch(query: string): Promise<any[]> {
         console.log(`[semanticSearch] ✅ Digestive query: Trả về ${Math.min(3, digestiveProducts.length)} products từ DB để đảm bảo AI dùng thuốc thực tế`);
         console.log(`[semanticSearch] Products: ${digestiveProducts.slice(0, 3).map(p => `${p.name} (score=${p._score.toFixed(3)}, category=${(p.categoryName || p.category || '').substring(0, 30)})`).join(', ')}`);
         return digestiveProducts.slice(0, 3).map(({ _score, ...rest }) => rest);
+      }
+    }
+    
+    // QUAN TRỌNG: Với anti-inflammatory queries (viêm khớp, viêm cơ), ưu tiên trả về products từ database TRƯỚC KHI filter theo score
+    // Điều này đảm bảo AI luôn có thuốc kháng viêm từ database để dùng, không tự tạo
+    if (isAntiInflammatoryQuery && topScored.length > 0) {
+      // Debug: Log tất cả products có chứa "prednisolone" hoặc "corticoid" trong topScored
+      const corticoidCandidates = topScored.filter(p => {
+        const pName = (p.name || '').toLowerCase();
+        const pSubcategory = (p.subCategory || p.subcategory || '').toLowerCase();
+        const pDesc = ((p.description || p.indication || '') || '').toLowerCase();
+        return pName.includes('prednisolone') || pName.includes('methylprednisolone') || 
+               pName.includes('dexamethasone') || pName.includes('betamethasone') ||
+               pName.includes('hydrocortisone') || pSubcategory.includes('corticoid') ||
+               pDesc.includes('prednisolone') || pDesc.includes('corticoid');
+      });
+      if (corticoidCandidates.length > 0) {
+        console.log(`[semanticSearch] 🔍 Tìm thấy ${corticoidCandidates.length} sản phẩm có thể là corticoid trong topScored:`);
+        corticoidCandidates.forEach(p => {
+          console.log(`  - ${p.name} (score=${p._score.toFixed(3)}, category=${(p.categoryName || p.category || '').substring(0, 30)}, subcategory=${(p.subCategory || p.subcategory || '').substring(0, 30)})`);
+        });
+      } else {
+        console.log(`[semanticSearch] ⚠️ KHÔNG tìm thấy sản phẩm corticoid nào trong topScored (${topScored.length} products)`);
+      }
+      
+      // Lọc products có category/subcategory đúng (kháng viêm) và loại bỏ thuốc kháng dị ứng
+      const antiInflammatoryProducts = topScored.filter(p => {
+        const pCategory = (p.categoryName || p.category || '').toLowerCase();
+        const pSubcategory = (p.subcategoryName || p.subcategory || '').toLowerCase();
+        const pName = (p.name || '').toLowerCase();
+        const pDesc = ((p.description || p.indication || p.uses || p.congDung || '') || '').toLowerCase();
+        
+        // Loại bỏ thuốc kháng dị ứng
+        const isAllergyMedicine = pCategory.includes('dị ứng') || pCategory.includes('allergy') || pCategory.includes('antihistamine') ||
+                                 pName.includes('cetirizine') || pName.includes('loratadine') || pName.includes('fexofenadine') ||
+                                 pName.includes('clorpheniramin') || pName.includes('chlorpheniramine') ||
+                                 pDesc.includes('dị ứng') || pDesc.includes('mề đay') || pDesc.includes('viêm mũi dị ứng');
+        if (isAllergyMedicine) {
+          return false; // Loại bỏ thuốc kháng dị ứng
+        }
+        
+        // QUAN TRỌNG: Nếu có chỉ định nhóm thuốc cụ thể, CHỈ trả về thuốc thuộc nhóm đó
+        if (antiInflammatoryGroup) {
+          let isInGroup = false;
+          
+          if (antiInflammatoryGroup === 'enzyme') {
+            // Enzyme chống viêm: Serratiopeptidase, Bromelain, Trypsin, Chymotrypsin
+            isInGroup = pSubcategory.includes('enzyme chống viêm') || pSubcategory.includes('enzym chống viêm') ||
+                       pName.includes('serratiopeptidase') || pName.includes('bromelain') || pName.includes('trypsin') ||
+                       pName.includes('chymotrypsin') || pName.includes('bromanase') || pName.includes('long huyết') ||
+                       pDesc.includes('enzyme chống viêm') || pDesc.includes('enzym chống viêm') ||
+                       pDesc.includes('serratiopeptidase') || pDesc.includes('bromelain');
+            console.log(`[semanticSearch] Checking enzyme group for "${p.name}": isInGroup=${isInGroup}, subcategory="${pSubcategory}", name="${pName.substring(0, 50)}"`);
+          } else if (antiInflammatoryGroup === 'nsaids') {
+            // NSAIDs: Ibuprofen, Diclofenac, Meloxicam, Celecoxib, Etoricoxib, Naproxen, Piroxicam
+            // QUAN TRỌNG: Loại bỏ gel và bôi ngoài
+            const isTopical = pName.includes('gel') || pSubcategory.includes('bôi ngoài') || pSubcategory.includes('topical') ||
+                             pDesc.includes('bôi ngoài') || pDesc.includes('gel');
+            const hasNSAIDName = pName.includes('ibuprofen') || pName.includes('diclofenac') || pName.includes('meloxicam') ||
+                               pName.includes('celecoxib') || pName.includes('etoricoxib') || pName.includes('naproxen') ||
+                               pName.includes('piroxicam') || (pName.includes('aspirin') && !pName.includes('gel')) ||
+                               pName.includes('philcotam'); // Philcotam có thể là NSAID
+            const hasNSAIDSubcategory = pSubcategory.includes('nsaids') || pSubcategory.includes('kháng viêm không steroid');
+            const hasNSAIDDesc = pDesc.includes('nsaids') || pDesc.includes('kháng viêm không steroid') ||
+                               pDesc.includes('giảm đau cơ xương khớp') || pDesc.includes('kháng viêm, giảm đau');
+            
+            isInGroup = !isTopical && (hasNSAIDName || hasNSAIDSubcategory || hasNSAIDDesc);
+            console.log(`[semanticSearch] Checking NSAIDs group for "${p.name}": isInGroup=${isInGroup}, isTopical=${isTopical}, hasNSAIDName=${hasNSAIDName}, subcategory="${pSubcategory}"`);
+          } else if (antiInflammatoryGroup === 'topical') {
+            // Thuốc bôi ngoài: Diclofenac gel, Ibuprofen gel, Ketoprofen gel, Voltaren gel
+            isInGroup = pSubcategory.includes('kháng viêm không steroid bôi ngoài') || pSubcategory.includes('bôi ngoài') ||
+                       pSubcategory.includes('topical') ||
+                       (pName.includes('gel') && (pName.includes('diclofenac') || pName.includes('ibuprofen') || 
+                        pName.includes('ketoprofen') || pName.includes('voltaren') || pName.includes('feldene'))) ||
+                       pName.includes('thuốc bôi kháng viêm') || pDesc.includes('bôi ngoài') || pDesc.includes('gel');
+            console.log(`[semanticSearch] Checking topical group for "${p.name}": isInGroup=${isInGroup}, subcategory="${pSubcategory}", name="${pName.substring(0, 50)}"`);
+          } else if (antiInflammatoryGroup === 'corticoid') {
+            // Corticoid: Prednisolone, Methylprednisolone, Dexamethasone, Betamethasone, Hydrocortisone
+            isInGroup = pSubcategory.includes('corticoid') || pSubcategory.includes('corticosteroid') ||
+                       pName.includes('prednisolone') || pName.includes('methylprednisolone') ||
+                       pName.includes('dexamethasone') || pName.includes('betamethasone') ||
+                       pName.includes('hydrocortisone') ||
+                       pDesc.includes('corticoid') || pDesc.includes('corticosteroid') ||
+                       pDesc.includes('prednisolone') || pDesc.includes('dexamethasone');
+            console.log(`[semanticSearch] Checking corticoid group for "${p.name}": isInGroup=${isInGroup}, subcategory="${pSubcategory}", name="${pName.substring(0, 50)}"`);
+          }
+          
+          // Nếu có chỉ định nhóm, CHỈ trả về thuốc thuộc nhóm đó
+          if (!isInGroup) {
+            console.log(`[semanticSearch] ❌ Loại bỏ "${p.name}" vì không thuộc nhóm ${antiInflammatoryGroup}`);
+            return false;
+          } else {
+            console.log(`[semanticSearch] ✅ Giữ lại "${p.name}" vì thuộc nhóm ${antiInflammatoryGroup}`);
+            // Nếu đã xác nhận thuộc nhóm, trả về true ngay (không cần kiểm tra isAntiInflammatoryCategory)
+            return true;
+          }
+        }
+        
+        // Nếu không có chỉ định nhóm cụ thể, kiểm tra xem có phải thuốc kháng viêm không
+        // Ưu tiên thuốc kháng viêm - CHỈ trả về thuốc kháng viêm, không trả về thuốc khác
+        const isAntiInflammatoryCategory = pCategory.includes('kháng viêm') || pCategory.includes('anti-inflammatory') ||
+                                          pCategory.includes('xương khớp') || pCategory.includes('cơ xương khớp') ||
+                                          pSubcategory.includes('nsaids') || pSubcategory.includes('kháng viêm không steroid') ||
+                                          pSubcategory.includes('enzyme chống viêm') || pSubcategory.includes('corticoid') ||
+                                          pSubcategory.includes('kháng viêm không steroid bôi ngoài') ||
+                                          pName.includes('ibuprofen') || pName.includes('diclofenac') || pName.includes('meloxicam') ||
+                                          pName.includes('celecoxib') || pName.includes('etoricoxib') || pName.includes('naproxen') ||
+                                          pName.includes('serratiopeptidase') || pName.includes('bromelain') || pName.includes('trypsin') ||
+                                          pName.includes('prednisolone') || pName.includes('methylprednisolone') || pName.includes('dexamethasone') ||
+                                          (pName.includes('gel') && (pName.includes('diclofenac') || pName.includes('ibuprofen') || pName.includes('ketoprofen')));
+        
+        // CHỈ trả về thuốc kháng viêm, không trả về thuốc khác (kể cả score cao)
+        return isAntiInflammatoryCategory;
+      });
+      
+      if (antiInflammatoryProducts.length > 0) {
+        console.log(`[semanticSearch] ✅ Anti-inflammatory query: Trả về ${Math.min(3, antiInflammatoryProducts.length)} products từ DB để đảm bảo AI dùng thuốc kháng viêm thực tế`);
+        console.log(`[semanticSearch] Products: ${antiInflammatoryProducts.slice(0, 3).map(p => `${p.name} (score=${p._score.toFixed(3)}, category=${(p.categoryName || p.category || '').substring(0, 30)})`).join(', ')}`);
+        return antiInflammatoryProducts.slice(0, 3).map(({ _score, ...rest }) => rest);
+      } else if (antiInflammatoryGroup) {
+        // QUAN TRỌNG: Nếu có chỉ định nhóm cụ thể nhưng không tìm thấy thuốc, trả về mảng rỗng
+        // KHÔNG fallback sang thuốc khác
+        console.log(`[semanticSearch] ⚠️ Không tìm thấy thuốc thuộc nhóm ${antiInflammatoryGroup}, trả về mảng rỗng`);
+        return [];
       }
     }
     
@@ -2921,6 +3446,9 @@ async function generateAIResponse(
           detailedQuestion = 'Để tư vấn thuốc tiêu hóa phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Men tiêu hóa:\n- Ăn không tiêu\n- Đầy bụng / Chướng bụng\n- Khó tiêu\n- Đi ngoài phân sống\n- Rối loạn tiêu hóa nhẹ\n- Trẻ em ăn uống kém\n\n🔹 Thuốc chống tiêu chảy:\n- Tiêu chảy\n- Đi ngoài phân lỏng\n- Đi ngoài nhiều lần trong ngày\n- Đau bụng kèm tiêu chảy\n\n🔹 Thuốc kháng acid:\n- Ợ chua / Ợ nóng\n- Nóng rát vùng thượng vị\n- Đau dạ dày nhẹ\n- Khó tiêu do tăng acid\n- Trào ngược nhẹ sau ăn\n\n🔹 Thuốc nhuận tràng:\n- Táo bón\n- Đi cầu khó\n- Phân cứng\n- Đi ngoài < 3 lần/tuần\n\n🔹 Thuốc ức chế tiết acid (PPI/H2):\n- Đau dạ dày nhiều / Đau thượng vị kéo dài\n- Trào ngược thường xuyên\n- Ợ chua kéo dài\n- Đau tăng về đêm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
         } else if (generalMedicineCategory === 'kháng dị ứng') {
           detailedQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Dị ứng da:\n- Ngứa da\n- Nổi mề đay\n- Phát ban dị ứng\n- Mẩn đỏ da\n- Dị ứng da do thức ăn\n- Dị ứng da do côn trùng đốt\n\n🔹 Dị ứng đường hô hấp:\n- Hắt hơi nhiều\n- Sổ mũi trong\n- Nghẹt mũi\n- Ngứa mũi\n- Chảy nước mắt\n- Đỏ mắt\n- Viêm mũi dị ứng theo mùa\n\n🔹 Ngứa khu trú/tại chỗ:\n- Ngứa da tại chỗ\n- Ngứa do côn trùng đốt\n- Ngứa da nhẹ, không nổi mề đay\n- Viêm da dị ứng nhẹ\n- Dị ứng mỹ phẩm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
+        } else if (generalMedicineCategory === 'kháng viêm') {
+          // BƯỚC 1: Xác định MỨC ĐỘ & VỊ TRÍ
+          detailedQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết bạn đang bị viêm ở tình trạng nào:\n\n1️⃣ Sưng, bầm nhẹ sau va chạm\n2️⃣ Đau viêm cơ – khớp\n3️⃣ Đau, sưng viêm tại một vị trí cụ thể\n4️⃣ Viêm nặng, sưng đỏ nhiều, đau dữ dội\n\nBạn có thể chọn số hoặc mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
         }
         
         context.instruction = `Người dùng đã cung cấp thông tin an toàn nhưng chỉ hỏi chung chung về "${generalMedicineCategory}" mà chưa có triệu chứng cụ thể. Bạn PHẢI hỏi lại triệu chứng cụ thể trước khi tư vấn thuốc. Hãy hỏi CHÍNH XÁC như sau:\n\n${detailedQuestion}\n\nKHÔNG được tự ý thay đổi nội dung câu hỏi.`;
@@ -3177,7 +3705,18 @@ async function generateAIResponse(
         },
         'kháng viêm': {
           pattern: /thuốc\s*kháng\s*viêm|thuốc\s*chống\s*viêm|kháng\s*viêm|chống\s*viêm/i,
-          symptoms: ['viêm', 'sưng', 'đau', 'đỏ', 'nóng']
+          symptoms: [
+            // NHÓM A - Enzyme chống viêm
+            'sưng nhẹ', 'phù nề nhẹ', 'bầm tím', 'chấn thương phần mềm', 'chấn thương mô mềm', 'viêm nhẹ sau va chạm', 'đau nhẹ do viêm',
+            // NHÓM B - NSAIDs
+            'đau viêm khớp', 'đau cơ', 'đau lưng', 'đau vai gáy', 'đau răng', 'sưng đau do viêm',
+            // NHÓM C - Bôi ngoài
+            'đau cơ tại chỗ', 'đau khớp tại chỗ', 'sưng viêm tại chỗ', 'viêm gân', 'bong gân', 'căng cơ',
+            // NHÓM D - Corticoid
+            'viêm nặng', 'sưng đỏ nhiều', 'đau dữ dội', 'viêm kéo dài không giảm', 'dị ứng viêm mạnh', 'phù nề nhiều',
+            // Các triệu chứng cũ (để tương thích)
+            'viêm', 'sưng', 'đau', 'đỏ', 'nóng'
+          ]
         },
         'thần kinh': {
           pattern: /thuốc\s*thần\s*kinh|thần\s*kinh/i,
@@ -3237,7 +3776,8 @@ async function generateAIResponse(
             clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n🔹 Dị ứng da:\n- Ngứa da\n- Nổi mề đay\n- Phát ban dị ứng\n- Mẩn đỏ da\n- Dị ứng da do thức ăn\n- Dị ứng da do côn trùng đốt\n\n🔹 Dị ứng đường hô hấp:\n- Hắt hơi nhiều\n- Sổ mũi trong\n- Nghẹt mũi\n- Ngứa mũi\n- Chảy nước mắt\n- Đỏ mắt\n- Viêm mũi dị ứng theo mùa\n\n🔹 Ngứa khu trú/tại chỗ:\n- Ngứa da tại chỗ\n- Ngứa do côn trùng đốt\n- Ngứa da nhẹ, không nổi mề đay\n- Viêm da dị ứng nhẹ\n- Dị ứng mỹ phẩm\n\nBạn có thể mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
             break;
           case 'kháng viêm':
-            clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Viêm khớp\n- Viêm họng\n- Viêm mũi\n- Sưng đau\n- Đỏ nóng\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+            // BƯỚC 1: Xác định MỨC ĐỘ & VỊ TRÍ
+            clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết bạn đang bị viêm ở tình trạng nào:\n\n1️⃣ Sưng, bầm nhẹ sau va chạm\n2️⃣ Đau viêm cơ – khớp\n3️⃣ Đau, sưng viêm tại một vị trí cụ thể\n4️⃣ Viêm nặng, sưng đỏ nhiều, đau dữ dội\n\nBạn có thể chọn số hoặc mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
             break;
           case 'thần kinh':
             clarificationQuestion = 'Để tư vấn thuốc thần kinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau đầu\n- Nhức đầu\n- Chóng mặt\n- Hoa mắt\n- Migraine / Đau nửa đầu\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
@@ -3314,6 +3854,44 @@ async function generateAIResponse(
         }
       }
       
+      // QUAN TRỌNG: Xử lý khi người dùng chọn số (1, 2, 3, 4) cho thuốc kháng viêm
+      // Map số với triệu chứng cụ thể để tìm đúng nhóm thuốc
+      const numberSelectionPattern = /(?:tôi\s+)?chọn\s+số\s*([1-4])|số\s*([1-4])|chọn\s*([1-4])/i;
+      const numberMatch = lowerCombinedMessage.match(numberSelectionPattern);
+      let mappedSymptomQuery: string | null = null;
+      let selectedAntiInflammatoryGroup: 'enzyme' | 'nsaids' | 'topical' | 'corticoid' | null = null;
+      
+      if (numberMatch) {
+        const selectedNumber = numberMatch[1] || numberMatch[2] || numberMatch[3];
+        console.log(`[Rule-based] User selected number: ${selectedNumber} for anti-inflammatory medicine`);
+        
+        // Map số với triệu chứng cụ thể và nhóm thuốc
+        const numberToSymptom: { [key: string]: { symptom: string; group: 'enzyme' | 'nsaids' | 'topical' | 'corticoid' } } = {
+          '1': { 
+            symptom: 'sưng nhẹ sau va chạm bầm tím chấn thương phần mềm phù nề nhẹ viêm nhẹ sau va chạm đau nhẹ do viêm', 
+            group: 'enzyme' // Enzyme chống viêm
+          },
+          '2': { 
+            symptom: 'đau viêm cơ khớp đau viêm cơ đau cơ đau lưng đau vai gáy đau răng sưng đau do viêm', 
+            group: 'nsaids' // NSAIDs
+          },
+          '3': { 
+            symptom: 'đau cơ tại chỗ đau khớp tại chỗ sưng viêm tại chỗ viêm gân bong gân căng cơ', 
+            group: 'topical' // Thuốc bôi ngoài
+          },
+          '4': { 
+            symptom: 'viêm nặng sưng đỏ nhiều đau dữ dội viêm kéo dài không giảm phù nề nhiều dị ứng viêm mạnh', 
+            group: 'corticoid' // Corticoid
+          }
+        };
+        
+        if (numberToSymptom[selectedNumber]) {
+          mappedSymptomQuery = numberToSymptom[selectedNumber].symptom;
+          selectedAntiInflammatoryGroup = numberToSymptom[selectedNumber].group;
+          console.log(`[Rule-based] Mapped number ${selectedNumber} to symptom: ${mappedSymptomQuery}, group: ${selectedAntiInflammatoryGroup}`);
+        }
+      }
+      
       // Find the original symptom message - exclude messages that are just answers
       const originalSymptomMsg = [...conversationHistory].reverse().find(m =>
         m.role === 'user' &&
@@ -3322,15 +3900,17 @@ async function generateAIResponse(
         !(/\d{1,2}\s*tuổi/.test(m.content) && !/(cảm|cúm|ho|sốt)/i.test(m.content))
       );
       
-      // Use original symptom message if found, otherwise use combined message
-      const symptomQuery = originalSymptomMsg ? originalSymptomMsg.content : combinedSymptomMessage;
+      // Use mapped symptom query if user selected a number, otherwise use original symptom message or combined message
+      const symptomQuery = mappedSymptomQuery || (originalSymptomMsg ? originalSymptomMsg.content : combinedSymptomMessage);
       
       console.log('✅ Rule-based: Found follow-up with info, searching medicines for:', symptomQuery);
       console.log('   Original symptom message:', originalSymptomMsg?.content || 'Not found');
       console.log('   Combined message:', combinedSymptomMessage.substring(0, 100));
+      console.log('   Selected anti-inflammatory group:', selectedAntiInflammatoryGroup || 'none');
       
       // Use semantic search to find medicines for the symptom
-      const suggestedMedicines = await semanticSearch(symptomQuery);
+      // Pass selectedAntiInflammatoryGroup to filter by specific group
+      const suggestedMedicines = await semanticSearch(symptomQuery, selectedAntiInflammatoryGroup);
       console.log('   Semantic search result:', suggestedMedicines.length, 'medicines found');
       
       // QUAN TRỌNG: Nếu là mề đay và đã có thông tin về thời gian, filter thuốc theo thời gian
@@ -3439,7 +4019,22 @@ async function generateAIResponse(
         return response;
       } else {
         console.log('⚠️ Rule-based: No medicines found for symptom:', symptomQuery);
-        // Fallback: Try to suggest common medicines based on symptom keywords
+        
+        // QUAN TRỌNG: Nếu có selectedAntiInflammatoryGroup, KHÔNG fallback sang thuốc khác
+        // Trả về thông báo rõ ràng rằng không có thuốc thuộc nhóm đó trong database
+        if (selectedAntiInflammatoryGroup) {
+          const groupNames: { [key: string]: string } = {
+            'enzyme': 'Enzyme chống viêm',
+            'nsaids': 'NSAIDs (thuốc kháng viêm không steroid uống)',
+            'topical': 'Thuốc kháng viêm bôi ngoài',
+            'corticoid': 'Corticoid (thuốc kháng viêm mạnh)'
+          };
+          const groupName = groupNames[selectedAntiInflammatoryGroup] || selectedAntiInflammatoryGroup;
+          console.log(`⚠️ Rule-based: Không tìm thấy thuốc thuộc nhóm ${groupName}, KHÔNG fallback sang thuốc khác`);
+          return `Xin lỗi, hiện tại nhà thuốc không có thuốc thuộc nhóm ${groupName} phù hợp với tình trạng của bạn trong kho.\n\nBạn vui lòng liên hệ trực tiếp với dược sĩ tại quầy để được tư vấn cụ thể hơn hoặc tìm sản phẩm thay thế phù hợp.`;
+        }
+        
+        // Fallback: Try to suggest common medicines based on symptom keywords (chỉ khi KHÔNG có selectedAntiInflammatoryGroup)
         if (symptomKeywords.length > 0) {
           // Try to get medicines from symptom mapping directly
           const allMedicines: string[] = [];
@@ -3449,7 +4044,7 @@ async function generateAIResponse(
             }
           });
           console.log('   Trying fallback with symptom keywords:', symptomKeywords, 'medicines:', allMedicines.slice(0, 5));
-          // Try search again with just the symptom name
+          // Try search again with just the symptom name (KHÔNG truyền selectedAntiInflammatoryGroup vì đã check ở trên)
           const fallbackMedicines = await semanticSearch(symptomKeywords[0]);
           if (fallbackMedicines.length > 0) {
             console.log('   Fallback found', fallbackMedicines.length, 'medicines');
@@ -3564,7 +4159,18 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
       },
       'kháng viêm': {
         pattern: /thuốc\s*kháng\s*viêm|thuốc\s*chống\s*viêm|kháng\s*viêm|chống\s*viêm/i,
-        symptoms: ['viêm', 'sưng', 'đau', 'đỏ', 'nóng']
+        symptoms: [
+          // NHÓM A - Enzyme chống viêm
+          'sưng nhẹ', 'phù nề nhẹ', 'bầm tím', 'chấn thương phần mềm', 'chấn thương mô mềm', 'viêm nhẹ sau va chạm', 'đau nhẹ do viêm',
+          // NHÓM B - NSAIDs
+          'đau viêm khớp', 'đau cơ', 'đau lưng', 'đau vai gáy', 'đau răng', 'sưng đau do viêm',
+          // NHÓM C - Bôi ngoài
+          'đau cơ tại chỗ', 'đau khớp tại chỗ', 'sưng viêm tại chỗ', 'viêm gân', 'bong gân', 'căng cơ',
+          // NHÓM D - Corticoid
+          'viêm nặng', 'sưng đỏ nhiều', 'đau dữ dội', 'viêm kéo dài không giảm', 'dị ứng viêm mạnh', 'phù nề nhiều',
+          // Các triệu chứng cũ (để tương thích)
+          'viêm', 'sưng', 'đau', 'đỏ', 'nóng'
+        ]
       },
       'thần kinh': {
         pattern: /thuốc\s*thần\s*kinh|thần\s*kinh/i,
@@ -3621,7 +4227,8 @@ Ngoài ra, bạn nên uống nhiều nước, giữ ấm và nghỉ ngơi.`;
           clarificationQuestion = 'Để tư vấn thuốc kháng dị ứng phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Ngứa\n- Nổi mề đay\n- Phát ban\n- Hắt hơi\n- Sổ mũi\n- Nghẹt mũi\n- Viêm mũi dị ứng\n- Chảy nước mắt\n- Đỏ mắt\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
           break;
         case 'kháng viêm':
-          clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Viêm khớp\n- Viêm họng\n- Viêm mũi\n- Sưng đau\n- Đỏ nóng\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
+          // BƯỚC 1: Xác định MỨC ĐỘ & VỊ TRÍ
+          clarificationQuestion = 'Để tư vấn thuốc kháng viêm phù hợp và an toàn, bạn vui lòng cho tôi biết bạn đang bị viêm ở tình trạng nào:\n\n1️⃣ Sưng, bầm nhẹ sau va chạm\n2️⃣ Đau viêm cơ – khớp\n3️⃣ Đau, sưng viêm tại một vị trí cụ thể\n4️⃣ Viêm nặng, sưng đỏ nhiều, đau dữ dội\n\nBạn có thể chọn số hoặc mô tả triệu chứng của mình để tôi tư vấn chính xác hơn.';
           break;
         case 'thần kinh':
           clarificationQuestion = 'Để tư vấn thuốc thần kinh phù hợp và an toàn, bạn vui lòng cho tôi biết cụ thể hơn về triệu chứng bạn đang gặp phải:\n\n- Đau đầu\n- Nhức đầu\n- Chóng mặt\n- Hoa mắt\n- Migraine / Đau nửa đầu\n\nHoặc bạn có thể mô tả cụ thể tình trạng của bạn.';
